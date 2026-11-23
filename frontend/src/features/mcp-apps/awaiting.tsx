@@ -185,7 +185,7 @@ export function AwaitingResult({
               data-room={id}
               data-current={id === room ? "true" : undefined}
             >
-              {shell.rooms[id]}
+              <span className="sidekick-wait-name">{shell.rooms[id]}</span>
             </span>
           ))}
           {/* The Mer cell, with the name and the glyph of its room while one of them is open, as the strip draws it. */}
@@ -195,7 +195,9 @@ export function AwaitingResult({
             data-room={moreRoom}
             data-current={moreRoom ? "true" : undefined}
           >
-            {moreRoom ? shell.rooms[moreRoom] : shell.more}
+            <span className="sidekick-wait-name">
+              {moreRoom ? shell.rooms[moreRoom] : shell.more}
+            </span>
           </span>
         </div>
       ) : null}

@@ -22,9 +22,9 @@ class McpServerSettings(SettingsGroup):
     mcp_app_nav_icons: NavIcons = Field(
         default="auto",
         description=(
-            "What the room strip draws: auto (the default: names where the frame is wide, an icon "
-            "over each name on a phone), off (names at every width), label (an icon with each "
-            "name) or only (icons alone)."
+            "What the room strip draws: auto (the default: names where the frame is wide, and on "
+            "a phone icons with the name of the room that is open), off (names at every width), "
+            "label (an icon with each name) or only (icons alone)."
         ),
     )
     mcp_app_show_ai_usage: bool = Field(

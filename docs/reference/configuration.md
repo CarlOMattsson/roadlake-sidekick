@@ -81,7 +81,7 @@ The public MCP server, its name, language and authentication.
 | --- | --- | --- | --- | --- |
 | `SIDEKICK_MCP_SERVER_NAME` | string | `Sidekick` | no | Name the public MCP server reports; Claude shows it as the connector name. |
 | `SIDEKICK_MCP_APP_LOCALE` | one of `sv`, `en` | `sv` | no | Language of the Sidekick MCP Apps: sv (default) or en. |
-| `SIDEKICK_MCP_APP_NAV_ICONS` | one of `auto`, `off`, `label`, `only` | `auto` | no | What the room strip draws: auto (the default: names where the frame is wide, an icon over each name on a phone), off (names at every width), label (an icon with each name) or only (icons alone). |
+| `SIDEKICK_MCP_APP_NAV_ICONS` | one of `auto`, `off`, `label`, `only` | `auto` | no | What the room strip draws: auto (the default: names where the frame is wide, and on a phone icons with the name of the room that is open), off (names at every width), label (an icon with each name) or only (icons alone). |
 | `SIDEKICK_MCP_APP_SHOW_AI_USAGE` | boolean | `false` | no | Show the month's AI cost as a row in Control; off by default. |
 | `SIDEKICK_MCP_STDIO_OWNER_ID` | string | empty | no | User UUID the local stdio entrance acts as; empty means it will not start. |
 | `SIDEKICK_MCP_AUTH_MODE` | one of `pat`, `github_oauth` | `pat` | no | Public MCP authentication: personal access token, or GitHub OAuth sign-in. |

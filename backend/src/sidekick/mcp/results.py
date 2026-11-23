@@ -68,6 +68,22 @@ REASON_ADVICE: dict[SidekickErrorReason, str] = {
         "This automation is meant for another runner than the one that asked. Ask the owner "
         "which runner it should have."
     ),
+    "suggestion_same_session": (
+        "A suggestion is not decided in the session that ran its automation. Ask the owner to "
+        "decide it in the app, or decide it from another conversation."
+    ),
+    "suggestion_not_pending": (
+        "That suggestion no longer waits for a decision (decided, expired or still being "
+        "checked). Read it again with get_suggestion."
+    ),
+    "suggestion_undo_refused": (
+        "Only an applied suggestion whose record is unchanged and not in the trash is undone. "
+        "Use the trash for the record itself."
+    ),
+    "suggestion_group_refused": (
+        "The group changed or is no longer all high-confidence, so none of it was approved. "
+        "Read the groups again with list_suggestions."
+    ),
     "ai_budget_reached": (
         "The spending cap of the task or of the month is reached, so the step was not run."
     ),

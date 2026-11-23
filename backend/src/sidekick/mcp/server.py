@@ -40,6 +40,7 @@ from sidekick.mcp.search import register_search_tools
 from sidekick.mcp.shopping import register_shopping_tools
 from sidekick.mcp.sidekick_app import register_sidekick_app_resource
 from sidekick.mcp.start_tools import register_start_tools
+from sidekick.mcp.suggestion_tools import register_suggestion_tools
 from sidekick.mcp.titles import LocalizeToolTitles, MirrorToolTitles
 from sidekick.mcp.tool_context import ToolContext
 from sidekick.mcp.validation_errors import install_validation_error_redaction
@@ -125,6 +126,7 @@ def _register_tools(
     register_ai_step_tools(mcp, ctx)
     register_automation_tools(mcp, ctx)
     register_automation_run_tools(mcp, ctx)
+    register_suggestion_tools(mcp, ctx)
 
 
 def _register_app_resources(

@@ -14,6 +14,7 @@ from sidekick.automations.domain.suggestion import (
     ApplyError,
     CheckState,
     DecidedBy,
+    Decision,
     DecisionChannel,
     DecisionContext,
     DecisionRefusal,
@@ -168,6 +169,17 @@ def test_a_flagged_card_is_never_decided_by_a_model(flag: ScreeningFlag) -> None
         assert refusal(decide) is DecisionRefusal.NEEDS_APP
     # the owner can still decide it in the app, with one tap
     assert card.approve(APP, APPLIED, now=NOW, expected_version=1).state is SuggestionState.APPLIED
+
+
+def test_an_edited_card_is_never_decided_by_a_model_even_without_a_flag() -> None:
+    card = suggestion().edit(parsed_task(title="Call the dentist later"), (), expected_version=1)
+
+    assert not card.flagged
+    for decide in (
+        lambda: card.approve(MODEL, APPLIED, now=NOW, expected_version=2),
+        lambda: card.dismiss(MODEL, now=NOW, expected_version=2),
+    ):
+        assert refusal(decide) is DecisionRefusal.NEEDS_APP
 
 
 def test_a_suspicious_card_is_never_decided_by_a_model_and_needs_a_second_tap() -> None:
@@ -381,6 +393,49 @@ def test_an_applied_card_is_undone_only_while_the_record_is_as_it_was_created() 
         )
         is DecisionRefusal.NOT_APPLIED
     )
+
+
+def test_a_decision_is_checked_without_taking_a_step() -> None:
+    pending = suggestion()
+    pending.check_decision(APP, Decision.APPROVE, now=NOW, expected_version=1)
+    assert pending.version == 1
+    same = DecisionContext(DecisionChannel.MODEL, session_matches_run=True)
+    calls = {
+        DecisionRefusal.STALE: lambda: pending.check_decision(
+            APP, Decision.APPROVE, now=NOW, expected_version=2
+        ),
+        DecisionRefusal.SAME_SESSION: lambda: pending.check_decision(
+            same, Decision.DISMISS, now=NOW, expected_version=1
+        ),
+        DecisionRefusal.EXPIRED: lambda: pending.check_decision(
+            APP, Decision.APPROVE, now=pending.expires_at, expected_version=1
+        ),
+    }
+    assert {key: refusal(call) for key, call in calls.items()} == {key: key for key in calls}
+
+
+@pytest.mark.parametrize(
+    ("kind", "reason"),
+    [
+        (DecisionRefusal.NEEDS_APP, "app_only"),
+        (DecisionRefusal.NEEDS_CONFIRMATION, "app_only"),
+        (DecisionRefusal.STALE, "stale_version"),
+        (DecisionRefusal.SAME_SESSION, "suggestion_same_session"),
+        (DecisionRefusal.NOT_PENDING, "suggestion_not_pending"),
+        (DecisionRefusal.CHANGED_SINCE_APPLY, "suggestion_undo_refused"),
+        (DecisionRefusal.GROUP_CHANGED, "suggestion_group_refused"),
+    ],
+)
+def test_a_refusal_tells_a_client_a_closed_reason_and_holds_no_text(
+    kind: DecisionRefusal, reason: str
+) -> None:
+    error = SuggestionRefusedError(kind)
+    assert (error.reason, str(error), error.code) == (reason, kind.value, "conflict")
+
+
+def test_every_refusal_has_a_reason() -> None:
+    for kind in DecisionRefusal:
+        assert SuggestionRefusedError(kind).reason is not None
 
 
 # --- a dismissed suggestion does not return (I9) -------------------------------------------------

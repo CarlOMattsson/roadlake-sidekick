@@ -5,6 +5,7 @@ import {
   declaredNavIcons,
   navIcons,
   navIconsFrom,
+  stripFace,
   type NavIcons,
 } from "@/features/mcp-apps/nav-icons";
 import {
@@ -19,10 +20,11 @@ import {
 import type { NavEntry } from "@/features/mcp-apps/nav-state";
 import { ROOM_IDS } from "@/features/mcp-apps/router";
 
-// The room strip's cells draw by default (`auto`) the names alone where the frame has room for them, and a glyph over
-// each name in a phone's frame. The other modes are the same at every width: the names alone (`off`), a glyph before
-// each name (`label`) or the glyphs alone (`only`). The mode comes from the shell's own prop, or else from the app
-// document's `sidekick-nav-icons` meta.
+// The room strip's cells draw the names alone by default (`auto`). jsdom has no frame width, so `auto` is never a phone's
+// frame here: a phone's frame at an ordinary text size draws a glyph before the open room's name instead (stripFace,
+// tested below and in the e2e spec). The other modes are the same at every width: the names alone (`off`), a glyph
+// before each name (`label`) or the glyphs alone (`only`). The mode comes from the shell's own prop, or else from the
+// app document's `sidekick-nav-icons` meta.
 const LOCAL: HostFeatures = {
   serverTools: true,
   message: true,
@@ -154,6 +156,21 @@ describe("declaredNavIcons()", () => {
   );
 });
 
+describe("stripFace()", () => {
+  it.each([
+    ["auto", true, "label"],
+    ["auto", false, "off"],
+    ["off", true, "off"],
+    ["off", false, "off"],
+    ["label", true, "label"],
+    ["label", false, "label"],
+    ["only", true, "only"],
+    ["only", false, "only"],
+  ] as const)("draws %s with phone %s as %s", (mode, phone, face) => {
+    expect(stripFace(mode, phone)).toBe(face);
+  });
+});
+
 describe.each(LOCALES)("the room strip in %s", (locale, labels, navName) => {
   const names = [
     labels.rooms.work,
@@ -161,8 +178,8 @@ describe.each(LOCALES)("the room strip in %s", (locale, labels, navName) => {
     labels.rooms.shopping,
   ];
 
-  it("draws the names alone with the markup it always had when off is chosen", () => {
-    setup({ locale, navIcons: "off" });
+  /** The names alone: the markup a strip without glyphs has, as it always had. */
+  function expectNamesAlone() {
     const nav = strip(navName);
     expect(nav).not.toHaveAttribute("data-icons");
     expect(roomCells().map((cell) => cell.textContent)).toEqual(names);
@@ -176,27 +193,20 @@ describe.each(LOCALES)("the room strip in %s", (locale, labels, navName) => {
     expect(moreCell()).toHaveTextContent(new RegExp(`^${labels.more}$`));
     expect(moreCell()).not.toHaveAttribute("aria-label");
     expect(moreCell()).not.toHaveAttribute("title");
+  }
+
+  it("draws the names alone with the markup it always had when off is chosen", () => {
+    setup({ locale, navIcons: "off" });
+    expectNamesAlone();
   });
 
-  it("draws the default, auto, a glyph and a name in each cell", () => {
-    setup({ locale });
-    const nav = strip(navName);
-    expect(nav).toHaveAttribute("data-icons", "auto");
-    expect(roomCells().map((cell) => cell.textContent)).toEqual(names);
-    roomCells().forEach((cell, index) => {
-      expect(cell.querySelectorAll("svg")).toHaveLength(1);
-      expect(cell.querySelector("svg")).toHaveAttribute("aria-hidden", "true");
-      expect(cell.querySelector(".sk-rooms__name")).toHaveTextContent(
-        names[index] ?? "",
-      );
-      expect(cell).not.toHaveAttribute("aria-label");
-      expect(cell).not.toHaveAttribute("title");
-    });
-    // Mer: its glyph and its ⌄.
-    expect(moreCell().querySelectorAll("svg")).toHaveLength(2);
-    expect(moreCell()).toHaveTextContent(new RegExp(`^${labels.more}$`));
-    expect(moreCell()).not.toHaveAttribute("aria-label");
-    expect(moreCell()).not.toHaveAttribute("title");
+  // jsdom has no phone frame, so the default draws what the wide frame draws: the names alone, as `off`.
+  it.each([
+    ["no prop and no meta", () => setup({ locale })],
+    ["the prop auto", () => setup({ locale, navIcons: "auto" })],
+  ])("draws the names alone by default, with %s", (_, run) => {
+    run();
+    expectNamesAlone();
   });
 
   it.each(["prop", "meta"] as const)(
@@ -308,15 +318,18 @@ describe("which source wins", () => {
     }
   });
 
-  it("falls back to auto for an unknown meta value", () => {
+  it("falls back to the default, the names alone in jsdom, for an unknown meta value", () => {
     declare("sparkles");
     setup();
-    expect(strip()).toHaveAttribute("data-icons", "auto");
+    expect(strip()).not.toHaveAttribute("data-icons");
     expect(roomCells().map((cell) => cell.textContent)).toEqual([
       "Arbete",
       "Dagbok",
       "Inköp",
     ]);
+    for (const cell of roomCells()) {
+      expect(cell.querySelector("svg")).toBeNull();
+    }
   });
 });
 

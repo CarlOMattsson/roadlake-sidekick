@@ -23,7 +23,7 @@ const apps = {
 // 2026-11-18: 235 KiB to 245 KiB for the owner-approved Q1–Q4 (repeat rules, week view, quick shopping changes, clickable inline names; measured 235 672).
 // 2026-11-20: 245 KiB to 255 KiB for the desktop layer (popover menus, room head, list beside detail; measured 253 910).
 // 2026-11-20: 255 KiB to 270 KiB for the desktop Journal and Control (month rail, reading pane, Control's table; measured 263 695).
-// 2026-11-23: 270 KiB to 275 KiB for the room strip that follows the frame (a glyph over each name on a phone, also in the placeholder; measured 277 534).
+// 2026-11-23: 270 KiB to 275 KiB for the room strip that follows the frame (glyphs on a phone, also in the placeholder; measured 277 578).
 const GZIP_BUDGET_BYTES = 275 * 1024;
 type AppName = keyof typeof apps;
 
@@ -77,9 +77,9 @@ function waitPlaceholder() {
     const names =
       WAIT_ROOMS.map(
         (id, index) =>
-          `<span class="sidekick-wait-room" data-room="${id}">${rooms[index]}</span>`,
+          `<span class="sidekick-wait-room" data-room="${id}"><span class="sidekick-wait-name">${rooms[index]}</span></span>`,
       ).join("") +
-      `<span class="sidekick-wait-room" data-more="">${WAIT_TEXT[locale].more}</span>`;
+      `<span class="sidekick-wait-room" data-more=""><span class="sidekick-wait-name">${WAIT_TEXT[locale].more}</span></span>`;
     return `<div aria-hidden="true" class="sidekick-wait-strip" data-wait-locale="${locale}">${names}</div>`;
   };
   const line = (locale: (typeof LOCALES)[number]) =>

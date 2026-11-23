@@ -25,6 +25,10 @@ SidekickErrorReason = Literal[
     "automation_not_approved",
     "automation_changed_since_approval",
     "automation_other_runner",
+    "suggestion_same_session",
+    "suggestion_not_pending",
+    "suggestion_undo_refused",
+    "suggestion_group_refused",
     "app_only",
 ]
 

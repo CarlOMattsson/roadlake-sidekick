@@ -42,8 +42,8 @@
 }
 
 /* The room strip (sidekick-shell.css, .sk-rooms): 40 px high, a 4 px frame in the surface tone and four 32 px cells with
-   the labels in 14/18 at 500, the active one 600; in a phone's frame the glyphs over the names, below. The strip does not
-   pulse: it is navigation, not content. */
+   the labels in 14/18 at 500, the active one 600; in a phone's frame glyphs stand for the names, below. The strip does
+   not pulse: it is navigation, not content. */
 .sidekick-wait-strip {
   display: flex;
   gap: 0.25rem;
@@ -86,31 +86,19 @@
   mask: var(--w-chevron) center / 100% no-repeat;
 }
 
-/* A phone's frame: each room's 20 glyph over its name in 12/16, a 40 cell and the strip 48, as the shell's strip draws
-   it there (sidekick-shell.css), unless the instance chose names alone or glyphs alone for every width (the
-   `sidekick-nav-icons` meta, nav-icons.ts): those strips are 40, and this one keeps the names it has. The glyphs are
-   the strip's own (ui/icons.tsx), as masks, so the static placeholder draws them without the bundle. The ⌄ of Mer
-   stands beside its glyph, which stays centred over the name. Not at large text, as in the shell. */
+/* A phone's frame at an ordinary text size: each room's 20 glyph, and the name after it in the room that is open, as
+   the shell's strip draws it there (sidekick-shell.css, nav-icons.ts), the strip still 40. Not where the instance
+   chose names alone or glyphs alone for every width (the `sidekick-nav-icons` meta): this strip keeps its names then.
+   The glyphs are the strip's own (ui/icons.tsx), as masks, so the static placeholder draws them without the bundle. */
 @media (17.25rem < width <= 32rem) {
   :root:not(
       :has(
         meta[name="sidekick-nav-icons"]:is([content="off"], [content="only"])
       )
     )
-    .sidekick-wait-strip {
-    height: 48px;
-  }
-  :root:not(
-      :has(
-        meta[name="sidekick-nav-icons"]:is([content="off"], [content="only"])
-      )
-    )
     .sidekick-wait-room {
-    position: relative;
-    align-content: center;
-    padding: 3px 2px 1px;
-    font-size: var(--sk-type-caption-size);
-    line-height: var(--sk-type-caption-line);
+    grid-auto-flow: column;
+    justify-content: center;
   }
   :root:not(
       :has(
@@ -130,18 +118,42 @@
         meta[name="sidekick-nav-icons"]:is([content="off"], [content="only"])
       )
     )
-    .sidekick-wait-room[data-more] {
-    grid-auto-flow: row;
+    .sidekick-wait-name {
+    margin-inline-start: 6px;
   }
   :root:not(
       :has(
         meta[name="sidekick-nav-icons"]:is([content="off"], [content="only"])
       )
     )
-    .sidekick-wait-room[data-more]::after {
-    position: absolute;
-    top: 5px;
-    left: calc(50% + 10px);
+    .sidekick-wait-room[data-more]
+    .sidekick-wait-name {
+    margin-inline-start: 4px;
+  }
+  :root:not(
+      :has(
+        meta[name="sidekick-nav-icons"]:is([content="off"], [content="only"])
+      )
+    )
+    .sidekick-wait-room:not([data-current]) {
+    min-width: 44px;
+  }
+  :root:not(
+      :has(
+        meta[name="sidekick-nav-icons"]:is([content="off"], [content="only"])
+      )
+    )
+    .sidekick-wait-room:not([data-current])
+    .sidekick-wait-name {
+    display: none;
+  }
+  :root:not(
+      :has(
+        meta[name="sidekick-nav-icons"]:is([content="off"], [content="only"])
+      )
+    )
+    .sidekick-wait-room[data-current] {
+    padding-inline: 8px;
   }
 }
 .sidekick-wait-room {

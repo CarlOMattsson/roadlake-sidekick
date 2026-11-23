@@ -21,6 +21,7 @@ export type ToolResults = {
   };
   approve_ai_plan: AiPlanOutput;
   approve_automation: AutomationOutput;
+  approve_suggestion_group: DecisionsOutput;
   archive_contact: ContactResult;
   archive_saved_work_view: SavedViewOutput;
   archive_step_action: ActionOutput;
@@ -109,6 +110,7 @@ export type ToolResults = {
       waiting_since: string | null;
     }>;
   };
+  decide_suggestions: DecisionsOutput;
   exclude_from_memory: {
     changed: boolean;
     excluded: boolean;
@@ -430,6 +432,84 @@ export type ToolResults = {
       total: number;
     } | null;
   };
+  get_suggestion: {
+    suggestion: {
+      applied: AppliedRecordRef | null;
+      apply_error:
+        | "project_gone"
+        | "conflict"
+        | "invalid_payload"
+        | "not_permitted"
+        | null;
+      automation_id: string;
+      automation_title: string;
+      blockers: Array<
+        | "not_pending"
+        | "not_checked"
+        | "verdict_not_ok"
+        | "below_threshold"
+        | "flagged"
+        | "edited"
+        | "not_low_risk"
+        | "run_not_done"
+      >;
+      bulk_eligible: boolean;
+      check: CheckSummary;
+      checks: Array<{
+        attempt: number;
+        checked_at: string;
+        checker: string;
+        confidence: number | null;
+        model: string;
+        reason_codes: Array<string>;
+        verdict: string;
+      }>;
+      datapoints: Array<{
+        fields: Record<string, unknown> | null;
+        id: string;
+        kind:
+          | "person"
+          | "organisation"
+          | "event"
+          | "commitment"
+          | "request"
+          | "note";
+        source_kind:
+          "mail" | "calendar" | "chat" | "web" | "api" | "share" | "sidekick";
+        source_label: string | null;
+      }>;
+      decided_at: string | null;
+      decided_by: "you" | "claude" | "policy" | null;
+      decision_channel: "app" | "model" | "companion" | "policy" | null;
+      edited: boolean;
+      effect: "create_task" | "create_contact";
+      expires_at: string;
+      flags: Array<
+        | "contains_link"
+        | "payment_related"
+        | "contact_detail_unverified"
+        | "homoglyph_domain"
+        | "instruction_like_text"
+        | "duplicate_existing"
+        | "large_batch"
+      >;
+      id: string;
+      payload: Record<string, unknown>;
+      rationale: string;
+      source_label: string | null;
+      state:
+        | "received"
+        | "checking"
+        | "pending"
+        | "applied"
+        | "undone"
+        | "dismissed"
+        | "expired";
+      summary: string;
+      undone_at: string | null;
+      version: number;
+    };
+  };
   get_task: {
     task: {
       ai_possible: boolean;
@@ -713,6 +793,53 @@ export type ToolResults = {
     next_offset: number | null;
   };
   list_step_actions: ActionPageOutput;
+  list_suggestions: {
+    groups: Array<{
+      automation_id: string;
+      automation_title: string;
+      count: number;
+      group_digest: string;
+      suggestion_ids: Array<string>;
+    }>;
+    hidden: number;
+    items: Array<{
+      apply_error:
+        | "project_gone"
+        | "conflict"
+        | "invalid_payload"
+        | "not_permitted"
+        | null;
+      automation_id: string;
+      automation_title: string;
+      bulk_eligible: boolean;
+      check: CheckSummary;
+      edited: boolean;
+      effect: "create_task" | "create_contact";
+      expires_at: string;
+      flags: Array<
+        | "contains_link"
+        | "payment_related"
+        | "contact_detail_unverified"
+        | "homoglyph_domain"
+        | "instruction_like_text"
+        | "duplicate_existing"
+        | "large_batch"
+      >;
+      id: string;
+      source_label: string | null;
+      state:
+        | "received"
+        | "checking"
+        | "pending"
+        | "applied"
+        | "undone"
+        | "dismissed"
+        | "expired";
+      summary: string;
+      version: number;
+    }>;
+    next_cursor: string | null;
+  };
   list_tags: {
     next_cursor: string | null;
     tags: Array<{
@@ -987,6 +1114,19 @@ export type ToolResults = {
     status: "started" | "nothing_due";
   };
   trash_journal_photo: JournalPhotoTrashResult;
+  undo_suggestion: {
+    state:
+      | "received"
+      | "checking"
+      | "pending"
+      | "applied"
+      | "undone"
+      | "dismissed"
+      | "expired";
+    suggestion_id: string;
+    trashed: AppliedRecordRef | null;
+    version: number;
+  };
   unlink_contact_from_project: ProjectContactResult;
   unlink_contact_from_task: TaskContactResult;
   unlink_external_reference_from_task: {
@@ -1102,6 +1242,11 @@ export type ToolInputs = {
     automation_id: string;
     idempotency_key: string;
     spec_digest: string;
+  };
+  approve_suggestion_group: {
+    group_digest: string;
+    idempotency_key: string;
+    suggestion_ids: Array<string>;
   };
   archive_contact: {
     contact_id: string;
@@ -1292,6 +1437,16 @@ export type ToolInputs = {
       title: string;
     }>;
   };
+  decide_suggestions: {
+    idempotency_key: string;
+    items: Array<{
+      confirmed?: boolean;
+      decision: "approve" | "dismiss";
+      edits?: Record<string, unknown> | null;
+      expected_version: number;
+      suggestion_id: string;
+    }>;
+  };
   exclude_from_memory: {
     excluded?: boolean;
     id: string;
@@ -1415,6 +1570,9 @@ export type ToolInputs = {
     store?: string | null;
   };
   get_start: Record<string, unknown>;
+  get_suggestion: {
+    suggestion_id: string;
+  };
   get_task: {
     task_id: string;
   };
@@ -1559,6 +1717,20 @@ export type ToolInputs = {
     cursor?: string | null;
     limit?: number;
     step_id: string;
+  };
+  list_suggestions: {
+    automation_id?: string | null;
+    cursor?: string | null;
+    group?: "high_confidence" | "single" | "all";
+    limit?: number;
+    state?:
+      | "received"
+      | "checking"
+      | "pending"
+      | "applied"
+      | "undone"
+      | "dismissed"
+      | "expired";
   };
   list_tags: {
     cursor?: string | null;
@@ -1931,6 +2103,11 @@ export type ToolInputs = {
     expected_version: number;
     idempotency_key: string;
     photo_id: string;
+  };
+  undo_suggestion: {
+    expected_version: number;
+    idempotency_key: string;
+    suggestion_id: string;
   };
   unlink_contact_from_project: {
     contact_id: string;
@@ -2441,6 +2618,11 @@ export type AiStepSpecV1 = {
   stop_and_ask: Array<string>;
 };
 
+export type AppliedRecordRef = {
+  id: string;
+  kind: string;
+};
+
 export type AutomationOutput = {
   automation: AutomationRecord;
 };
@@ -2489,6 +2671,12 @@ export type ChecklistRecord = {
   done: boolean;
 };
 
+export type CheckSummary = {
+  confidence: number | null;
+  state: "off" | "queued" | "checked" | "failed";
+  verdict: "ok" | "uncertain" | "suspicious" | null;
+};
+
 export type ContactAliasRecord = {
   created_at: string;
   id: string;
@@ -2529,6 +2717,37 @@ export type ContactSummaryRecord = {
   tags: Array<string>;
   updated_at: string;
   version: number;
+};
+
+export type DecisionResult = {
+  applied: AppliedRecordRef | null;
+  error_code:
+    | "needs_app"
+    | "needs_confirmation"
+    | "same_session"
+    | "stale"
+    | "not_pending"
+    | "expired"
+    | "invalid_edit"
+    | "apply_error:project_gone"
+    | "apply_error:conflict"
+    | "apply_error:invalid_payload"
+    | "apply_error:not_permitted"
+    | null;
+  state:
+    | "received"
+    | "checking"
+    | "pending"
+    | "applied"
+    | "undone"
+    | "dismissed"
+    | "expired";
+  suggestion_id: string;
+  version: number;
+};
+
+export type DecisionsOutput = {
+  items: Array<DecisionResult>;
 };
 
 export type DomainOutput = {

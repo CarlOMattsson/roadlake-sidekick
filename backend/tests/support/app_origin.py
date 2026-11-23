@@ -11,9 +11,12 @@ APP_ORIGIN: dict[str, str] = {APP_ORIGIN_META: "app"}
 
 OWNER_DECISIONS = frozenset({"approve_ai_plan", "run_ai_plan", "approve_automation"})
 
-# Every tool the server refuses unless the request comes from the app: the decisions above and the
-# Journal photo tools, which take or return the bytes of a photo.
-APP_ONLY_CALLS = OWNER_DECISIONS | frozenset(JOURNAL_PHOTO_TOOL_NAMES)
+# Every tool the server refuses unless the request comes from the app: the decisions above, the
+# Journal photo tools, which take or return the bytes of a photo, and the owner's approval of a
+# whole group of suggestions.
+APP_ONLY_CALLS = (
+    OWNER_DECISIONS | frozenset(JOURNAL_PHOTO_TOOL_NAMES) | frozenset({"approve_suggestion_group"})
+)
 
 
 def origin_for(tool: str) -> dict[str, str] | None:

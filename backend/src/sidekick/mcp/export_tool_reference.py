@@ -121,6 +121,11 @@ AREAS: tuple[Area, ...] = (
             "approve_automation",
             "start_automation_run",
             "record_automation_results",
+            "list_suggestions",
+            "get_suggestion",
+            "decide_suggestions",
+            "approve_suggestion_group",
+            "undo_suggestion",
         ),
         "What a run costs: Claude or Claude Code runs a client run on its own side, so the cost it "
         "reports is its own estimate. Sidekick stores it as an estimate, shows it as one and never "

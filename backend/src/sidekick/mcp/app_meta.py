@@ -63,8 +63,8 @@ def with_enabled_rooms(html: str, rooms: Collection[str]) -> str:
 
 def with_nav_icons(html: str, nav_icons: NavIcons) -> str:
     """Declares what the room strip draws (SIDEKICK_MCP_APP_NAV_ICONS): names where the frame is
-    wide and an icon over each name on a phone (`auto`), names at every width (`off`), an icon
-    with each name (`label`) or the icons alone (`only`).
+    wide and on a phone icons with the name of the room that is open (`auto`), names at every
+    width (`off`), an icon with each name (`label`) or the icons alone (`only`).
 
     Without the meta (the default, `auto`) the app picks the layout from the width of its frame.
     """

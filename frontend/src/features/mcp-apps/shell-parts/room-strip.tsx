@@ -7,7 +7,12 @@ import {
 } from "react";
 
 import { roomEnabled } from "@/features/mcp-apps/enabled-rooms";
-import { navIcons, type NavIcons } from "@/features/mcp-apps/nav-icons";
+import {
+  navIcons,
+  stripFace,
+  type NavIcons,
+  type StripFace,
+} from "@/features/mcp-apps/nav-icons";
 import {
   MORE_ROOM_IDS,
   PRIMARY_ROOM_IDS,
@@ -33,7 +38,9 @@ export type RoomStrip = {
   /** Every room of the strip, cells first: what the narrow room picker lists. */
   pickRooms: readonly StripRoomId[];
   /** What the cells draw: names, glyphs before the names, or glyphs alone. */
-  icons: NavIcons;
+  icons: StripFace;
+  /** The glyphs stand for the names of every room but the open one (`label` in a phone's frame): those cells get a tooltip. */
+  openNameOnly: boolean;
   /** The room cell marked as the place the user is at; undefined while it is a room of Mer, or Control. */
   current: StripRoomId | undefined;
   /** The room cell that is the strip's one tab stop; undefined when it is the Mer cell. */
@@ -53,7 +60,8 @@ export type RoomStrip = {
  * While a room of Mer is open the Mer cell carries that room's name and the raised pill, so the place reads as clearly
  * as in the other rooms, and it is the strip's tab stop. The menu holds rooms only; tools stay in each room's ⋯.
  *
- * `icons` is what the cells draw (nav-icons.ts, strip-cell.tsx): with glyphs the Mer cell has four tiles before its ⌄,
+ * `icons` is the mode (nav-icons.ts), which with `phone`, a phone's frame at an ordinary text size, gives the face the
+ * cells draw (strip-cell.tsx): with glyphs the Mer cell has four tiles before its ⌄,
  * or the glyph of its room that is open. The menu's rows are names in every case.
  *
  * The Mer cell and its menu come apart, as the room picker's do: the cell stands in the strip's row of tabs (it takes
@@ -62,7 +70,8 @@ export type RoomStrip = {
 export function useRoomStrip({
   primary = PRIMARY_ROOM_IDS,
   more = MORE_ROOM_IDS,
-  icons = navIcons(),
+  icons: mode = navIcons(),
+  phone,
   allowed,
   active,
   inControl,
@@ -75,6 +84,8 @@ export function useRoomStrip({
   more?: readonly StripRoomId[];
   /** What the cells draw; absent, what the app document declares (names alone unless it says otherwise). */
   icons?: NavIcons;
+  /** A phone's frame at an ordinary text size (use-shell-measures.ts), where `auto` draws glyphs. */
+  phone: boolean;
   /** False: the host draws no strip. */
   allowed: boolean;
   /** The room on screen, and whether Control is open over it (no room is marked then). */
@@ -87,6 +98,10 @@ export function useRoomStrip({
   const button = useRef<HTMLButtonElement>(null);
   const menuId = useId();
 
+  const icons = stripFace(mode, phone);
+  // `label` leaves the names of the other rooms out in every frame of a phone's width (sidekick-shell.css); `phone`
+  // is that width at an ordinary text size, which is where a pointer that can hover is at all likely.
+  const openNameOnly = icons === "label" && phone;
   const rooms = primary.filter((room) => roomEnabled(room));
   const moreRooms = more.filter((room) => roomEnabled(room));
   const pickRooms = [...rooms, ...moreRooms];
@@ -99,6 +114,7 @@ export function useRoomStrip({
     rooms,
     pickRooms,
     icons,
+    openNameOnly,
     current,
     tabStop:
       current ?? (moreCurrent || rooms.length === 0 ? undefined : rooms[0]),
@@ -111,7 +127,7 @@ export function useRoomStrip({
     };
 
   const name = moreCurrent ? labels.rooms[moreCurrent] : labels.more;
-  const names = stripCellNames(icons, name);
+  const names = stripCellNames(icons, name, openNameOnly && !moreCurrent);
   const keys = menuButtonKeys(open, setOpen);
 
   function onKeyDown(event: KeyboardEvent<HTMLButtonElement>) {

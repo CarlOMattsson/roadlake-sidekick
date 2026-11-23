@@ -9,6 +9,7 @@ the owner's data or text an AI wrote; nothing here logs them.
 
 from collections.abc import Collection, Sequence
 from datetime import date, datetime
+from typing import Any
 from uuid import UUID
 
 from sqlalchemy import ColumnElement, func, or_, select, update
@@ -52,8 +53,13 @@ from sidekick.shared.persistence.models import (
     AutomationRunRow,
     AutomationSuggestionRow,
     Base,
+    ContactAliasRow,
     ContactRow,
+    JournalEntryContactRow,
+    ProjectContactRow,
     ProjectRow,
+    StepRow,
+    TaskContactRow,
     TaskRow,
 )
 from sidekick.shared.persistence.stores.base import StoreBase
@@ -534,11 +540,18 @@ class AutomationStore:
         states: Collection[SuggestionState] | None = None,
         automation_id: UUID | None = None,
         run_id: UUID | None = None,
+        bulk_eligible: bool | None = None,
+        expires_after: datetime | None = None,
         limit: int = MAX_LIST_ROWS,
+        offset: int = 0,
     ) -> list[Suggestion]:
         statement = select(AutomationSuggestionRow).where(
             AutomationSuggestionRow.owner_id == owner_id
         )
+        if bulk_eligible is not None:
+            statement = statement.where(AutomationSuggestionRow.bulk_eligible == bulk_eligible)
+        if expires_after is not None:
+            statement = statement.where(AutomationSuggestionRow.expires_at > expires_after)
         if states is not None:
             statement = statement.where(
                 AutomationSuggestionRow.state.in_([item.value for item in states])
@@ -548,9 +561,9 @@ class AutomationStore:
         if run_id is not None:
             statement = statement.where(AutomationSuggestionRow.run_id == run_id)
         rows = session.scalars(
-            statement.order_by(
-                AutomationSuggestionRow.created_at, AutomationSuggestionRow.id
-            ).limit(validate_limit(limit, maximum=MAX_LIST_ROWS))
+            statement.order_by(AutomationSuggestionRow.created_at, AutomationSuggestionRow.id)
+            .offset(offset)
+            .limit(validate_limit(limit, maximum=MAX_LIST_ROWS))
         )
         return [suggestion_from_row(row) for row in rows]
 
@@ -781,6 +794,24 @@ class AutomationStore:
         return [datapoint_from_row(row) for row in rows]
 
     @staticmethod
+    def get_datapoints(
+        session: Session, owner_id: UUID, datapoint_ids: Collection[UUID]
+    ) -> list[Datapoint]:
+        """The owner's datapoints with these ids, oldest first; another owner's are left out."""
+
+        if not datapoint_ids:
+            return []
+        rows = session.scalars(
+            select(AutomationDatapointRow)
+            .where(
+                AutomationDatapointRow.owner_id == owner_id,
+                AutomationDatapointRow.id.in_(datapoint_ids),
+            )
+            .order_by(AutomationDatapointRow.created_at, AutomationDatapointRow.id)
+        )
+        return [datapoint_from_row(row) for row in rows]
+
+    @staticmethod
     def add_datapoints(session: Session, datapoints: Sequence[Datapoint]) -> None:
         """Add datapoints. The run and the automation they name must be the owner's: the composite
         foreign key refuses any other pair."""
@@ -866,6 +897,28 @@ class AutomationStore:
                     TaskRow.archived_at.is_(None),
                 )
             )
+        )
+
+    @staticmethod
+    def has_attachments(session: Session, owner_id: UUID, kind: str, record_id: UUID) -> bool:
+        """Whether something was added to a task or a contact that does not raise its version:
+        a step or a contact link on a task; an alias or a link to a task, project or entry on a
+        contact."""
+
+        attached: tuple[tuple[Any, Any], ...] = {
+            "task": ((StepRow, StepRow.task_id), (TaskContactRow, TaskContactRow.task_id)),
+            "contact": (
+                (ContactAliasRow, ContactAliasRow.contact_id),
+                (TaskContactRow, TaskContactRow.contact_id),
+                (ProjectContactRow, ProjectContactRow.contact_id),
+                (JournalEntryContactRow, JournalEntryContactRow.contact_id),
+            ),
+        }.get(kind, ())
+        return any(
+            session.scalar(
+                select(select(row).where(row.owner_id == owner_id, column == record_id).exists())
+            )
+            for row, column in attached
         )
 
     # --- the report cursor --------------------------------------------------------------------

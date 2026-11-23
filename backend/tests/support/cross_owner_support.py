@@ -58,6 +58,8 @@ NAME_KIND: dict[str, str] = {
     "draft_id": "draft",
     "run_id": "run",
     "automation_id": "automation",
+    "suggestion_id": "suggestion",
+    "suggestion_ids": "suggestion",
     "list_id": "list",
     "item_id": "item",
     "step_id": "step",
@@ -88,6 +90,7 @@ VERSIONED = frozenset(
         "draft",
         "run",
         "automation",
+        "suggestion",
         "list",
         "item",
         "step",
@@ -387,6 +390,49 @@ async def seed_owner(container: Container, name: str, marker: str) -> OwnerSeed:
             )
         )["automation"]
         seed.records["automation"] = Record(automation["id"], automation["version"])
+        # A suggestion: an approved automation, one run of it and one card the run proposed.
+        runnable = (
+            await call(
+                "save_automation",
+                {
+                    "changes": {
+                        "title": label("runnable automation"),
+                        "purpose": label("runnable purpose"),
+                        "instruction": label("runnable instruction"),
+                        "sources": ["mail"],
+                        "allowed_effects": ["create_task"],
+                    }
+                },
+            )
+        )["automation"]
+        await call(
+            "approve_automation",
+            {"automation_id": runnable["id"], "spec_digest": runnable["spec_digest"]},
+        )
+        run = (
+            await call(
+                "start_automation_run",
+                {"automation_id": runnable["id"], "runner": "claude", "occurrence": "manual"},
+            )
+        )["run"]
+        await call(
+            "record_automation_results",
+            {
+                "run_id": run["id"],
+                "suggestions": [
+                    {
+                        "effect": "create_task.v1",
+                        "payload": {"title": label("suggested task")},
+                        "rationale": label("suggestion rationale"),
+                    }
+                ],
+                "final": True,
+            },
+        )
+        listed = await client.call_tool("list_suggestions", {})
+        assert listed.structured_content is not None
+        pending = listed.structured_content["items"][0]
+        seed.records["suggestion"] = Record(pending["id"], pending["version"])
         # A trashed record of each trashable kind.
         for kind in TRASHABLE:
             record = await make(kind)

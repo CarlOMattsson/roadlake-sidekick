@@ -58,7 +58,7 @@ import type {
   SidekickShellProps,
 } from "./shell-parts/shell-types";
 import { useLayerFreshness } from "./shell-parts/use-layer-freshness";
-import { useShellMeasures } from "./shell-parts/use-shell-measures";
+import { useBarMeasures, useFrame } from "./shell-parts/use-shell-measures";
 import { useShellKeys } from "./shell-parts/use-shell-keys";
 import { useRoomStrip } from "./shell-parts/room-strip";
 import { useSplitPane, type SplitAsk } from "./shell-parts/use-split-pane";
@@ -136,10 +136,12 @@ export function SidekickShell({
   // and Back under it names the room Control was opened from (designsystem §3 "Rumsremsan": a missing strip read as a jump of the head). Its room in the strip
   // goes back to that room's layer, as Back does.
   const inControl = nav.stacks[nav.active].at(-1)?.room === "control";
+  const { wide, phone, shellEl } = useFrame(full);
   const roomStrip = useRoomStrip({
     primary: primaryRooms,
     more: moreRooms,
     icons: navIcons,
+    phone,
     allowed: stripAllowed,
     active: nav.active,
     inControl,
@@ -148,10 +150,7 @@ export function SidekickShell({
   });
   const { strip, rooms: stripRooms } = roomStrip;
   const stripVisible = strip && (mode === "local" || mode === "reserve");
-  const { narrow, wide, tabsEl, shellEl, barEl } = useShellMeasures(
-    full,
-    stripVisible,
-  );
+  const { narrow, tabsEl, barEl } = useBarMeasures(full, stripVisible, shellEl);
   // The end of the Back row, where the view on top puts its own pen and ⋯ (BackHeaderActions).
   const [backSlot, setBackSlot] = useState<HTMLSpanElement | null>(null);
   // A wide frame (≥ 64rem) where the shell drives the rooms: the head is one row, the strip and then the room's own head

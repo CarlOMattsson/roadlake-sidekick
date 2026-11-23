@@ -34,6 +34,7 @@ from sidekick.automations.domain.effects import (
 )
 from sidekick.automations.domain.screening import Screened, ScreeningFlag, flags_after_edit
 from sidekick.shared.errors import ConflictError, ValidationError
+from sidekick.shared.errors.core import SidekickErrorReason
 
 MIN_FINGERPRINT_KEY_BYTES = 16
 
@@ -107,14 +108,32 @@ class DecisionRefusal(StrEnum):
     AUTO_NOT_ALLOWED = "auto_not_allowed"
 
 
-class SuggestionRefusedError(ConflictError):
-    """A decision was refused. `refusal` is a fixed code; the message holds no owner text."""
+_REFUSAL_REASONS: dict[DecisionRefusal, SidekickErrorReason] = {
+    DecisionRefusal.NEEDS_APP: "app_only",
+    DecisionRefusal.NEEDS_CONFIRMATION: "app_only",
+    DecisionRefusal.NOT_ALLOWED: "app_only",
+    DecisionRefusal.SAME_SESSION: "suggestion_same_session",
+    DecisionRefusal.STALE: "stale_version",
+    DecisionRefusal.NOT_PENDING: "suggestion_not_pending",
+    DecisionRefusal.NOT_EXPIRED: "suggestion_not_pending",
+    DecisionRefusal.EXPIRED: "suggestion_not_pending",
+    DecisionRefusal.AUTO_NOT_ALLOWED: "suggestion_not_pending",
+    DecisionRefusal.NOT_APPLIED: "suggestion_undo_refused",
+    DecisionRefusal.CHANGED_SINCE_APPLY: "suggestion_undo_refused",
+    DecisionRefusal.GROUP_CHANGED: "suggestion_group_refused",
+    DecisionRefusal.GROUP_TOO_LARGE: "suggestion_group_refused",
+    DecisionRefusal.GROUP_NOT_ELIGIBLE: "suggestion_group_refused",
+}
 
-    code = "suggestion_refused"
+
+class SuggestionRefusedError(ConflictError):
+    """A decision was refused. `refusal` is a fixed code; the message holds no owner text, and the
+    error's closed reason is what an MCP client is told."""
+
     safe_title = "Suggestion cannot be decided"
 
     def __init__(self, refusal: DecisionRefusal) -> None:
-        super().__init__(refusal.value)
+        super().__init__(refusal.value, reason=_REFUSAL_REASONS[refusal])
         self.refusal = refusal
 
 
@@ -343,7 +362,7 @@ class Suggestion:
         if context.channel is DecisionChannel.POLICY:
             raise SuggestionRefusedError(DecisionRefusal.NOT_ALLOWED)
         if context.channel is DecisionChannel.MODEL:
-            if self.flagged:
+            if self.flagged or self.edited:
                 raise SuggestionRefusedError(DecisionRefusal.NEEDS_APP)
             if context.session_matches_run:
                 raise SuggestionRefusedError(DecisionRefusal.SAME_SESSION)
@@ -353,6 +372,18 @@ class Suggestion:
             and not context.confirmed
         ):
             raise SuggestionRefusedError(DecisionRefusal.NEEDS_CONFIRMATION)
+
+    def check_decision(
+        self, context: DecisionContext, decision: Decision, *, now: datetime, expected_version: int
+    ) -> None:
+        """Raise the refusal `approve` or `dismiss` would, without taking a step.
+
+        Applying a suggestion creates a record, so the caller asks first and creates only when the
+        decision is allowed.
+        """
+
+        self._expect(expected_version)
+        self._authorize(context, decision, now)
 
     def approve(
         self,

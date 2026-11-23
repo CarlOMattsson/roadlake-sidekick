@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 
-import type { NavIcons } from "@/features/mcp-apps/nav-icons";
+import type { StripFace } from "@/features/mcp-apps/nav-icons";
 import type { StripRoomId } from "@/features/mcp-apps/router";
 import {
   BasketIcon,
@@ -20,17 +20,16 @@ const ROOM_GLYPHS: Record<StripRoomId, (props: RoomIconProps) => ReactNode> = {
 };
 
 /**
- * What a cell of the room strip draws (designsystem §3 "Rumsremsan"): the name alone (`off`), a 20 glyph with the name
- * (`label`; and `auto`, where the styles draw the glyph in a phone's frame only) or the glyph alone (`only`). `room`
- * is the room whose glyph it is; without one it is the Mer cell at rest, four tiles. `stripCellNames` names a cell
- * whose name is not drawn.
+ * What a cell of the room strip draws (designsystem §3 "Rumsremsan"): the name alone (`off`), a 20 glyph before the
+ * name (`label`) or the glyph alone (`only`). `room` is the room whose glyph it is; without one it is the Mer cell at
+ * rest, four tiles. `stripCellNames` names a cell whose name is not drawn.
  */
 export function StripCellFace({
   icons,
   room,
   name,
 }: {
-  icons: NavIcons;
+  icons: StripFace;
   room: StripRoomId | undefined;
   name: string;
 }) {
@@ -39,22 +38,28 @@ export function StripCellFace({
   return (
     <>
       <Glyph size={20} />
-      {icons === "only" ? null : <span className="sk-rooms__name">{name}</span>}
+      {icons === "label" ? (
+        <span className="sk-rooms__name">{name}</span>
+      ) : null}
     </>
   );
 }
 
 /**
- * How a cell that an instance or an owner gave glyphs is named. `label` is its `aria-label`, the room's name whether
- * the face draws it or not. `tip` is its `title`, the tooltip a hovering pointer gets, for a cell that never draws its
- * name. Both undefined where the name is the face at every width that has room for it (`off`, `auto`).
+ * How a cell with a glyph is named. `label` is its `aria-label`: the drawn name is left out with glyphs alone, and
+ * in a phone's frame for every room but the one that is open (sidekick-shell.css), so the name is said either way.
+ * `tip` is its `title`, the tooltip a hovering pointer gets, for a cell that does not draw its name: every cell with
+ * glyphs alone, and with `nameHidden` a cell of `label` that is not the open room in a phone's frame. Both undefined
+ * with names alone.
  */
 export function stripCellNames(
-  icons: NavIcons,
+  icons: StripFace,
   name: string,
+  nameHidden = false,
 ): { label: string | undefined; tip: string | undefined } {
   return {
-    label: icons === "label" || icons === "only" ? name : undefined,
-    tip: icons === "only" ? name : undefined,
+    label: icons === "off" ? undefined : name,
+    tip:
+      icons === "only" || (icons === "label" && nameHidden) ? name : undefined,
   };
 }

@@ -71,9 +71,17 @@ CHARS_PER_TOKEN = 3.5
 # `record_automation_results`), about 1 400 tokens, of which the `datapoints` and `suggestions`
 # inputs of `record_automation_results` are about 1 000: closed kinds, sources and fields are what
 # keeps a routine's input narrow; measured 26 382 for the 86 model-visible tools, rounded up.
+# 2026-11-23: raised to 27 200 for the four model-visible suggestion tools (`list_suggestions`,
+# `get_suggestion`, `decide_suggestions`, `undo_suggestion`), about 800 tokens, of which the
+# decision items of `decide_suggestions` (id, version, decision, the owner's edits) are about 270;
+# descriptions trimmed first; measured 27 185 for the 90 model-visible tools, rounded up.
+# `approve_suggestion_group` is app-only and costs nothing here.
+# 2026-11-23: raised to 27 400 when the suggestion tools and `get_start` met in one tree: the two
+# sides were measured apart at 27 185 and 26 552; measured 27 357 for the 91 model-visible tools,
+# rounded up.
+TOKEN_BUDGET = 27_400
 # 2026-11-23: raised to 26 600 for `get_start`, the Start view (a 522-character description and no
 # input, about 150 tokens); measured 26 552 for the 87 model-visible tools, rounded up.
-TOKEN_BUDGET = 26_600
 LARGEST_LISTED = 5
 # Measured 2026-10-25: the longest model-visible description is 527 chars, rounded up to 50.
 DESCRIPTION_CHAR_CAP = 550
@@ -101,10 +109,15 @@ GUIDE_TOOL_DESCRIPTION_CHAR_CAP = 1000
 # The five photo tools are app-only and cost nothing here.
 # 2026-11-22: raised to 236 000 when the review queue fields and the photo summary met; measured
 # 235 948 for the model-visible tools, rounded up.
+# 2026-11-23: raised to 247 700 for the outputs of the four model-visible suggestion tools (a page
+# of summaries, the full card with its facts and checks, and the answer to a decision or an undo,
+# 11 700 characters together); measured 247 662, rounded up. The headroom is under 0.1 %.
+# 2026-11-23: raised to 252 600 when the suggestion tools and `get_start` met in one tree: the two
+# sides were measured apart at 247 662 and 240 788; measured 252 502, rounded up.
+OUTPUT_SCHEMA_CHAR_CAP = 252_600
 # 2026-11-23: raised to 240 800 for the output of `get_start` (the insight, the suggestion, task,
 # waiting and since-last parts and the menu counts, 4 840 characters); measured 240 788 for the 87
 # model-visible tools, rounded up.
-OUTPUT_SCHEMA_CHAR_CAP = 240_800
 
 
 def _estimated_tokens(tool: dict[str, object]) -> float:

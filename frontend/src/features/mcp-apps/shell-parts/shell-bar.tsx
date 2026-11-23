@@ -19,16 +19,16 @@ export type ShellAsk = {
  * The bar above the rooms: the room strip (its rooms and the Mer cell, or the narrow room picker), in a wide frame the room's head beside it on
  * the same row, the Back row with `collapse`, and the question about unsaved edits. Nothing here navigates by itself; every press goes to the shell.
  *
- * `roomStrip.icons` is what the cells draw (strip-cell.tsx). With glyphs a cell's face is a glyph and a name in
- * `.sk-rooms__cell`, and the strip says which mode in `data-icons`; the styles decide by the frame's width whether
- * the glyph is drawn and where the name stands. With names alone (`off`) the markup is the name and nothing more.
+ * `roomStrip.icons` is what the cells draw (strip-cell.tsx). With glyphs a cell's face is one row in
+ * `.sk-rooms__cell`, and the strip says so in `data-icons`, which the styles read; with names alone the markup is the
+ * name and nothing more.
  */
 export function ShellBar({
   labels,
   barRef,
   tabsRef,
   strip,
-  roomStrip: { rooms, current, tabStop, icons, moreParts: more },
+  roomStrip: { rooms, current, tabStop, icons, openNameOnly, moreParts: more },
   narrow,
   onChoose,
   picker,
@@ -48,7 +48,7 @@ export function ShellBar({
    */
   roomStrip: Pick<
     RoomStrip,
-    "rooms" | "current" | "tabStop" | "icons" | "moreParts"
+    "rooms" | "current" | "tabStop" | "icons" | "openNameOnly" | "moreParts"
   >;
   narrow: boolean;
   onChoose: (room: RoomId) => void;
@@ -91,7 +91,11 @@ export function ShellBar({
           >
             {rooms.map((room) => {
               const name = labels.rooms[room];
-              const names = stripCellNames(icons, name);
+              const names = stripCellNames(
+                icons,
+                name,
+                openNameOnly && room !== current,
+              );
               return (
                 <button
                   key={room}

@@ -16,6 +16,8 @@ from sidekick.activity.persistence import ActivityStore
 from sidekick.automations.application.activity import AutomationActivityService
 from sidekick.automations.application.registry import AutomationRegistryService
 from sidekick.automations.application.runs import AutomationRunService
+from sidekick.automations.application.suggestions import SuggestionService
+from sidekick.automations.effect_applier import ServiceEffectApplier
 from sidekick.automations.persistence import SqlAutomationStore
 from sidekick.companion.persistence import CompanionDeviceStore
 from sidekick.companion.push import PushSubscriptionService
@@ -131,6 +133,8 @@ class Container:
     automation_registry: AutomationRegistryService
     # Runs of an approved automation: the brief a runner follows and what it records.
     automation_runs: AutomationRunService
+    # The owner's inbox of suggestions: reading it, deciding, applying and undoing.
+    automation_suggestions: SuggestionService
     # What the automations have been doing, in counts: the overview the Start view reads.
     automation_activity: AutomationActivityService
     # The Android companion's services (ADR-005): pairing and device tokens, push endpoints, and
@@ -326,6 +330,29 @@ def _create_ai_services(
     )
 
 
+def _create_suggestion_service(
+    store: SqlAutomationStore,
+    tasks: TaskService,
+    contacts: ContactService,
+    cursor_codec: CursorCodec,
+    factory: SessionFactory,
+    settings: Settings,
+    telemetry: TelemetryPort,
+) -> SuggestionService:
+    """The suggestion inbox: it applies a card through the Task and Contact use cases and undoes
+    one through the trash of the lifecycle store."""
+
+    return SuggestionService.from_settings(
+        store,
+        SystemClock(),
+        cursor_codec,
+        ServiceEffectApplier(tasks, contacts),
+        LifecycleStore(factory, telemetry),
+        settings,
+        telemetry,
+    )
+
+
 def create_container(
     settings: Settings,
     session_factory: SessionFactory | None = None,
@@ -425,6 +452,9 @@ def create_container(
         ),
         automation_runs=AutomationRunService.from_settings(
             automation_store, SystemClock(), settings, resolved_telemetry
+        ),
+        automation_suggestions=_create_suggestion_service(
+            automation_store, tasks, contacts, cursor_codec, factory, settings, resolved_telemetry
         ),
         automation_activity=AutomationActivityService(automation_store),
         companion_devices=CompanionDeviceService(CompanionDeviceStore(factory), auth_service),

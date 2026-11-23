@@ -270,13 +270,14 @@ describe("the static placeholder in the built document", () => {
     "carries the %s room names and loading line of the app, hidden for the other language",
     (locale) => {
       const { rooms, more } = sidekickShellLabelsFor(locale);
-      // Each cell names its room, which is how the placeholder's styles find its glyph.
+      // Each cell names its room, which is how the placeholder's styles find its glyph; the name sits in its own span,
+      // which the phone's frame hides in every cell but the open one.
       const names =
         PRIMARY_ROOM_IDS.map(
           (room) =>
-            `<span class="sidekick-wait-room" data-room="${room}">${rooms[room]}</span>`,
+            `<span class="sidekick-wait-room" data-room="${room}"><span class="sidekick-wait-name">${rooms[room]}</span></span>`,
         ).join("") +
-        `<span class="sidekick-wait-room" data-more="">${more}</span>`;
+        `<span class="sidekick-wait-room" data-more=""><span class="sidekick-wait-name">${more}</span></span>`;
       expect(built).toContain(
         `<div aria-hidden="true" class="sidekick-wait-strip" data-wait-locale="${locale}">${names}</div>`,
       );

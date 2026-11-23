@@ -42,30 +42,37 @@ async function openWaiting(
   return opened;
 }
 
-for (const [navIcons, height] of [
-  ["off", "40px"],
-  ["only", "40px"],
-  ["label", "48px"],
+for (const [navIcons, glyphs] of [
+  ["off", false],
+  ["only", false],
+  ["label", true],
 ] as const) {
-  test(`the placeholder's strip is ${height} high where the instance chose ${navIcons} for the room strip`, async ({
+  test(`the placeholder's strip ${glyphs ? "draws glyphs" : "keeps its names"} where the instance chose ${navIcons} for the room strip`, async ({
     page,
   }) => {
     const { app, failures } = await openWaiting(page, {}, navIcons);
     expect(await style(app.locator(".sidekick-wait-strip"), "height")).toEqual({
-      height,
+      height: "40px",
     });
-    // Names alone and glyphs alone are strips of 40 in the shell: the placeholder keeps its names and draws no glyph.
-    expect(
-      await app
-        .locator(".sidekick-wait-room")
-        .first()
-        .evaluate((cell) => getComputedStyle(cell, "::before").content),
-    ).toBe(height === "40px" ? "none" : '""');
+    // Names alone and glyphs alone: the placeholder keeps every name and draws no glyph.
+    const cells = await app.locator(".sidekick-wait-room").evaluateAll((all) =>
+      all.map((cell) => ({
+        glyph: getComputedStyle(cell, "::before").content !== "none",
+        named:
+          cell.querySelector(".sidekick-wait-name")!.getClientRects().length >
+          0,
+        current: cell.hasAttribute("data-current"),
+      })),
+    );
+    for (const cell of cells) {
+      expect(cell.glyph).toBe(glyphs);
+      expect(cell.named).toBe(glyphs ? cell.current : true);
+    }
     expect(failures).toEqual([]);
   });
 }
 
-test("the placeholder pads 16 at the sides and 8 above plus the host's safe area, has no corner radius of its own, and draws the strip 48 high with a glyph over each name", async ({
+test("the placeholder pads 16 at the sides and 8 above plus the host's safe area, has no corner radius of its own, and draws the strip 40 high with a glyph in each cell and the open room's name", async ({
   page,
 }) => {
   const { app, failures } = await openWaiting(page, {
@@ -89,39 +96,46 @@ test("the placeholder pads 16 at the sides and 8 above plus the host's safe area
     paddingLeft: "20px",
     borderTopLeftRadius: "0px",
   });
-  // The strip in a phone's frame, as the shell draws it there: 48 px high, a row of cells sharing it equally, none
-  // narrower than its label, each a 20 glyph over its name in 12/16.
+  // The strip in a phone's frame, as the shell draws it there: 40 px high, a row of cells sharing it, each a 20
+  // glyph, and the name after it in the room that is open (Work here). A cell without its name is at least 44 wide.
   const strip = app.locator(".sidekick-wait-strip");
   expect(await style(strip, "display", "height")).toEqual({
     display: "flex",
-    height: "48px",
+    height: "40px",
   });
   const rooms = await app.locator(".sidekick-wait-room").all();
   expect(rooms).toHaveLength(4);
   for (const room of rooms) {
-    expect(await style(room, "height", "fontSize", "lineHeight")).toEqual({
-      height: "40px",
-      fontSize: "12px",
-      lineHeight: "16px",
+    const cell = await room.evaluate((element) => {
+      const glyph = getComputedStyle(element, "::before");
+      return {
+        glyph: [glyph.width, glyph.height, glyph.maskImage.startsWith("url(")],
+        current: element.hasAttribute("data-current"),
+        named:
+          element.querySelector(".sidekick-wait-name")!.getClientRects()
+            .length > 0,
+      };
     });
-    expect(
-      await room.evaluate((cell) => {
-        const glyph = getComputedStyle(cell, "::before");
-        return [glyph.width, glyph.height, glyph.maskImage.startsWith("url(")];
-      }),
-    ).toEqual(["20px", "20px", true]);
-  }
-  for (const room of rooms)
+    expect(cell.glyph).toEqual(["20px", "20px", true]);
+    expect(cell.named).toBe(cell.current);
     expect(await style(room, "flexGrow", "flexShrink", "minWidth")).toEqual({
       flexGrow: "1",
       flexShrink: "1",
-      minWidth: "min-content",
+      minWidth: cell.current ? "min-content" : "44px",
     });
-  const widths = await Promise.all(
+  }
+  expect(
+    await app.locator(".sidekick-wait-room[data-current]").textContent(),
+  ).toBe("Work");
+  // The cells without a name share the row equally; the open room's takes what its name needs beyond that share.
+  const [open, ...others] = await Promise.all(
     rooms.map(async (room) => (await box(room)).width),
   );
-  for (const width of widths)
-    expect(Math.abs(width - widths[0]!)).toBeLessThan(6);
+  for (const width of others) {
+    expect(Math.abs(width - others[0]!)).toBeLessThan(0.5);
+    expect(width).toBeGreaterThanOrEqual(44);
+    expect(open).toBeGreaterThanOrEqual(width);
+  }
   expect(failures).toEqual([]);
 });
 

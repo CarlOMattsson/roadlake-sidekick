@@ -11,6 +11,7 @@ from sidekick.automations.domain.effects import (
     effect_schema,
     parse_payload,
     resolve_effect,
+    summary_line,
     target_key,
 )
 from sidekick.automations.domain.screening import RejectionCode
@@ -28,6 +29,31 @@ def test_the_catalogue_holds_exactly_the_two_creating_effects() -> None:
 
 def test_every_effect_names_a_write_scope_that_exists() -> None:
     assert all(entry.write_scope in MCP_SCOPES for entry in CATALOGUE.values())
+
+
+def test_every_effect_names_the_read_scope_of_its_domain_and_the_record_it_creates() -> None:
+    assert all(entry.read_scope in MCP_SCOPES for entry in CATALOGUE.values())
+    assert [(entry.read_scope, entry.record_kind) for entry in CATALOGUE.values()] == [
+        ("tasks:read", "task"),
+        ("contacts:read", "contact"),
+    ]
+
+
+def test_a_summary_line_names_the_effect_and_cuts_a_long_text() -> None:
+    assert summary_line(EffectKind.CREATE_TASK, {"title": "Call the dentist"}) == (
+        "Create task: Call the dentist"
+    )
+    assert summary_line(EffectKind.CREATE_CONTACT, {"display_name": "Anna Svensson"}) == (
+        "Create contact: Anna Svensson"
+    )
+    long = summary_line(EffectKind.CREATE_TASK, {"title": "x" * 500})
+    assert len(long) == len("Create task: ") + 120
+    assert long.endswith("\u2026")
+
+
+def test_a_purged_payload_has_a_summary_that_names_only_the_effect() -> None:
+    assert summary_line(EffectKind.CREATE_TASK, {}) == "Create task"
+    assert summary_line(EffectKind.CREATE_CONTACT, {"display_name": 7}) == "Create contact"
 
 
 @pytest.mark.parametrize(

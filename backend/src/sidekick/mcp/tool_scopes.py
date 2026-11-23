@@ -118,6 +118,19 @@ _OWN_SCOPES: Final[Mapping[str, ToolScopes]] = {
     # The runner tools need `automation:run` and nothing else, so a routine's token reaches no
     # other part of Sidekick.
     **_tools(ToolScopes(("automation:run",)), "start_automation_run", "record_automation_results"),
+    # Suggestions: reading shows a card's payload only with the read scope of its domain; an
+    # approval, a group and an undo also need the write scope of the domain the card writes to.
+    **_tools(
+        ToolScopes(("automation:read",), optional=("contacts:read", "tasks:read")),
+        "list_suggestions",
+        "get_suggestion",
+    ),
+    **_tools(
+        ToolScopes(("automation:write",), optional=("contacts:write", "tasks:write")),
+        "decide_suggestions",
+        "approve_suggestion_group",
+        "undo_suggestion",
+    ),
     # The instance's license key (D-081: offline signed license keys) is an administrative change
     # with a scope of its own.
     "set_license_key": ToolScopes(("license:write",)),

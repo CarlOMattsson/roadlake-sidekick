@@ -36,7 +36,7 @@ from sidekick.shared.types import Actor
 from tests.contract_counts import write_tool_names
 from tests.db import _cleanup_factory_for, database_factory
 from tests.support import photo_files
-from tests.support.app_origin import origin_for
+from tests.support.app_origin import APP_ORIGIN, origin_for
 from tests.support.journal_drafts import seed_entry_draft
 from tests.support.settings import make_settings
 
@@ -139,12 +139,14 @@ async def _run_scenario(monkeypatch: pytest.MonkeyPatch) -> Scenario:
 
     async with Client(server) as client:
 
-        async def call(name: str, arguments: dict[str, Any]) -> dict[str, Any]:
+        async def call(
+            name: str, arguments: dict[str, Any], meta: dict[str, str] | None = None
+        ) -> dict[str, Any]:
             current["id"] = f"corr-{name}-0123456789"
             calls.setdefault(name, current["id"])
             first_args.setdefault(name, arguments)
             call_counts[name] = call_counts.get(name, 0) + 1
-            result = await client.call_tool(name, arguments, meta=origin_for(name))
+            result = await client.call_tool(name, arguments, meta=meta or origin_for(name))
             return result.structured_content or {}
 
         key = "corr-key-"
@@ -906,9 +908,72 @@ async def _run_scenario(monkeypatch: pytest.MonkeyPatch) -> Scenario:
             "record_automation_results",
             {
                 "run_id": run["id"],
+                "datapoints": [
+                    {
+                        "kind": "person",
+                        "fields": {"name": "Anna Svensson", "email": "anna@example.se"},
+                        "source_kind": "mail",
+                        "source_ref": "<corr-1@example.se>",
+                        "key": "anna",
+                    }
+                ],
+                "suggestions": [
+                    {
+                        "effect": "create_task.v1",
+                        "payload": {"title": f"Suggested task {number}"},
+                        "rationale": "The mail asks for it.",
+                        "datapoint_refs": ["anna"],
+                    }
+                    for number in range(3)
+                ],
                 "final": True,
-                "outcome": "nothing_found",
+                "outcome": "ok",
                 "idempotency_key": key + "autorec",
+            },
+        )
+        # Suggestions: the owner approves one in the app, approves the checked group of the other
+        # two, and undoes the first.
+        listed = (await client.call_tool("list_suggestions", {})).structured_content or {}
+        first, *rest = listed["items"]
+        decided = await call(
+            "decide_suggestions",
+            {
+                "items": [
+                    {
+                        "suggestion_id": first["id"],
+                        "expected_version": first["version"],
+                        "decision": "approve",
+                    }
+                ],
+                "idempotency_key": key + "sugdec",
+            },
+            meta=APP_ORIGIN,
+        )
+        with admin() as session:
+            session.execute(
+                text(
+                    "UPDATE sidekick.automation_suggestions SET check_state = 'checked', "
+                    "verdict = 'ok', confidence = 99, bulk_eligible = true WHERE id = ANY(:ids)"
+                ),
+                {"ids": [UUID(card["id"]) for card in rest]},
+            )
+            session.commit()
+        grouped = (await client.call_tool("list_suggestions", {})).structured_content or {}
+        group = grouped["groups"][0]
+        await call(
+            "approve_suggestion_group",
+            {
+                "group_digest": group["group_digest"],
+                "suggestion_ids": group["suggestion_ids"],
+                "idempotency_key": key + "sugroup",
+            },
+        )
+        await call(
+            "undo_suggestion",
+            {
+                "suggestion_id": first["id"],
+                "expected_version": decided["items"][0]["version"],
+                "idempotency_key": key + "sugundo",
             },
         )
         await call(

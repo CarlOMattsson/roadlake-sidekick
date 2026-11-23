@@ -164,6 +164,10 @@ class EffectSpec:
     model: type[CreateTaskV1] | type[CreateContactV1]
     write_scope: str
     """The scope an actor needs to write the record this effect creates."""
+    read_scope: str
+    """The scope an actor needs to read a payload of this effect."""
+    record_kind: str
+    """The lifecycle kind of the record the effect creates (`task`, `contact`)."""
     low_risk: bool
 
     @property
@@ -174,10 +178,22 @@ class EffectSpec:
 CATALOGUE: Mapping[EffectKind, EffectSpec] = MappingProxyType(
     {
         EffectKind.CREATE_TASK: EffectSpec(
-            EffectKind.CREATE_TASK, 1, CreateTaskV1, "tasks:write", low_risk=True
+            EffectKind.CREATE_TASK,
+            1,
+            CreateTaskV1,
+            "tasks:write",
+            "tasks:read",
+            "task",
+            low_risk=True,
         ),
         EffectKind.CREATE_CONTACT: EffectSpec(
-            EffectKind.CREATE_CONTACT, 1, CreateContactV1, "contacts:write", low_risk=True
+            EffectKind.CREATE_CONTACT,
+            1,
+            CreateContactV1,
+            "contacts:write",
+            "contacts:read",
+            "contact",
+            low_risk=True,
         ),
     }
 )
@@ -277,3 +293,23 @@ def target_key(parsed: ParsedPayload) -> str:
     if value.email:
         return f"email:{match_key(value.email)}"
     return f"name:{match_key(value.display_name)}"
+
+
+MAX_SUMMARY_CHARS = 120
+
+
+def summary_line(kind: EffectKind, payload: Mapping[str, object]) -> str:
+    """One line that says what applying the suggestion would do, from the payload alone.
+
+    The text is the payload's own (already normalised, and untrusted); it is cut, never extended.
+    A purged payload has none, and the line then names only the effect.
+    """
+
+    if kind is EffectKind.CREATE_TASK:
+        label, value = "Create task", payload.get("title")
+    else:
+        label, value = "Create contact", payload.get("display_name")
+    if not isinstance(value, str) or not value:
+        return label
+    text = value if len(value) <= MAX_SUMMARY_CHARS else f"{value[: MAX_SUMMARY_CHARS - 1]}\u2026"
+    return f"{label}: {text}"

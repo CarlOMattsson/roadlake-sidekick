@@ -35,6 +35,11 @@ EXPECTED_TOOLS = {
     "approve_automation",
     "start_automation_run",
     "record_automation_results",
+    "list_suggestions",
+    "get_suggestion",
+    "decide_suggestions",
+    "approve_suggestion_group",
+    "undo_suggestion",
     "search",
     "recall_memory",
     "get_memory_status",
@@ -148,6 +153,7 @@ EXPECTED_TOOLS = {
 APP_ONLY_TOOLS = {
     "approve_ai_plan",
     "approve_automation",
+    "approve_suggestion_group",
     "run_ai_plan",
     "get_ai_usage",
     "finalize_journal_draft",
@@ -209,6 +215,7 @@ async def test_discovery_has_exact_names_schemas_and_annotations() -> None:
                 "reject_journal_draft",
                 "finalize_journal_draft",
                 "move_to_trash",
+                "undo_suggestion",
                 "set_memory_settings",
             }
         )
@@ -379,7 +386,7 @@ async def test_journal_app_tools_open_the_sidekick_app() -> None:
 async def test_app_only_tools_are_pinned_and_no_other_tool_is_app_only() -> None:
     server = create_mcp_server(create_container(make_settings()), enable_auth=False)
     tools = {tool.name: tool for tool in await server.list_tools()}
-    assert len(APP_ONLY_TOOLS) == 34
+    assert len(APP_ONLY_TOOLS) == 35
     assert set(EXPECTED_TOOLS) >= APP_ONLY_TOOLS
     assert app_only_tool_names() == APP_ONLY_TOOLS
     for name in APP_ONLY_TOOLS:

@@ -151,6 +151,10 @@ RECEIPT_ONLY_WRITES: Final[frozenset[str]] = frozenset(
         # is meant to follow, so asking for `automation:read` too would defeat the narrow token.
         "start_automation_run",
         "record_automation_results",
+        # A decision answers with ids, states and closed codes, never a card's text.
+        "decide_suggestions",
+        "approve_suggestion_group",
+        "undo_suggestion",
         # A run's state, attempt and cost; its text is only in `get_ai_step_run`.
         "report_ai_step_result",
         "review_ai_step_result",
