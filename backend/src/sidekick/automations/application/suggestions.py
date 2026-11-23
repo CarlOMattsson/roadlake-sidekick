@@ -359,18 +359,30 @@ class SuggestionService(SuggestionReads):
         idempotency_key: str,
         correlation_id: str | None = None,
     ) -> UndoOutcome:
-        """Move the record an applied suggestion created into the trash.
+        """Take back a decision: the record an applied suggestion created goes to the trash, and a
+        dismissed suggestion is pending again.
 
-        Refused unless the record is exactly as it was created and not in the trash already; the
-        owner then uses the trash for the record itself.
+        An applied suggestion is refused unless the record is exactly as it was created and not in
+        the trash already; the owner then uses the trash for the record itself. A dismissed one is
+        refused once its time to live has passed. The card is read at the version the caller saw,
+        so one decided or changed since is refused as stale.
         """
 
         actor.require(WRITE_SCOPE)
 
         def execute(session: TxSession) -> dict[str, Any]:
+            # Only the card is locked, last in the order every writer takes (automation, run,
+            # card): nothing is read or written on the run or the automation here.
             card = self.store.get_suggestion(session, actor.user_id, suggestion_id, lock=True)
-            actor.require(CATALOGUE[card.effect].write_scope)
             now = self.clock.now()
+            if card.state in (SuggestionState.DISMISSED, SuggestionState.EXPIRED):
+                # A dismissal created nothing, so taking it back needs no domain write scope.
+                reopened = card.undo_dismissal(now=now, expected_version=expected_version)
+                self.store.save_suggestion(session, reopened, now, expected_version=card.version)
+                self._audit(session, reopened, "suggestion.dismissal_undone", correlation_id)
+                self._count("dismissal_undone", reopened)
+                return {"id": str(card.id)}
+            actor.require(CATALOGUE[card.effect].write_scope)
             kind, version, trashed = self._created_record(session, card)
             undone = card.undo(
                 record_version=version,

@@ -15,6 +15,7 @@ import {
   sid,
   suggestionReplies,
 } from "./suggestions-fixtures";
+import { quietStart } from "./start-home-fixtures";
 
 // The Start room's suggestion inbox on the SIMULATED host (mcp-host-fixture.ts): every tool answer is a fixture, no
 // backend, no database, no network. This is not a run in a real Claude or Android host. With SUGGESTION_SHOTS=<dir>
@@ -249,6 +250,7 @@ test("a failed read offers Försök igen and reads again", async ({ page }) => {
     tool: "get_work_agenda",
     result: { items: [], filters: {} },
     replies: {
+      get_start: { structuredContent: quietStart },
       list_suggestions: {
         __sequence: [
           { isError: true, content: [{ type: "text", text: "boom" }] },
@@ -260,6 +262,11 @@ test("a failed read offers Försök igen and reads again", async ({ page }) => {
   await app
     .getByRole("navigation", { name: "Rum" })
     .getByRole("button", { name: /Start/ })
+    .click();
+  // Start opens on the day; its row leads to the inbox.
+  await app
+    .locator(".start-home")
+    .getByRole("button", { name: /^Förslag/ })
     .click();
   await expect(app.getByText("Förslagen kunde inte hämtas")).toBeVisible();
   await shot(page, "error-390");

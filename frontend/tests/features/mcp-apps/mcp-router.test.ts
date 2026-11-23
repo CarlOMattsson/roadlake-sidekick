@@ -213,6 +213,10 @@ it.each(SHAPES)(
   },
 );
 
+it("routes get_start to the root of Start, which is its home view", () => {
+  expect(routeForTool("get_start")).toEqual({ room: "start", view: "root" });
+});
+
 it("routes the suggestion tools to Start, and not the app-only group approval", () => {
   expect(routeForTool("list_suggestions")).toEqual({
     room: "start",

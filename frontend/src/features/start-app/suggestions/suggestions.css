@@ -25,6 +25,10 @@
 .sidekick-start .start-inbox-more-button {
   margin-inline-end: calc(var(--sk-s3) * -1);
 }
+/* The ⋯ stands on the frame's edge: its target reaches no further than the frame, so the page never scrolls sideways. */
+.sidekick-start .start-inbox-more-button::after {
+  inset-inline-end: 0;
+}
 
 /* "Att granska (n)": the group heading of every room, 24 over (the grid's 12 taken back) and 4 under its cards. */
 .sidekick-start .start-inbox-review {

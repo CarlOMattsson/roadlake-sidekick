@@ -29,8 +29,8 @@
 import { readFile, writeFile } from "node:fs/promises";
 import { dirname, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import prettier from "prettier";
 import { generateToolShapes } from "./tool-shapes.mjs";
+import { formatTypeScript, loadPinnedPrettier } from "./pinned-prettier.mjs";
 
 // Paths come from the module's own file path (a string), not from `new URL`: the unit test runs this
 // module under jsdom, whose URL class `fileURLToPath` rejects.
@@ -338,11 +338,7 @@ function buildSource(tools) {
  * @returns {Promise<string>}
  */
 export async function generateToolTypes(tools) {
-  const config = (await prettier.resolveConfig(OUTPUT_PATH)) ?? {};
-  return prettier.format(buildSource(tools), {
-    ...config,
-    parser: "typescript",
-  });
+  return formatTypeScript(buildSource(tools), OUTPUT_PATH);
 }
 
 /** Reads and parses the contract file. */
@@ -360,6 +356,8 @@ export function generateToolShapeFile(tools) {
 }
 
 async function main() {
+  // Throws before anything is written when the pinned prettier is not installed.
+  loadPinnedPrettier();
   const tools = await readContract();
   const outputs = [
     [OUTPUT_PATH, await generateToolTypes(tools)],

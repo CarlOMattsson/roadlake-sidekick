@@ -84,8 +84,12 @@ export type DecisionCardProps = {
   /** The owner changed the suggestion before deciding (the server's payload differs from the proposal). */
   edited?: boolean;
   actions: {
-    approve: () => void;
-    dismiss: () => void;
+    /**
+     * The two answers. A card that cannot give one where it is drawn leaves it out (a ready conversation without the
+     * host's message to start it, or without the tool that skips it); a suggestion always has both.
+     */
+    approve?: () => void;
+    dismiss?: () => void;
     /** Opens the detail view. Required for a suspicious card inline, which cannot be approved there. */
     review?: () => void;
     /** Opens the target's form in suggestion mode (`full` only). */
@@ -344,8 +348,8 @@ function Answers({
   }, [confirming]);
 
   const waiting = busy !== undefined;
-  const guard = (run: () => void) => () => {
-    if (!waiting) run();
+  const guard = (run: (() => void) | undefined) => () => {
+    if (!waiting) run?.();
   };
   const held = waiting ? { "aria-disabled": true as const } : {};
   const dismissLabel =
@@ -387,7 +391,7 @@ function Answers({
       </KeyScope>
     );
 
-  const dismiss = (
+  const dismiss = actions.dismiss ? (
     <button
       type="button"
       className={buttonClass(
@@ -406,7 +410,7 @@ function Answers({
     >
       {dismissLabel}
     </button>
-  );
+  ) : null;
 
   if (suspicious)
     return (
@@ -435,6 +439,7 @@ function Answers({
       </div>
     );
 
+  if (!actions.approve && !actions.dismiss) return null;
   return (
     <div className="sk-decision__answers">
       {full && actions.edit ? (
@@ -449,15 +454,17 @@ function Answers({
         </button>
       ) : null}
       {dismiss}
-      <button
-        type="button"
-        className={buttonClass(full ? "primary" : "secondary", compact)}
-        aria-busy={busy === "approve" || undefined}
-        {...held}
-        onClick={guard(actions.approve)}
-      >
-        {approveLabel}
-      </button>
+      {actions.approve ? (
+        <button
+          type="button"
+          className={buttonClass(full ? "primary" : "secondary", compact)}
+          aria-busy={busy === "approve" || undefined}
+          {...held}
+          onClick={guard(actions.approve)}
+        >
+          {approveLabel}
+        </button>
+      ) : null}
     </div>
   );
 }

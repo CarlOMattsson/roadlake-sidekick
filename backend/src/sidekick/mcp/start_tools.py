@@ -15,11 +15,13 @@ from dataclasses import dataclass
 from datetime import date
 
 from fastmcp import FastMCP
+from fastmcp.apps import AppConfig
 from fastmcp.tools import ToolResult
 
 from sidekick.mcp.annotations import READ
 from sidekick.mcp.correlation import request_correlation_id_or_new
 from sidekick.mcp.results import output_schema, result
+from sidekick.mcp.sidekick_app import SIDEKICK_APP_URI
 from sidekick.mcp.tool_context import ToolContext
 from sidekick.shared.locale import DEFAULT_LOCALE, AppLocale
 from sidekick.shared.observability import log_failure
@@ -124,6 +126,7 @@ def register_start_tools(mcp: FastMCP, ctx: ToolContext) -> None:
         description=DESCRIPTION,
         output_schema=output_schema(StartOutput),
         annotations=READ,
+        app=AppConfig(resource_uri=SIDEKICK_APP_URI),
     )
     @ctx.instrument("get_start")
     def get_start() -> ToolResult:

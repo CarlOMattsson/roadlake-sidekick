@@ -28,7 +28,9 @@ const apps = {
 // (DecisionCard, ApproveGroup, TrustNote, QuoteBlock; measured 290 693 bytes, 283.9 KiB).
 // 2026-11-23: 285 KiB to 291 KiB for the Start room's automations (list, detail with its runs, the approval and its
 // separate confirmation of applying without a click; measured 297 815 bytes, 290.8 KiB).
-const GZIP_BUDGET_BYTES = 291 * 1024;
+// 2026-11-23: 291 KiB to 296 KiB for the Start room's home view on get_start (the day's blocks, the ready
+// conversations' cards with their skip and Ångra, the inbox beside it in a wide frame; measured 302 251 bytes, 295.2 KiB).
+const GZIP_BUDGET_BYTES = 296 * 1024;
 type AppName = keyof typeof apps;
 
 const LOCALES = ["sv", "en"] as const;

@@ -40,6 +40,7 @@ export default defineConfig({
     "board-styles-mcp-app.spec.ts",
     "suggestions-mcp-app.spec.ts",
     "automations-mcp-app.spec.ts",
+    "start-home-mcp-app.spec.ts",
     "awaiting-styles-mcp-app.spec.ts",
     "work-inline-styles-mcp-app.spec.ts",
     "work-ai-mark-mcp-app.spec.ts",

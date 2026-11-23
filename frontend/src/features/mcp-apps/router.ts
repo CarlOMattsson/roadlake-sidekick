@@ -45,9 +45,12 @@ export const MORE_ROOM_IDS = ["contacts"] as const;
 export const STRIP_ROOM_IDS = [...PRIMARY_ROOM_IDS, ...MORE_ROOM_IDS] as const;
 export type StripRoomId = (typeof STRIP_ROOM_IDS)[number];
 
+/** The view of a room that was not opened by a tool result (or by one that reads the room's home): the room shows its own home. */
+export const ROOT_VIEW = "root";
+
 /**
  * The view a room opens on. The names are the room's own; a room maps an unknown view to its root.
- * start: suggestions (the suggestion inbox), suggestion (one suggestion, a record), decided (the receipt card of a decision or an undo, inline only),
+ * start: root (the home view, get_start), suggestions (the suggestion inbox), suggestion (one suggestion, a record), decided (the receipt card of a decision or an undo, inline only),
  *   automations (the automations), automation (one automation with its approval, a record).
  * work: agenda, board, hierarchy, task, project, process, changes (confirmation card), review (the review queue's card).
  * journal: day, entry, card (one entry as a compact card), draft, pending.
@@ -67,6 +70,7 @@ const control = (view: string): Route => ({ room: "control", view });
 /** Tool name to route. Contact tools belong to Contacts although their resource is the Work app. */
 export const TOOL_ROUTES: Readonly<Record<string, Route>> = {
   // Start
+  get_start: start(ROOT_VIEW),
   list_suggestions: start("suggestions"),
   get_suggestion: start("suggestion"),
   decide_suggestions: start("decided"),

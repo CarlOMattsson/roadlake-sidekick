@@ -1,8 +1,11 @@
 /**
- * The Start room (room contract: mcp-apps/room-types.ts). Today it holds the suggestion inbox: what the owner's
- * automations propose, decided here without a new turn of the model. Its views:
+ * The Start room (room contract: mcp-apps/room-types.ts): what needs the owner now, and the suggestion inbox where what
+ * the owner's automations propose is decided without a new turn of the model. Its views:
  *
- * - root and `suggestions`: the inbox (SuggestionsInbox); inline, its card (SuggestionsCard).
+ * - root, full: the home view (StartHomeView) on get_start, which leads to the inbox and the automations.
+ *   Where the host cannot answer get_start, or the result that opened the room is a suggestion page, the root is the
+ *   inbox as before. Inline the root is the inbox's card.
+ * - `suggestions`: the inbox (SuggestionsInbox); inline, its card (SuggestionsCard).
  * - `suggestion`: one suggestion in full, the detail beside the inbox in a wide frame; inline, its decision card.
  * - `decided`: the receipt card of what Claude decided or undid in the chat; in the full view, the inbox.
  * - `automations`: the automations (AutomationsList), reached from the inbox's lead row and its ⋯.
@@ -10,7 +13,7 @@
  *   wide frame.
  *
  * Every read and write goes through `props.transport` (the host's tools/call): no credential and no request of its
- * own. The room's day view (the start page) will take the root; the inbox then becomes a view under it.
+ * own.
  */
 import { useMemo } from "react";
 
@@ -37,6 +40,7 @@ import {
   isUndo,
   suggestionIdOf,
   suggestionTitle,
+  type SuggestionItem,
 } from "./suggestions/model";
 import { SuggestionDetailView } from "./suggestions/suggestion-detail";
 import { createSuggestionTransport } from "./suggestions/transport";
@@ -53,6 +57,10 @@ import {
   isAutomationResult,
 } from "./automations/model";
 import { createAutomationTransport } from "./automations/transport";
+import { homeLabelsFor } from "./home/labels";
+import { isStartHome } from "./home/model";
+import { StartHomeView } from "./home/start-home";
+import { createHomeTransport } from "./home/transport";
 
 export function StartRoom(props: RoomProps) {
   const { transport, onNavigate, mode } = props;
@@ -61,9 +69,12 @@ export function StartRoom(props: RoomProps) {
     () => createAutomationTransport(transport),
     [transport],
   );
+  const home = useMemo(() => createHomeTransport(transport), [transport]);
   const locale = appLocale();
   const t = suggestionLabelsFor(locale);
   const ta = automationLabelsFor(locale);
+  const th = homeLabelsFor(locale);
+  const automationsAt = automations.offered ? automationsTarget(ta) : undefined;
   const initial = props.initialError ? undefined : props.initial;
   const full = mode === "full";
 
@@ -73,6 +84,15 @@ export function StartRoom(props: RoomProps) {
     const entry = controlEntry(locale);
     return { label: entry.label, onOpen: () => onNavigate(entry.target) };
   }, [props.hostSettings, onNavigate, locale]);
+  const openSuggestion = onNavigate
+    ? (item: SuggestionItem) =>
+        onNavigate({
+          room: "start",
+          view: "suggestion",
+          id: item.id,
+          label: suggestionTitle(item.effect, item.summary, t),
+        })
+    : undefined;
 
   /** The full view, from an inline card: fullscreen where the host offers it, else the shell expands in place. */
   const canOpenFull =
@@ -171,6 +191,31 @@ export function StartRoom(props: RoomProps) {
     );
 
   const page = isSuggestionPage(initial) ? initial : undefined;
+  if (full && view === undefined && home.offered && !page)
+    return (
+      <AppFrame mode="full">
+        <StartHomeView
+          api={home}
+          t={th}
+          initial={isStartHome(initial) ? initial : undefined}
+          refreshKey={props.refreshKey}
+          onNavigate={onNavigate}
+          sendMessage={props.sendMessage}
+          control={control}
+          suggestions={{ room: "start", view: "suggestions", label: t.title }}
+          automations={automationsAt}
+          aside={
+            <SuggestionsInbox
+              api={api}
+              t={t}
+              refreshKey={props.refreshKey}
+              onOpenSuggestion={openSuggestion}
+              onOpenRecord={openRecord}
+            />
+          }
+        />
+      </AppFrame>
+    );
   if (!full)
     return (
       <SuggestionsCard
@@ -207,17 +252,7 @@ export function StartRoom(props: RoomProps) {
             />
           ) : undefined
         }
-        onOpenSuggestion={
-          onNavigate
-            ? (item) =>
-                onNavigate({
-                  room: "start",
-                  view: "suggestion",
-                  id: item.id,
-                  label: suggestionTitle(item.effect, item.summary, t),
-                })
-            : undefined
-        }
+        onOpenSuggestion={openSuggestion}
         onOpenRecord={openRecord}
       />
     </AppFrame>

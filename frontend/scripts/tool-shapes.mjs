@@ -14,7 +14,7 @@
 //  - Dropped: description, title, default, format and other annotations.
 //  - $ref, allOf and prefixItems are not used by these schemas today. The reducer throws on them,
 //    so the shape can never silently become weaker than the schema.
-import prettier from "prettier";
+import { formatTypeScript } from "./pinned-prettier.mjs";
 
 /**
  * The tools whose result shape a frontend guard needs. Add a tool here when a new guard reads its
@@ -153,9 +153,5 @@ export async function generateToolShapes(tools, prettierConfigPath) {
     const shape = JSON.stringify(schemaToShape(tool.outputSchema));
     return `/** The shape of the structuredContent ${name} returns. */\nexport const ${shapeConstantName(name)}: Shape = ${shape};`;
   });
-  const config = (await prettier.resolveConfig(prettierConfigPath)) ?? {};
-  return prettier.format([HEADER, ...blocks].join("\n"), {
-    ...config,
-    parser: "typescript",
-  });
+  return formatTypeScript([HEADER, ...blocks].join("\n"), prettierConfigPath);
 }

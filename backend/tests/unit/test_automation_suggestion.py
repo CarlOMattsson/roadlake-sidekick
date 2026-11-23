@@ -395,6 +395,34 @@ def test_an_applied_card_is_undone_only_while_the_record_is_as_it_was_created() 
     )
 
 
+def test_a_dismissal_is_taken_back_to_pending_until_the_card_expires() -> None:
+    dismissed = suggestion().dismiss(APP, now=NOW, expected_version=1)
+    reopened = dismissed.undo_dismissal(now=NOW, expected_version=2)
+    assert reopened.state is SuggestionState.PENDING
+    assert reopened.version == 3
+    assert (reopened.decided_at, reopened.decided_by, reopened.decision_channel) == (
+        None,
+        None,
+        None,
+    )
+    assert reopened.dedupe_fingerprint == dismissed.dedupe_fingerprint
+    assert not reopened.bulk_eligible
+    again = reopened.dismiss(APP, now=NOW, expected_version=3)
+    assert again.state is SuggestionState.DISMISSED
+    assert refusal(lambda: dismissed.undo_dismissal(now=NOW, expected_version=1)) is (
+        DecisionRefusal.STALE
+    )
+    assert refusal(
+        lambda: dismissed.undo_dismissal(now=dismissed.expires_at, expected_version=2)
+    ) is (DecisionRefusal.EXPIRED)
+    assert refusal(lambda: suggestion().undo_dismissal(now=NOW, expected_version=1)) is (
+        DecisionRefusal.NOT_DISMISSED
+    )
+    assert refusal(lambda: reopened.undo_dismissal(now=NOW, expected_version=3)) is (
+        DecisionRefusal.NOT_DISMISSED
+    )
+
+
 def test_a_decision_is_checked_without_taking_a_step() -> None:
     pending = suggestion()
     pending.check_decision(APP, Decision.APPROVE, now=NOW, expected_version=1)

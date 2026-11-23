@@ -5,6 +5,7 @@ received --screened--> checking --check done or failed--> pending
 received --screened (checker off)--> pending
 pending --approve--> applied --undo--> undone
 pending --dismiss--> dismissed        pending --TTL--> expired
+dismissed --undo, before its TTL--> pending
 pending --approve fails--> pending (shows a closed error code)
 ```
 
@@ -101,6 +102,7 @@ class DecisionRefusal(StrEnum):
     EXPIRED = "expired"
     NOT_ALLOWED = "not_allowed"
     NOT_APPLIED = "not_applied"
+    NOT_DISMISSED = "not_dismissed"
     CHANGED_SINCE_APPLY = "changed_since_apply"
     GROUP_CHANGED = "group_changed"
     GROUP_TOO_LARGE = "group_too_large"
@@ -119,6 +121,7 @@ _REFUSAL_REASONS: dict[DecisionRefusal, SidekickErrorReason] = {
     DecisionRefusal.EXPIRED: "suggestion_not_pending",
     DecisionRefusal.AUTO_NOT_ALLOWED: "suggestion_not_pending",
     DecisionRefusal.NOT_APPLIED: "suggestion_undo_refused",
+    DecisionRefusal.NOT_DISMISSED: "suggestion_undo_refused",
     DecisionRefusal.CHANGED_SINCE_APPLY: "suggestion_undo_refused",
     DecisionRefusal.GROUP_CHANGED: "suggestion_group_refused",
     DecisionRefusal.GROUP_TOO_LARGE: "suggestion_group_refused",
@@ -485,6 +488,28 @@ class Suggestion:
         if record_trashed or record_version != self.applied_version:
             raise SuggestionRefusedError(DecisionRefusal.CHANGED_SINCE_APPLY)
         return self._next(state=SuggestionState.UNDONE, undone_at=now)
+
+    def undo_dismissal(self, *, now: datetime, expected_version: int) -> "Suggestion":
+        """Take a dismissal back: the card is pending again, with no decision recorded.
+
+        Only a dismissed card whose time to live has not passed. The card's check, flags and
+        payload are as they were; it does not return to a group, since the group was formed when
+        the run finished and the owner chooses the card again on its own.
+        """
+
+        self._expect(expected_version)
+        if self.state is SuggestionState.EXPIRED or (
+            self.state is SuggestionState.DISMISSED and now >= self.expires_at
+        ):
+            raise SuggestionRefusedError(DecisionRefusal.EXPIRED)
+        if self.state is not SuggestionState.DISMISSED:
+            raise SuggestionRefusedError(DecisionRefusal.NOT_DISMISSED)
+        return self._next(
+            state=SuggestionState.PENDING,
+            decided_at=None,
+            decided_by=None,
+            decision_channel=None,
+        )
 
 
 # --- dedupe -------------------------------------------------------------------------------------

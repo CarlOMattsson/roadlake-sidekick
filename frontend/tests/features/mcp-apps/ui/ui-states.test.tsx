@@ -440,6 +440,7 @@ describe("the heading of a failed read, for every view a tool can open", () => {
   // What each room:view of the router says could not be read (the room's own heading where a view has none of its
   // own). A route added to the router fails here until its heading has been chosen.
   const expected: Record<string, string> = {
+    "start:root": "Startvyn kunde inte hämtas",
     "start:suggestions": "Förslagen kunde inte hämtas",
     "start:suggestion": "Förslaget kunde inte hämtas",
     "start:automations": "Automationerna kunde inte hämtas",
@@ -497,6 +498,8 @@ describe("the heading of a failed read, for every view a tool can open", () => {
       ...ROOM_IDS,
       // The tabs of Control, which names them as it reads them.
       "control:history",
+      // Start's home view, read by the app itself (get_start opens no card).
+      "start:home",
     ]);
     for (const subject of Object.keys(errorLabelsFor("sv").subjects))
       expect(known.has(subject), subject).toBe(true);

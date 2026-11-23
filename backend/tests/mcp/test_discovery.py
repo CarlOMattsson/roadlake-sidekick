@@ -328,6 +328,13 @@ async def test_nested_output_records_are_closed_and_do_not_expose_owner() -> Non
 
 
 @pytest.mark.asyncio
+async def test_start_opens_the_sidekick_app() -> None:
+    server = create_mcp_server(create_container(make_settings()), enable_auth=False)
+    tools = {tool.name: tool for tool in await server.list_tools()}
+    assert tools["get_start"].meta["ui"]["resourceUri"] == SIDEKICK_APP_URI
+
+
+@pytest.mark.asyncio
 async def test_work_app_tools_open_the_sidekick_app() -> None:
     server = create_mcp_server(create_container(make_settings()), enable_auth=False)
     tools = {tool.name: tool for tool in await server.list_tools()}

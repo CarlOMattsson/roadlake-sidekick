@@ -1,0 +1,104 @@
+/* The Start room's home view (start-home.tsx). Rows, cards, buttons and notices are the family's; this file places them:
+   the title row, then the blocks 24 apart in a reading column, the receipt bar last. */
+
+.sidekick-start.start-home {
+  display: grid;
+  gap: var(--sk-s3);
+  min-width: 0;
+}
+/* The title takes the focus when a card it named leaves (a skipped conversation); it draws no ring for that. */
+.sidekick-start.start-home .start-inbox-title:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* The insight: the sentence, then who wrote it when a model did. */
+.sidekick-start .start-home-insight {
+  display: grid;
+  gap: var(--sk-s1);
+}
+.sidekick-start .start-home-ai {
+  margin: 0;
+}
+
+/* A block: its section heading, its rows or cards, its way on. 24 above the next (the grid's 12 and 12 more). */
+.sidekick-start .start-home-block {
+  display: grid;
+  gap: var(--sk-s1);
+  min-width: 0;
+}
+.sidekick-start .start-home-block + .start-home-block,
+.sidekick-start .sk-empty + .start-home-block,
+.sidekick-start .start-home-insight + .start-home-block {
+  margin-top: var(--sk-s3);
+}
+
+.sidekick-start .start-home-rows,
+.sidekick-start .start-home-links,
+.sidekick-start .start-home-cards {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.sidekick-start .start-home-cards {
+  display: grid;
+  gap: var(--sk-s3);
+  margin-top: var(--sk-s2);
+}
+.sidekick-start .start-home-card {
+  min-width: 0;
+}
+
+/* A row's line: the due text in the overdue tone when it is late, a failed automation in the warning tone. */
+.sidekick-start .start-home-meta [data-tone="overdue"] {
+  color: var(--sk-overdue-fg);
+}
+.sidekick-start .start-home-meta[data-tone="warning"] {
+  color: var(--sk-warning-fg);
+  font-weight: var(--sk-weight-medium);
+}
+/* What waits for an answer names itself in the text colour, as the inbox's row to the automations does. */
+.sidekick-start .start-home-links [data-waiting="true"] {
+  color: var(--sk-fg);
+  font-weight: var(--sk-weight-medium);
+}
+
+/* "Öppna Agenda · 1 till ›": the tertiary way on, on the rows' text edge; the count muted. */
+.sidekick-start .start-home-open {
+  justify-self: start;
+  gap: var(--sk-s1);
+}
+.sidekick-start .start-home-open-more {
+  color: var(--sk-muted);
+  font-weight: 400;
+}
+.sidekick-start .start-home-more {
+  margin: 0;
+}
+
+/* The phrase to say where the card cannot send it: the lead muted, the phrase in the text colour. Text, never a control. */
+.sidekick-start .start-home-say {
+  margin: 0;
+  font: var(--sk-type-meta);
+  color: var(--sk-muted);
+  overflow-wrap: anywhere;
+}
+.sidekick-start .start-home-say-phrase {
+  color: var(--sk-fg);
+}
+
+/* A ready card in a narrow card shares the width by what each answer's words need, so "Hoppa över idag" keeps its
+   padding beside "Starta" at 320. */
+@container (max-width: 30rem) {
+  .sidekick-start
+    .start-home-card
+    .sk-decision--full
+    .sk-decision__answers
+    .sk-decision__answer {
+    flex: 1 1 auto;
+  }
+}
+
+/* The inbox beside the page in a wide frame. */
+.sidekick-start.start-home-aside {
+  min-width: 0;
+}

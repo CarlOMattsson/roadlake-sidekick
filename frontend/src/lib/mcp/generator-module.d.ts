@@ -26,6 +26,23 @@ declare module "*/generate-tool-types.mjs" {
   export function readContract(path?: string): Promise<ContractTool[]>;
 }
 
+/** Types of the pinned prettier loader (scripts/pinned-prettier.mjs). */
+declare module "*/pinned-prettier.mjs" {
+  /** The prettier version frontend/package.json pins, or null. */
+  export function pinnedPrettierVersion(): string | null;
+  /** Loads the prettier in frontend/node_modules; throws when it is missing or resolves elsewhere. */
+  export function loadPinnedPrettier(): {
+    prettier: { format(source: string, options: object): Promise<string> };
+    version: string;
+    pinned: string | null;
+  };
+  /** Formats TypeScript with the pinned prettier and the config found from `configPath`. */
+  export function formatTypeScript(
+    source: string,
+    configPath: string,
+  ): Promise<string>;
+}
+
 /** Types of the shape reducer (scripts/tool-shapes.mjs). */
 declare module "*/tool-shapes.mjs" {
   export const SHAPE_TOOLS: string[];

@@ -68,9 +68,10 @@ GROUP_DESCRIPTION = (
     "group_digest. A group that changed since is refused as a whole."
 )
 UNDO_DESCRIPTION = (
-    "Use this only after asking the user and getting an explicit yes in this turn. Moves the "
-    "record an approved suggestion created to the trash, if unchanged; restore_from_trash "
-    "returns it."
+    "Use this only after asking the user and getting an explicit yes in this turn. Takes back a "
+    "decision: moves the record an approved suggestion created to the trash, if unchanged "
+    "(restore_from_trash returns it), or makes a dismissed suggestion pending again, if it has "
+    "not expired."
 )
 _OPENS_APP = AppConfig(resource_uri=SIDEKICK_APP_URI)
 # Approving a group is the owner's act inside the open app, so it opens no card of its own.
@@ -235,7 +236,11 @@ def _register_undo_suggestion(mcp: FastMCP, ctx: ToolContext) -> None:
             correlation_id=request_correlation_id_or_new(),
         )
         output = undo_output(outcome)
-        sentence = "Undone: the record is in the trash."
+        sentence = (
+            "Undone: the suggestion is pending again."
+            if output.state is SuggestionState.PENDING
+            else "Undone: the record is in the trash."
+        )
         return tool_result(
             output.model_dump(mode="json"),
             spoken_line(sentence, f"suggestion {output.suggestion_id} v{output.version}"),

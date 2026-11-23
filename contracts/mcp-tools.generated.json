@@ -16010,6 +16010,11 @@
     "title": "Dagens l\u00e4ge"
   },
   {
+    "_meta": {
+      "ui": {
+        "resourceUri": "ui://sidekick/app-v1.html"
+      }
+    },
     "annotations": {
       "destructiveHint": false,
       "idempotentHint": true,
@@ -39627,7 +39632,7 @@
       "readOnlyHint": false,
       "title": "\u00c5ngra f\u00f6rslag"
     },
-    "description": "Use this only after asking the user and getting an explicit yes in this turn. Moves the record an approved suggestion created to the trash, if unchanged; restore_from_trash returns it.",
+    "description": "Use this only after asking the user and getting an explicit yes in this turn. Takes back a decision: moves the record an approved suggestion created to the trash, if unchanged (restore_from_trash returns it), or makes a dismissed suggestion pending again, if it has not expired.",
     "inputSchema": {
       "additionalProperties": false,
       "properties": {

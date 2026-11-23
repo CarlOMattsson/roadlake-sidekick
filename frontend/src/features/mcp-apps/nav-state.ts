@@ -6,13 +6,12 @@
  * strip keeps showing that room. Back pops the top. Pressing the active room returns to its root.
  * There is no window.history: the state lives in memory only.
  */
-import { ROOM_IDS, type RoomId } from "@/features/mcp-apps/router";
+import { ROOM_IDS, ROOT_VIEW, type RoomId } from "@/features/mcp-apps/router";
 import type { ToolArgs } from "@/features/mcp-apps/room-types";
 
 /** At most this many entries sit above a room's root; pushing one more drops the oldest. */
 export const STACK_LIMIT = 8;
-/** The view of a room that was not opened by a tool result: the room shows its own home. */
-export const ROOT_VIEW = "root";
+export { ROOT_VIEW };
 
 /**
  * Something a room can show. `room` says which room's component draws it, which is not always the

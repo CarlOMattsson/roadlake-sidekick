@@ -1040,6 +1040,158 @@ async def test_an_undo_needs_the_write_scope_of_the_domain_and_a_retry_changes_n
     )
 
 
+# --- undo of a dismissal -----------------------------------------------------------------------
+
+
+async def _dismissed(desk: Desk, card: dict[str, Any]) -> dict[str, Any]:
+    answer = await decide(desk, desk.claude, decision(card, "dismiss"), app=True)
+    return answer["items"][0]
+
+
+async def test_undoing_a_dismissal_makes_the_card_pending_again_and_creates_nothing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    desk = await make_desk(monkeypatch)
+    (card,) = await propose(desk)
+    dismissed = await _dismissed(desk, card)
+
+    reopened = await ok(
+        desk,
+        desk.claude,
+        "undo_suggestion",
+        suggestion_id=card["id"],
+        expected_version=dismissed["version"],
+    )
+
+    stored = card_row(desk, card["id"])
+    assert (reopened["state"], reopened["version"]) == ("pending", dismissed["version"] + 1)
+    assert reopened.get("trashed") is None
+    assert (stored["state"], stored["decided_at"], stored["decided_by"]) == ("pending", None, None)
+    assert stored["decision_channel"] is None
+    assert count(desk.world, "tasks") == 0
+    assert [event for event, _ in events(desk, card["id"])] == [
+        "suggestion.dismissed",
+        "suggestion.dismissal_undone",
+    ]
+    listed = await ok(desk, desk.claude, "list_suggestions")
+    assert [item["id"] for item in listed["items"]] == [card["id"]]
+    # The reopened card can be decided again.
+    approved = await decide(
+        desk, desk.claude, decision({**card, "version": reopened["version"]}), app=True
+    )
+    assert approved["items"][0]["state"] == "applied"
+
+
+async def test_a_dismissal_is_undone_once_per_key_and_a_retry_replays(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    desk = await make_desk(monkeypatch)
+    (card,) = await propose(desk)
+    dismissed = await _dismissed(desk, card)
+    arguments = {
+        "suggestion_id": card["id"],
+        "expected_version": dismissed["version"],
+        "idempotency_key": "reopen-once",
+    }
+
+    first = await ok(desk, desk.claude, "undo_suggestion", **arguments)
+    replay = await ok(desk, desk.claude, "undo_suggestion", **arguments)
+
+    assert replay == first
+    assert len([e for e, _ in events(desk, card["id"]) if e == "suggestion.dismissal_undone"]) == 1
+
+
+async def test_a_second_undo_with_another_key_is_refused_once_the_card_is_pending(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    desk = await make_desk(monkeypatch)
+    (card,) = await propose(desk)
+    dismissed = await _dismissed(desk, card)
+    first = await ok(
+        desk,
+        desk.claude,
+        "undo_suggestion",
+        suggestion_id=card["id"],
+        expected_version=dismissed["version"],
+    )
+
+    refused_old = await call(
+        desk,
+        desk.claude,
+        "undo_suggestion",
+        suggestion_id=card["id"],
+        expected_version=dismissed["version"],
+    )
+    current = await call(
+        desk,
+        desk.claude,
+        "undo_suggestion",
+        suggestion_id=card["id"],
+        expected_version=first["version"],
+    )
+
+    assert refusal(refused_old)["reason"] == "suggestion_undo_refused"
+    assert refusal(current)["reason"] == "suggestion_undo_refused"
+    assert card_row(desk, card["id"])["state"] == "pending"
+
+
+async def test_a_dismissal_cannot_be_undone_after_the_card_expired(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    desk = await make_desk(monkeypatch)
+    (card,) = await propose(desk)
+    dismissed = await _dismissed(desk, card)
+    set_card(desk, card["id"], expires_at=desk.world.clock.current - timedelta(minutes=1))
+
+    result = await call(
+        desk,
+        desk.claude,
+        "undo_suggestion",
+        suggestion_id=card["id"],
+        expected_version=dismissed["version"],
+    )
+
+    assert refusal(result)["reason"] == "suggestion_not_pending"
+    assert card_row(desk, card["id"])["state"] == "dismissed"
+
+
+async def test_another_owner_cannot_undo_a_dismissal(monkeypatch: pytest.MonkeyPatch) -> None:
+    desk = await make_desk(monkeypatch)
+    (card,) = await propose(desk)
+    dismissed = await _dismissed(desk, card)
+
+    result = await call(
+        desk,
+        desk.other,
+        "undo_suggestion",
+        suggestion_id=card["id"],
+        expected_version=dismissed["version"],
+    )
+
+    assert refusal(result)["code"] == "not_found"
+    assert card_row(desk, card["id"])["state"] == "dismissed"
+
+
+async def test_undoing_a_dismissal_needs_the_automation_write_scope(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    desk = await make_desk(monkeypatch)
+    (card,) = await propose(desk)
+    dismissed = await _dismissed(desk, card)
+    read_only = owner_actor(desk.world, "automation:read")
+
+    result = await call(
+        desk,
+        read_only,
+        "undo_suggestion",
+        suggestion_id=card["id"],
+        expected_version=dismissed["version"],
+    )
+
+    assert refusal(result)["code"] == "forbidden"
+    assert card_row(desk, card["id"])["state"] == "dismissed"
+
+
 # --- text stays in the card -------------------------------------------------------------------
 
 

@@ -50,7 +50,12 @@ describe("the Start room's inbox", () => {
       list_suggestions: () => inboxPage,
     });
     render(
-      <StartRoom mode="full" transport={transport} onNavigate={vi.fn()} />,
+      <StartRoom
+        mode="full"
+        view="suggestions"
+        transport={transport}
+        onNavigate={vi.fn()}
+      />,
     );
     expect(await screen.findByText("Säkra förslag (4)")).toBeTruthy();
     expect(screen.getByText("Att granska (3)")).toBeTruthy();
@@ -74,7 +79,7 @@ describe("the Start room's inbox", () => {
         return inboxPage;
       },
     });
-    render(<StartRoom mode="full" transport={transport} />);
+    render(<StartRoom mode="full" view="suggestions" transport={transport} />);
     expect(await screen.findByText("Förslagen kunde inte hämtas")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Försök igen" }));
     expect(await screen.findByText("Säkra förslag (4)")).toBeTruthy();

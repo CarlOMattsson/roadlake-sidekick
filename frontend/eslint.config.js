@@ -180,6 +180,7 @@ export default tseslint.config(
       "eslint.config.js",
       "scripts/check.mjs",
       "scripts/generate-tool-types.mjs",
+      "scripts/pinned-prettier.mjs",
       "scripts/tool-shapes.mjs",
       "vite.config.d.ts",
       "vite.config.js",

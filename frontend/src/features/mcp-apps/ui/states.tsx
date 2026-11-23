@@ -35,6 +35,8 @@ const errorEn = {
    */
   subjects: {
     start: "Couldn’t load your suggestions",
+    "start:home": "Couldn’t load Home",
+    "start:root": "Couldn’t load Home",
     "start:suggestion": "Couldn’t load the suggestion",
     "start:automations": "Couldn’t load your automations",
     "start:automation": "Couldn’t load the automation",
@@ -74,6 +76,8 @@ const errorSv: typeof errorEn = {
   render: "Den här vyn kunde inte visas",
   subjects: {
     start: "Förslagen kunde inte hämtas",
+    "start:home": "Startvyn kunde inte hämtas",
+    "start:root": "Startvyn kunde inte hämtas",
     "start:suggestion": "Förslaget kunde inte hämtas",
     "start:automations": "Automationerna kunde inte hämtas",
     "start:automation": "Automationen kunde inte hämtas",
