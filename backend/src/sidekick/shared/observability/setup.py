@@ -45,6 +45,13 @@ SAFE_LOG_FIELDS = frozenset(
         "mcp_method",
         "mcp_error_class",
         "mcp_error_code",
+        # A decision the owner made in the app (`OwnerDecisionsFromTheApp`): how it was proved
+        # (`ticket` or `origin_mark`), whether the request kept the app's origin mark
+        # (`present` or `absent`) and whether the client declared the MCP Apps extension
+        # (`declared`, `absent` or `unknown`). Closed words only, never a ticket.
+        "mcp_decision_via",
+        "mcp_origin_mark",
+        "mcp_client_ui",
         # The `mcp-protocol-version` a client sent with a transport 400 that was refused as
         # unsupported. Logged only when it is a date (YYYY-MM-DD), otherwise as "invalid".
         "mcp_protocol_version",

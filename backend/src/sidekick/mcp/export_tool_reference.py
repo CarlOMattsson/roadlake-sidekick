@@ -572,10 +572,12 @@ def _app_only_page(groups: list[tuple[Area, list[JsonObject]]]) -> str:
         "",
         'These tools are declared with `visibility: ["app"]`. The MCP App rooms call them to '
         "show and edit records; the model never lists them. The owner's decisions among them "
-        "(approving a plan or an automation, running a plan) are also refused by the server when "
-        "the call does not carry the app's origin mark, which the model cannot set; the answer "
-        "is `forbidden` with the reason `app_only`. They check the same scopes as every other "
-        "tool.",
+        "(approving a plan, an automation or a group of suggestions, running a plan) are also "
+        "refused by the server when the call does not prove the app made it: a decision ticket "
+        "(a signed, single-use proof the app gets with the data it shows, sent back as "
+        "`decision_ticket`) or, for one more release, the app's origin mark. A model cannot "
+        "produce either; the answer is `forbidden` with the reason `app_only`. They check the "
+        "same scopes as every other tool.",
         "",
     ]
     for area, tools in groups:

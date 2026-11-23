@@ -23,6 +23,7 @@ from sidekick.automations.domain.suggestion import DecisionChannel, SuggestionSt
 from sidekick.mcp.annotations import DESTRUCTIVE, READ, WRITE
 from sidekick.mcp.change_source import REQUIRES_APP_META
 from sidekick.mcp.correlation import request_correlation_id_or_new
+from sidekick.mcp.decision_ticket import DecisionTicket, TicketEntry, ticket_binding
 from sidekick.mcp.idempotency import IdempotencyKey
 from sidekick.mcp.results import output_schema
 from sidekick.mcp.results import result as tool_result
@@ -76,8 +77,10 @@ UNDO_DESCRIPTION = (
 _OPENS_APP = AppConfig(resource_uri=SIDEKICK_APP_URI)
 # Approving a group is the owner's act inside the open app, so it opens no card of its own.
 _APP_ONLY = AppConfig(visibility=["app"])
-# The server also refuses a call that does not come from the app (`OwnerDecisionsFromTheApp`).
-_REQUIRES_APP = {REQUIRES_APP_META: True}
+# The server also refuses a call that does not come from the app (`OwnerDecisionsFromTheApp`): it
+# wants the decision ticket of the group the owner was shown, bound to the group's digest, or the
+# app's origin mark.
+_REQUIRES_APP = {REQUIRES_APP_META: True, **ticket_binding("group_digest", "group_digest")}
 
 
 def _channel() -> DecisionChannel:
@@ -146,7 +149,15 @@ def _register_list_suggestions(mcp: FastMCP, ctx: ToolContext) -> None:
         head = found_sentence(len(output.items), "suggestion", "suggestions", [])
         if output.hidden:
             head += f" {output.hidden} more are in a domain this session may not read."
-        return tool_result(output.model_dump(mode="json"), "\n".join([head, *rows]))
+        reply = tool_result(output.model_dump(mode="json"), "\n".join([head, *rows]))
+        # The app approves a group it was shown, so each group comes with its ticket.
+        return ctx.with_tickets(
+            reply,
+            [
+                TicketEntry("approve_suggestion_group", group.group_digest, group.group_digest)
+                for group in output.groups
+            ],
+        )
 
 
 def _register_get_suggestion(mcp: FastMCP, ctx: ToolContext) -> None:
@@ -203,7 +214,10 @@ def _register_approve_suggestion_group(mcp: FastMCP, ctx: ToolContext) -> None:
     )
     @ctx.instrument("approve_suggestion_group")
     def approve_suggestion_group(
-        group_digest: _Digest, suggestion_ids: GroupIdsInput, idempotency_key: IdempotencyKey
+        group_digest: _Digest,
+        suggestion_ids: GroupIdsInput,
+        idempotency_key: IdempotencyKey,
+        decision_ticket: DecisionTicket = None,
     ) -> ToolResult:
         outcomes = ctx.container.automation_suggestions.approve_group(
             ctx.actor_provider(),

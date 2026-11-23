@@ -89,7 +89,7 @@ JOURNAL_TOOL_SCOPES = {
 def register_journal_tools(mcp: FastMCP, ctx: ToolContext) -> None:
     """Register the fifteen bounded Journal tools; none of them starts AI processing."""
 
-    journal_ctx = JournalToolContext(ctx.container, ctx.actor_provider, ctx.instrument)
+    journal_ctx = JournalToolContext(ctx.container, ctx.actor_provider, ctx.instrument, ctx.tickets)
     register_journal_read_tools(mcp, journal_ctx)
     register_journal_write_tools(mcp, journal_ctx)
     register_journal_draft_tools(mcp, journal_ctx)

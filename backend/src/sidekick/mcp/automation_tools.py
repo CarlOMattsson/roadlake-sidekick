@@ -15,7 +15,7 @@ import pydantic_core
 from fastmcp import FastMCP
 from fastmcp.apps import AppConfig
 from fastmcp.tools import ToolResult
-from pydantic import Field
+from pydantic import BaseModel, Field
 
 from sidekick.automations.application.registry import AutomationView
 from sidekick.automations.domain.effects import EffectKind
@@ -38,6 +38,7 @@ from sidekick.automations.domain.spec import (
 from sidekick.mcp.annotations import READ, WRITE
 from sidekick.mcp.change_source import OWNER_DECISION_META
 from sidekick.mcp.correlation import request_correlation_id_or_new
+from sidekick.mcp.decision_ticket import DecisionTicket, TicketEntry, ticket_binding
 from sidekick.mcp.idempotency import IdempotencyKey
 from sidekick.mcp.patch import CLEAR_SENTENCE, ignored_nulls_note
 from sidekick.mcp.results import output_schema
@@ -170,6 +171,16 @@ def _reply(sentence: str, view: AutomationView) -> str:
     return spoken_line(sentence, ref)
 
 
+def _automation_reply(
+    ctx: ToolContext, output: BaseModel, sentence: str, view: AutomationView
+) -> ToolResult:
+    """The reply for one automation, with the ticket the app approves it with in its `_meta`."""
+
+    reply = tool_result(output.model_dump(mode="json"), _reply(sentence, view))
+    entry = TicketEntry("approve_automation", str(view.automation.id), view.automation.spec_digest)
+    return ctx.with_tickets(reply, [entry])
+
+
 def _register_list_automations(mcp: FastMCP, ctx: ToolContext) -> None:
     @mcp.tool(
         name="list_automations",
@@ -217,7 +228,7 @@ def _register_get_automation(mcp: FastMCP, ctx: ToolContext) -> None:
     def get_automation(automation_id: UUID) -> ToolResult:
         view = ctx.container.automation_registry.get(ctx.actor_provider(), automation_id)
         output = AutomationOutput(automation=automation_record(view))
-        return tool_result(output.model_dump(mode="json"), _reply("Automation.", view))
+        return _automation_reply(ctx, output, "Automation.", view)
 
 
 def _register_save_automation(mcp: FastMCP, ctx: ToolContext) -> None:
@@ -251,7 +262,7 @@ def _register_save_automation(mcp: FastMCP, ctx: ToolContext) -> None:
             f"Saved the automation {cell(view.automation.title)}."
             f"{ignored_nulls_note(changes.ignored_nulls)}"
         )
-        return tool_result(output.model_dump(mode="json"), _reply(sentence, view))
+        return _automation_reply(ctx, output, sentence, view)
 
 
 def _register_approve_automation(mcp: FastMCP, ctx: ToolContext) -> None:
@@ -263,8 +274,10 @@ def _register_approve_automation(mcp: FastMCP, ctx: ToolContext) -> None:
         app=AppConfig(visibility=["app"]),
         # The owner clicks this in the app. No `anthropic/requiresUserInteraction`: Claude Code
         # would ask before a call the app makes too (see `OWNER_DECISION_META`). App-only
-        # visibility keeps it from the model and the server refuses a call without the app's mark.
-        meta={OWNER_DECISION_META: True},
+        # visibility keeps it from the model and the server refuses a call without the app's proof:
+        # the decision ticket (bound to the automation and the digest the owner was shown) or the
+        # mark.
+        meta={OWNER_DECISION_META: True, **ticket_binding("automation_id", "spec_digest")},
     )
     @ctx.instrument("approve_automation")
     def approve_automation(
@@ -274,6 +287,7 @@ def _register_approve_automation(mcp: FastMCP, ctx: ToolContext) -> None:
         auto_apply_confirmed: Annotated[
             bool, Field(description="The owner confirmed that suggestions apply without a click.")
         ] = False,
+        decision_ticket: DecisionTicket = None,
     ) -> ToolResult:
         view = ctx.container.automation_registry.approve(
             ctx.actor_provider(),
@@ -285,7 +299,7 @@ def _register_approve_automation(mcp: FastMCP, ctx: ToolContext) -> None:
         )
         output = AutomationOutput(automation=automation_record(view))
         sentence = f"Approved the automation {cell(view.automation.title)}."
-        return tool_result(output.model_dump(mode="json"), _reply(sentence, view))
+        return _automation_reply(ctx, output, sentence, view)
 
 
 _REGISTRARS = (

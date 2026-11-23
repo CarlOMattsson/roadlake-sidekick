@@ -6,7 +6,7 @@
 
 [MCP tool reference](index.md) | 37 tools.
 
-These tools are declared with `visibility: ["app"]`. The MCP App rooms call them to show and edit records; the model never lists them. The owner's decisions among them (approving a plan or an automation, running a plan) are also refused by the server when the call does not carry the app's origin mark, which the model cannot set; the answer is `forbidden` with the reason `app_only`. They check the same scopes as every other tool.
+These tools are declared with `visibility: ["app"]`. The MCP App rooms call them to show and edit records; the model never lists them. The owner's decisions among them (approving a plan, an automation or a group of suggestions, running a plan) are also refused by the server when the call does not prove the app made it: a decision ticket (a signed, single-use proof the app gets with the data it shows, sent back as `decision_ticket`) or, for one more release, the app's origin mark. A model cannot produce either; the answer is `forbidden` with the reason `app_only`. They check the same scopes as every other tool.
 
 ## Tasks and boards
 
@@ -156,6 +156,7 @@ Returns: `AiPlanOutput` with `plan` (AiPlanRecord).
 | `idempotency_key` | string | yes | 8 to 128 characters |
 | `task_id` | uuid | yes | - |
 | `decision` | string | no | default `"approve"`; one of `approve`, `withdraw` |
+| `decision_ticket` | string | no | up to 160 characters; may be null; App only. |
 | `task_cap_usd` | number | no | above 0; up to 1000; may be null |
 
 ### `run_ai_plan`
@@ -175,6 +176,7 @@ Returns: `AiPlanOutput` with `plan` (AiPlanRecord).
 | `digest` | string | yes | 64 to 64 characters; pattern `^[0-9a-f]{64}$` |
 | `idempotency_key` | string | yes | 8 to 128 characters |
 | `task_id` | uuid | yes | - |
+| `decision_ticket` | string | no | up to 160 characters; may be null; App only. |
 
 ### `get_ai_usage`
 
@@ -208,6 +210,7 @@ Returns: `AutomationOutput` with `automation` (AutomationRecord).
 | `idempotency_key` | string | yes | 8 to 128 characters |
 | `spec_digest` | string | yes | 64 to 64 characters; pattern `^[0-9a-f]{64}$` |
 | `auto_apply_confirmed` | boolean | no | default `false`; The owner confirmed that suggestions apply without a click. |
+| `decision_ticket` | string | no | up to 160 characters; may be null; App only. |
 
 ### `mark_automation_report_seen`
 
@@ -254,6 +257,7 @@ Returns: `DecisionsOutput` with `items` (array of DecisionResult).
 | `group_digest` | string | yes | 64 to 64 characters; pattern `^[0-9a-f]{64}$` |
 | `idempotency_key` | string | yes | 8 to 128 characters |
 | `suggestion_ids` | array of uuid | yes | 1 to 25 items |
+| `decision_ticket` | string | no | up to 160 characters; may be null; App only. |
 
 ## External references
 

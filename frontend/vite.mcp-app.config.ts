@@ -32,7 +32,8 @@ const apps = {
 // conversations' cards with their skip and Ångra, the inbox beside it in a wide frame; measured 302 251 bytes, 295.2 KiB).
 // 2026-11-23: 296 KiB kept for the Start home's ring on today's tasks (it reuses Row, StatusGlyph and the receipt bar;
 // measured 302 927 bytes, 295.8 KiB, 177 bytes under the budget).
-const GZIP_BUDGET_BYTES = 296 * 1024;
+// 2026-11-23: 296 KiB to 300 KiB for the owner-decision tickets in the bridge (issue #53).
+const GZIP_BUDGET_BYTES = 300 * 1024;
 type AppName = keyof typeof apps;
 
 const LOCALES = ["sv", "en"] as const;

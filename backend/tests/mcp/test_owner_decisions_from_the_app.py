@@ -143,5 +143,9 @@ async def test_the_refusal_is_logged_with_its_own_code_so_it_tells_from_a_scope_
         draft = (await _ok(client, "save_automation", {"changes": AUTOMATION}))["automation"]
         arguments = {"automation_id": draft["id"], "spec_digest": draft["spec_digest"]}
         await _refused(client, "approve_automation", arguments)
-    refused = [r for r in caplog.records if getattr(r, "mcp_error_code", None) == "app_only"]
+    # Without a ticket the log says so, apart from `app_only` (a tool that takes no ticket), so a
+    # host that drops the result `_meta` the ticket travels in shows up as exactly that.
+    refused = [
+        r for r in caplog.records if getattr(r, "mcp_error_code", None) == "decision_ticket_missing"
+    ]
     assert [getattr(r, "mcp_tool_name", None) for r in refused] == ["approve_automation"]

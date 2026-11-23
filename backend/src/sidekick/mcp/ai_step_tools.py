@@ -22,6 +22,7 @@ from pydantic import Field
 from sidekick.mcp.annotations import READ, WRITE
 from sidekick.mcp.change_source import OWNER_DECISION_META
 from sidekick.mcp.correlation import request_correlation_id_or_new
+from sidekick.mcp.decision_ticket import DecisionTicket, TicketEntry, ticket_binding
 from sidekick.mcp.idempotency import IdempotencyKey
 from sidekick.mcp.results import output_schema
 from sidekick.mcp.results import result as tool_result
@@ -139,12 +140,19 @@ def _run_result(reported: ReportedResult | None) -> AiRunResult | None:
     )
 
 
-def _plan_reply(verb: str, output: AiPlanOutput) -> ToolResult:
+def _plan_reply(ctx: ToolContext, verb: str, output: AiPlanOutput) -> ToolResult:
     plan = output.plan
     ai_steps = sum(1 for item in plan.steps if item.step.performer == "ai")
     sentence = f"{verb}: {len(plan.steps)} steps, {ai_steps} for AI. Plan is {plan.state}."
     ref = f"task {plan.task_id} v{plan.task_version}: {cell(plan.task_title)}; digest {plan.digest}"
-    return tool_result(output.model_dump(mode="json"), spoken_line(sentence, ref))
+    reply = tool_result(output.model_dump(mode="json"), spoken_line(sentence, ref))
+    if plan.state == "none":
+        return reply
+    # The app approves and runs the plan it was shown, so it gets the proof for both decisions.
+    shown = (str(plan.task_id), plan.digest)
+    return ctx.with_tickets(
+        reply, [TicketEntry(action, *shown) for action in ("approve_ai_plan", "run_ai_plan")]
+    )
 
 
 def _register_set_ai_plan(mcp: FastMCP, ctx: ToolContext) -> None:
@@ -169,7 +177,7 @@ def _register_set_ai_plan(mcp: FastMCP, ctx: ToolContext) -> None:
             idempotency_key=idempotency_key,
             correlation_id=request_correlation_id_or_new(),
         )
-        return _plan_reply("Planned", plan_output(view))
+        return _plan_reply(ctx, "Planned", plan_output(view))
 
 
 def _register_get_ai_plan(mcp: FastMCP, ctx: ToolContext) -> None:
@@ -186,7 +194,7 @@ def _register_get_ai_plan(mcp: FastMCP, ctx: ToolContext) -> None:
     @ctx.instrument("get_ai_plan")
     def get_ai_plan(task_id: UUID) -> ToolResult:
         view = ctx.container.ai_plans.get_plan(ctx.actor_provider(), task_id)
-        return _plan_reply("Plan", plan_output(view))
+        return _plan_reply(ctx, "Plan", plan_output(view))
 
 
 def _register_approve_ai_plan(mcp: FastMCP, ctx: ToolContext) -> None:
@@ -198,8 +206,9 @@ def _register_approve_ai_plan(mcp: FastMCP, ctx: ToolContext) -> None:
         app=AppConfig(visibility=["app"]),
         # The owner clicks this in the app. No `anthropic/requiresUserInteraction`: Claude Code
         # would ask before a call the app makes too (see `OWNER_DECISION_META`). App-only
-        # visibility keeps it from the model and the server refuses a call without the app's mark.
-        meta={OWNER_DECISION_META: True},
+        # visibility keeps it from the model and the server refuses a call without the app's proof:
+        # the decision ticket (bound to the task and the digest the owner was shown) or the mark.
+        meta={OWNER_DECISION_META: True, **ticket_binding("task_id", "digest")},
     )
     @ctx.instrument("approve_ai_plan")
     def approve_ai_plan(
@@ -208,6 +217,7 @@ def _register_approve_ai_plan(mcp: FastMCP, ctx: ToolContext) -> None:
         idempotency_key: IdempotencyKey,
         decision: Literal["approve", "withdraw"] = "approve",
         task_cap_usd: _TaskCap = None,
+        decision_ticket: DecisionTicket = None,
     ) -> ToolResult:
         view = ctx.container.ai_plans.approve_plan(
             ctx.actor_provider(),
@@ -218,7 +228,8 @@ def _register_approve_ai_plan(mcp: FastMCP, ctx: ToolContext) -> None:
             idempotency_key=idempotency_key,
             correlation_id=request_correlation_id_or_new(),
         )
-        return _plan_reply("Approved" if decision == "approve" else "Withdrawn", plan_output(view))
+        verb = "Approved" if decision == "approve" else "Withdrawn"
+        return _plan_reply(ctx, verb, plan_output(view))
 
 
 def _register_run_ai_plan(mcp: FastMCP, ctx: ToolContext) -> None:
@@ -230,10 +241,15 @@ def _register_run_ai_plan(mcp: FastMCP, ctx: ToolContext) -> None:
         app=AppConfig(visibility=["app"]),
         # Spending money is the owner's own decision, made by a click in the app (see
         # `OWNER_DECISION_META` for why this is not `anthropic/requiresUserInteraction`).
-        meta={OWNER_DECISION_META: True},
+        meta={OWNER_DECISION_META: True, **ticket_binding("task_id", "digest")},
     )
     @ctx.instrument("run_ai_plan")
-    def run_ai_plan(task_id: UUID, digest: _Digest, idempotency_key: IdempotencyKey) -> ToolResult:
+    def run_ai_plan(
+        task_id: UUID,
+        digest: _Digest,
+        idempotency_key: IdempotencyKey,
+        decision_ticket: DecisionTicket = None,
+    ) -> ToolResult:
         view = ctx.container.ai_server_runs.queue_plan_step(
             ctx.actor_provider(),
             task_id,
@@ -241,7 +257,7 @@ def _register_run_ai_plan(mcp: FastMCP, ctx: ToolContext) -> None:
             idempotency_key=idempotency_key,
             correlation_id=request_correlation_id_or_new(),
         )
-        return _plan_reply("Queued", plan_output(view))
+        return _plan_reply(ctx, "Queued", plan_output(view))
 
 
 def _register_cancel_ai_step_run(mcp: FastMCP, ctx: ToolContext) -> None:

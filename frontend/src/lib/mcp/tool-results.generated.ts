@@ -1346,6 +1346,7 @@ export type ToolInputs = {
   };
   approve_ai_plan: {
     decision?: "approve" | "withdraw";
+    decision_ticket?: string | null;
     digest: string;
     idempotency_key: string;
     task_cap_usd?: number | null;
@@ -1354,10 +1355,12 @@ export type ToolInputs = {
   approve_automation: {
     auto_apply_confirmed?: boolean;
     automation_id: string;
+    decision_ticket?: string | null;
     idempotency_key: string;
     spec_digest: string;
   };
   approve_suggestion_group: {
+    decision_ticket?: string | null;
     group_digest: string;
     idempotency_key: string;
     suggestion_ids: Array<string>;
@@ -2100,6 +2103,7 @@ export type ToolInputs = {
     }>;
   };
   run_ai_plan: {
+    decision_ticket?: string | null;
     digest: string;
     idempotency_key: string;
     task_id: string;

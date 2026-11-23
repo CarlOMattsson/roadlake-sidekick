@@ -24,6 +24,7 @@ from sidekick.mcp.change_source import OwnerDecisionsFromTheApp, ToolChangeSourc
 from sidekick.mcp.changes import register_change_tools
 from sidekick.mcp.contacts import register_contacts_tools
 from sidekick.mcp.control import register_control_tools
+from sidekick.mcp.decision_ticket import DecisionTickets
 from sidekick.mcp.input_schemas import install_input_schema_lookup
 from sidekick.mcp.instructions import server_instructions
 from sidekick.mcp.instrument import instrument_mcp
@@ -98,7 +99,10 @@ TOOL_ARGUMENT_LOGGERS = (
 
 
 def _register_tools(
-    mcp: FastMCP, container: Container, actor_provider: Callable[[], Actor]
+    mcp: FastMCP,
+    container: Container,
+    actor_provider: Callable[[], Actor],
+    tickets: DecisionTickets,
 ) -> None:
     """Register every tool module, in the order the tool list shows them."""
 
@@ -106,6 +110,7 @@ def _register_tools(
         container,
         actor_provider,
         lambda tool_name: instrument_mcp(container, tool_name),
+        tickets,
     )
     register_contacts_tools(mcp, ctx)
     register_journal_tools(mcp, ctx)
@@ -210,12 +215,14 @@ def create_mcp_server(
     )
     mcp.add_middleware(McpRequestLogging())
     mcp.add_middleware(ToolChangeSource(mcp))
-    mcp.add_middleware(OwnerDecisionsFromTheApp(mcp))
+    # One signer: the tools issue decision tickets with it and the middleware checks them.
+    tickets = DecisionTickets(container.settings.cursor_signing_key)
+    mcp.add_middleware(OwnerDecisionsFromTheApp(mcp, tickets, actor_provider))
     install_validation_error_redaction(mcp)
     # After the NUL and schema checks, so malformed input is still answered as such.
     mcp.add_middleware(WriteReplyScopes(mcp, actor_provider))
     install_input_schema_lookup(mcp)
-    _register_tools(mcp, container, actor_provider)
+    _register_tools(mcp, container, actor_provider, tickets)
     _register_app_resources(mcp, container, actor_provider, enabled)
     # After every tool is registered: leave out the rooms that are switched off, give each tool its
     # title in the app language, then mirror that title into annotations.title.

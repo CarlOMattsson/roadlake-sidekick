@@ -107,10 +107,75 @@ export function featuresFrom(capabilities: unknown): HostFeatures {
 }
 /**
  * The `_meta` mark every tools/call of the app carries, so the server's history can tell the owner's
- * taps from Claude's calls of the same tools. A label only: the server authorizes by scopes as before.
+ * taps from Claude's calls of the same tools. It is a label for the history and a fallback proof during
+ * the transition year: a host may drop `params._meta` (Claude Desktop over stdio), so the authorizing
+ * proof of a decision the owner makes is the decision ticket (`decision_ticket`), not this mark.
  * Keep in step with `APP_ORIGIN_META` in backend/src/sidekick/mcp/change_source.py.
  */
 export const APP_ORIGIN_META = { "com.roadlake.sidekick/origin": "app" };
+
+/** Result `_meta` key under which the server hands out one-shot decision tickets, `{ "<action>:<id>": ticket }`. */
+const DECISION_TICKETS_META_KEY = "com.roadlake.sidekick/decisionTickets";
+const MAX_TICKETS_PER_RESULT = 200;
+const MAX_TICKET_LENGTH = 160;
+
+/**
+ * The owner-decision tools that take a decision ticket: the argument naming the object the ticket is
+ * bound to, and the read tool that hands out fresh tickets when the ticket was missing, spent or expired.
+ */
+const DECISION_TOOLS: Readonly<
+  Record<
+    string,
+    {
+      objectArg: string;
+      refresh: { tool: string; args: (id: unknown) => object };
+    }
+  >
+> = {
+  approve_ai_plan: {
+    objectArg: "task_id",
+    refresh: { tool: "get_ai_plan", args: (id) => ({ task_id: id }) },
+  },
+  run_ai_plan: {
+    objectArg: "task_id",
+    refresh: { tool: "get_ai_plan", args: (id) => ({ task_id: id }) },
+  },
+  approve_automation: {
+    objectArg: "automation_id",
+    refresh: {
+      tool: "get_automation",
+      args: (id) => ({ automation_id: id }),
+    },
+  },
+  approve_suggestion_group: {
+    objectArg: "group_digest",
+    refresh: { tool: "list_suggestions", args: () => ({}) },
+  },
+};
+
+/**
+ * Reads the decision tickets from a result's `_meta`. Defensive: only a plain object of string values
+ * is taken, with a cap on the entry count and the ticket length; anything else is ignored.
+ */
+function ticketsFromMeta(meta: unknown): [string, string][] {
+  if (typeof meta !== "object" || meta === null || Array.isArray(meta))
+    return [];
+  const tickets = (meta as Record<string, unknown>)[DECISION_TICKETS_META_KEY];
+  if (typeof tickets !== "object" || tickets === null || Array.isArray(tickets))
+    return [];
+  const entries = Object.entries(tickets);
+  if (entries.length > MAX_TICKETS_PER_RESULT) return [];
+  const valid: [string, string][] = [];
+  for (const [key, ticket] of entries) {
+    if (
+      typeof ticket === "string" &&
+      ticket !== "" &&
+      ticket.length <= MAX_TICKET_LENGTH
+    )
+      valid.push([key, ticket]);
+  }
+  return valid;
+}
 export type HostToolResult = { structuredContent: unknown; isError: boolean };
 /**
  * A tools/call the server answered with isError. `code` is the server's closed error code
@@ -236,6 +301,12 @@ export function createHostBridge(app: {
   const teardownListeners: (() => void)[] = [];
   /** The ui/initialize context with every later host-context-changed merged in. */
   let hostContext: HostContext = {};
+  /** One-shot decision tickets by "<action>:<object id>". Internal: never rendered, logged or forwarded. */
+  const decisionTickets = new Map<string, string>();
+  function storeTickets(meta: unknown) {
+    for (const [key, ticket] of ticketsFromMeta(meta))
+      decisionTickets.set(key, ticket);
+  }
 
   function send(message: object) {
     window.parent.postMessage({ jsonrpc: "2.0", ...message }, "*");
@@ -312,6 +383,7 @@ export function createHostBridge(app: {
         else waiter.resolve(message.result);
       }
     } else if (message.method === "ui/notifications/tool-result") {
+      storeTickets(message.params?._meta);
       const result: HostToolResult = {
         structuredContent: message.params?.structuredContent,
         isError: Boolean(message.params?.isError),
@@ -354,6 +426,41 @@ export function createHostBridge(app: {
   };
   window.addEventListener("message", onMessage);
 
+  /**
+   * One tools/call. With `ticketKey`, the stored ticket of that key (if any) is sent as `decision_ticket`
+   * and removed, so it is used once. Tickets in the answer's `_meta` are stored for later decisions.
+   */
+  async function callTool<T>(
+    name: string,
+    args: object,
+    ticketKey?: string,
+  ): Promise<T> {
+    // The apps empty a field with `null`; the wire names it in `clear` (null there reads as "not sent").
+    const wireArgs: Record<string, unknown> = { ...clearWire(name, args) };
+    if (ticketKey !== undefined) {
+      const ticket = decisionTickets.get(ticketKey);
+      if (ticket !== undefined) {
+        wireArgs.decision_ticket = ticket;
+        decisionTickets.delete(ticketKey);
+      }
+    }
+    const raw = await request("tools/call", {
+      name,
+      arguments: wireArgs,
+      _meta: APP_ORIGIN_META,
+    });
+    storeTickets((raw as { _meta?: unknown } | null | undefined)?._meta);
+    const result = raw as { isError?: boolean; structuredContent?: T };
+    if (result.isError)
+      throw new HostToolError(
+        closedField(result.structuredContent, "code"),
+        closedField(result.structuredContent, "reason"),
+      );
+    if (result.structuredContent === undefined)
+      throw new HostToolError(undefined);
+    return result.structuredContent;
+  }
+
   return {
     initialize() {
       // A retry after a failed handshake: commands wait for this attempt, not for the one that failed.
@@ -388,21 +495,28 @@ export function createHostBridge(app: {
     },
     async call<T>(name: string, args: object): Promise<T> {
       await ready;
-      // The apps empty a field with `null`; the wire names it in `clear` (null there reads as "not sent").
-      const raw = await request("tools/call", {
-        name,
-        arguments: clearWire(name, args),
-        _meta: APP_ORIGIN_META,
-      });
-      const result = raw as { isError?: boolean; structuredContent?: T };
-      if (result.isError)
-        throw new HostToolError(
-          closedField(result.structuredContent, "code"),
-          closedField(result.structuredContent, "reason"),
-        );
-      if (result.structuredContent === undefined)
-        throw new HostToolError(undefined);
-      return result.structuredContent;
+      const decision = Object.hasOwn(DECISION_TOOLS, name)
+        ? DECISION_TOOLS[name]
+        : undefined;
+      if (decision === undefined) return callTool<T>(name, args);
+      const objectId = (args as Record<string, unknown>)[decision.objectArg];
+      const ticketKey = `${name}:${String(objectId)}`;
+      try {
+        return await callTool<T>(name, args, ticketKey);
+      } catch (error) {
+        // The ticket was missing, spent or expired: fetch fresh ones once and decide once more.
+        if (!(error instanceof HostToolError) || error.reason !== "app_only")
+          throw error;
+        try {
+          await callTool(
+            decision.refresh.tool,
+            decision.refresh.args(objectId),
+          );
+        } catch {
+          throw error;
+        }
+        return callTool<T>(name, args, ticketKey);
+      }
     },
     async requestDisplayMode(mode) {
       await ready;

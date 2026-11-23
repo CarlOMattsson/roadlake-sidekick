@@ -31965,6 +31965,10 @@
   },
   {
     "_meta": {
+      "com.roadlake.sidekick/decisionTicketBinding": {
+        "digest": "digest",
+        "object": "task_id"
+      },
       "com.roadlake.sidekick/ownerDecision": true,
       "ui": {
         "visibility": [
@@ -31990,6 +31994,19 @@
             "withdraw"
           ],
           "type": "string"
+        },
+        "decision_ticket": {
+          "anyOf": [
+            {
+              "maxLength": 160,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "App only. The proof the app got with the data it shows; never write one yourself."
         },
         "digest": {
           "maxLength": 64,
@@ -32630,6 +32647,10 @@
   },
   {
     "_meta": {
+      "com.roadlake.sidekick/decisionTicketBinding": {
+        "digest": "digest",
+        "object": "task_id"
+      },
       "com.roadlake.sidekick/ownerDecision": true,
       "ui": {
         "visibility": [
@@ -32648,6 +32669,19 @@
     "inputSchema": {
       "additionalProperties": false,
       "properties": {
+        "decision_ticket": {
+          "anyOf": [
+            {
+              "maxLength": 160,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "App only. The proof the app got with the data it shows; never write one yourself."
+        },
         "digest": {
           "maxLength": 64,
           "minLength": 64,
@@ -36720,6 +36754,10 @@
   },
   {
     "_meta": {
+      "com.roadlake.sidekick/decisionTicketBinding": {
+        "digest": "spec_digest",
+        "object": "automation_id"
+      },
       "com.roadlake.sidekick/ownerDecision": true,
       "ui": {
         "visibility": [
@@ -36746,6 +36784,19 @@
         "automation_id": {
           "format": "uuid",
           "type": "string"
+        },
+        "decision_ticket": {
+          "anyOf": [
+            {
+              "maxLength": 160,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "App only. The proof the app got with the data it shows; never write one yourself."
         },
         "idempotency_key": {
           "maxLength": 128,
@@ -39468,6 +39519,10 @@
   },
   {
     "_meta": {
+      "com.roadlake.sidekick/decisionTicketBinding": {
+        "digest": "group_digest",
+        "object": "group_digest"
+      },
       "com.roadlake.sidekick/requiresApp": true,
       "ui": {
         "visibility": [
@@ -39486,6 +39541,19 @@
     "inputSchema": {
       "additionalProperties": false,
       "properties": {
+        "decision_ticket": {
+          "anyOf": [
+            {
+              "maxLength": 160,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "App only. The proof the app got with the data it shows; never write one yourself."
+        },
         "group_digest": {
           "maxLength": 64,
           "minLength": 64,
