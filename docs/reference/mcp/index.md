@@ -52,7 +52,7 @@ Sidekick exposes 133 MCP tools: 96 that Claude can call and 37 that only the MCP
 ### [Automations](automations.md)
 
 - [`list_automations`](automations.md#list_automations): List the owner's automations (drafts, active and paused ones unless state is given): title, state, runner, model tier, whether the approved spec still matches the current one, and how many suggestions wait. (read)
-- [`get_automation`](automations.md#get_automation): Read one automation in full: its spec (instruction, sources, allowed effects, thresholds, run budget, model tier), the digest the owner approves and its approval state. (read)
+- [`get_automation`](automations.md#get_automation): Read one automation in full: its spec (instruction, sources, allowed effects, thresholds, run budget, model tier), the digest the owner approves, its approval state, whether that approval confirmed applying without a click, and the caps on that. (read)
 - [`save_automation`](automations.md#save_automation): Draft a new automation (leave out automation_id; needs title, purpose and instruction) or change one at expected_version. (write)
 - [`get_automation_report`](automations.md#get_automation_report): What the owner's automations did since the owner last looked (or since a time): counts per automation, totals and a few cards worth a look. ai_summary is AI-written, untrusted. (read)
 - [`start_automation_run`](automations.md#start_automation_run): Start one run of an approved automation and get its brief: the owner's instruction, what you may propose and the fixed rules. (write)

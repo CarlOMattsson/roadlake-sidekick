@@ -127,6 +127,13 @@ export function ShellPanes({
     const ownStack =
       (roomSplit.kind === "split" || roomSplit.kind === "drawer") &&
       roomSplit.detail - roomSplit.list > 1;
+    // The empty detail beside a list names what the list holds: by its view first (Start's automations), then its room.
+    const asideList =
+      roomSplit.kind === "aside" ? layers[roomSplit.list]?.entry : undefined;
+    const pick =
+      (asideList && labels.split.pick[`${asideList.room}:${asideList.view}`]) ??
+      labels.split.pick[room] ??
+      labels.split.pickOther;
     return (
       <section
         key={room}
@@ -232,12 +239,9 @@ export function ShellPanes({
               key="aside"
               ref={split.setAsideSlot}
               className="sk-split__aside"
-              aria-label={labels.split.pick[room] ?? labels.split.pickOther}
+              aria-label={pick}
             >
-              <DetailHints
-                sentence={labels.split.pick[room] ?? labels.split.pickOther}
-                keys={split.hintKeys}
-              />
+              <DetailHints sentence={pick} keys={split.hintKeys} />
             </aside>
           ) : null}
         </SplitLayout>

@@ -88,7 +88,10 @@ CHARS_PER_TOKEN = 3.5
 # (title, kind, instruction, ingredients, cadence) is about 700, met the suggestion tools, the
 # automation report and `get_start` in one tree: the sides were measured apart at 27 883 and
 # 27 503; measured 28 834 for the 96 model-visible tools, rounded up.
-TOKEN_BUDGET = 28_850
+# 2026-11-23: raised to 28 900 for the app link that `list_automations` and `get_automation` now
+# carry (the app opens on them) and `get_automation`'s description of the auto-apply confirmation
+# and caps; measured 28 856 for the 96 model-visible tools, rounded up.
+TOKEN_BUDGET = 28_900
 # 2026-11-23: raised to 26 600 for `get_start`, the Start view (a 522-character description and no
 # input, about 150 tokens); measured 26 552 for the 87 model-visible tools, rounded up.
 LARGEST_LISTED = 5
@@ -131,7 +134,9 @@ GUIDE_TOOL_DESCRIPTION_CHAR_CAP = 1000
 # start) and the `ready` part of `get_start`, which met the suggestion tools, the automation report
 # and `get_start` in one tree: the sides were measured apart at 254 446 (before the instruction's
 # provenance fields) and 257 842; measured 274 575 for the 96 model-visible tools, rounded up.
-OUTPUT_SCHEMA_CHAR_CAP = 274_600
+# 2026-11-23: raised to 276 200 for the auto-apply flag in every automation record and the caps in
+# the full one (`auto_apply_limits`); measured 276 147 for the 96 model-visible tools, rounded up.
+OUTPUT_SCHEMA_CHAR_CAP = 276_200
 # 2026-11-23: raised to 240 800 for the output of `get_start` (the insight, the suggestion, task,
 # waiting and since-last parts and the menu counts, 4 840 characters); measured 240 788 for the 87
 # model-visible tools, rounded up.

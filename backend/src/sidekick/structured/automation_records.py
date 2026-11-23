@@ -15,6 +15,7 @@ from pydantic import Field
 
 from sidekick.automations.application.registry import AutomationView
 from sidekick.automations.domain.effects import EffectKind
+from sidekick.automations.domain.grouping import MAX_AUTO_PER_DAY, MAX_AUTO_PER_RUN
 from sidekick.automations.domain.spec import (
     MICROUSD_PER_USD,
     ApplyMode,
@@ -25,6 +26,7 @@ from sidekick.automations.domain.spec import (
     Runner,
     Source,
     approval_state,
+    is_auto_apply_confirmed,
     is_runnable,
 )
 from sidekick.structured.base import Output, WithIgnoredNulls
@@ -41,9 +43,22 @@ class AutomationSummary(Output):
     approval: ApprovalState
     changed_since_approval: bool
     runnable: bool = Field(description="Active and approved at exactly its current spec.")
+    auto_apply_confirmed: bool = Field(
+        description=(
+            "The approval also confirmed that suggestions apply without a click. False for a spec "
+            "that does not, and for an approval made before there was a confirmation."
+        )
+    )
     pending_suggestions: int
     last_run_at: datetime | None = None
     version: int
+
+
+class AutoApplyLimits(Output):
+    """What one automation applies without a click, at most (the server's caps)."""
+
+    per_run: int
+    per_day: int
 
 
 class AutomationRecord(AutomationSummary):
@@ -60,6 +75,7 @@ class AutomationRecord(AutomationSummary):
     auto_threshold: int
     max_suggestions_per_run: int
     run_budget_usd: float
+    auto_apply_limits: AutoApplyLimits
     spec_digest: Annotated[str, Field(min_length=64, max_length=64)]
     approved_at: datetime | None = None
     created_at: datetime
@@ -91,6 +107,7 @@ def _summary_fields(view: AutomationView) -> dict[str, object]:
         "approval": approval,
         "changed_since_approval": approval is ApprovalState.CHANGED_SINCE_APPROVAL,
         "runnable": is_runnable(item.state, item.spec_digest, item.approved_digest),
+        "auto_apply_confirmed": is_auto_apply_confirmed(item.spec_digest, item.approved_digest),
         "pending_suggestions": view.pending_suggestions,
         "last_run_at": item.last_run_at,
         "version": item.version,
@@ -118,6 +135,7 @@ def automation_record(view: AutomationView) -> AutomationRecord:
             "auto_threshold": spec.auto_threshold,
             "max_suggestions_per_run": spec.max_suggestions_per_run,
             "run_budget_usd": spec.run_budget_microusd / MICROUSD_PER_USD,
+            "auto_apply_limits": {"per_run": MAX_AUTO_PER_RUN, "per_day": MAX_AUTO_PER_DAY},
             "spec_digest": item.spec_digest,
             "approved_at": item.approved_at,
             "created_at": item.created_at,

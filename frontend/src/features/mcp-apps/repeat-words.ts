@@ -1,4 +1,4 @@
-import type { RecurrenceRecord } from "../../../lib/mcp/tool-results.generated";
+import type { RecurrenceRecord } from "../../lib/mcp/tool-results.generated";
 
 /** What the wording reads of a rule; a rule a caller builds by hand may leave the optional parts out. */
 export type RuleWords = Pick<RecurrenceRecord, "frequency" | "interval"> &

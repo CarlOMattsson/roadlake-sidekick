@@ -13,7 +13,11 @@ from uuid import UUID
 import pytest
 
 from sidekick.automations.application.suggestions import AutoApplyOutcome
-from sidekick.automations.domain.grouping import AutoApplyRefusal
+from sidekick.automations.domain.grouping import (
+    MAX_AUTO_PER_DAY,
+    MAX_AUTO_PER_RUN,
+    AutoApplyRefusal,
+)
 from sidekick.automations.domain.suggestion import SuggestionState
 from tests.support.automation_run_world import (
     all_text,
@@ -73,6 +77,71 @@ async def test_an_automation_that_applies_without_a_click_is_approved_only_with_
 
     assert desk.automation["approval"] == "approved"
     assert desk.automation["state"] == "active"
+
+
+async def read_both(desk: Desk) -> tuple[dict[str, Any], dict[str, Any]]:
+    read = await ok(desk, desk.claude, "get_automation", automation_id=desk.automation["id"])
+    listed = await ok(desk, desk.claude, "list_automations")
+    return read["automation"], listed["items"][0]
+
+
+async def test_the_reads_say_the_approval_confirmed_applying_without_a_click(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    desk = await auto_desk(monkeypatch)
+
+    record, row = await read_both(desk)
+
+    assert record["approval"] == "approved"
+    assert record["auto_apply_confirmed"] is True
+    assert row["auto_apply_confirmed"] is True
+
+
+async def test_an_approval_without_the_confirmation_is_not_reported_as_confirmed(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # A spec that does not apply without a click is approved with the plain digest, as every
+    # approval was before there was a confirmation.
+    desk = await make_desk(monkeypatch)
+
+    record, row = await read_both(desk)
+
+    assert record["approval"] == "approved"
+    assert record["auto_apply_confirmed"] is False
+    assert row["auto_apply_confirmed"] is False
+
+
+async def test_a_spec_changed_after_the_confirmed_approval_is_no_longer_confirmed(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    desk = await auto_desk(monkeypatch)
+    await ok(
+        desk,
+        desk.claude,
+        "save_automation",
+        changes={"auto_threshold": 90},
+        automation_id=desk.automation["id"],
+        expected_version=desk.automation["version"],
+        idempotency_key="auto-confirmed-change-1",
+    )
+
+    read = await ok(desk, desk.claude, "get_automation", automation_id=desk.automation["id"])
+
+    assert read["automation"]["approval"] == "not_approved"
+    assert read["automation"]["auto_apply_confirmed"] is False
+
+
+async def test_the_record_carries_the_caps_on_applying_without_a_click(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    desk = await auto_desk(monkeypatch)
+
+    read = await ok(desk, desk.claude, "get_automation", automation_id=desk.automation["id"])
+
+    assert read["automation"]["auto_apply_limits"] == {
+        "per_run": MAX_AUTO_PER_RUN,
+        "per_day": MAX_AUTO_PER_DAY,
+    }
 
 
 async def test_a_model_cannot_approve_the_choice_even_with_the_confirmation(

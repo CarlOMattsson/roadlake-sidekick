@@ -123,8 +123,8 @@ export function useInbox(
  * three per confirmation), then "Att granska (n)": every other card as a decision card whose title opens its detail.
  * The answers have Ångra in the receipt bar, and a decided card holds its place as its receipt while Ångra is offered.
  *
- * `lead` is the place above the groups for what the automations say about themselves (the latest report, what was
- * applied without the owner); nothing draws there yet.
+ * `lead` is the place above the groups for what the automations say about themselves: today the way to them, with how
+ * many wait for the owner's approval (AutomationsEntry).
  */
 export function SuggestionsInbox({
   api,
@@ -134,6 +134,7 @@ export function SuggestionsInbox({
   onOpenSuggestion,
   onOpenRecord,
   control,
+  automations,
   lead,
 }: {
   api: SuggestionTransport;
@@ -144,6 +145,8 @@ export function SuggestionsInbox({
   onOpenRecord?: (target: RoomTarget) => void;
   /** The last entry of ⋯: the memory and control entry, or the host's own settings. */
   control?: HostSettingsEntry;
+  /** The entry of ⋯ before it that opens the automations, where the host can read them. */
+  automations?: HostSettingsEntry;
   lead?: ReactNode;
 }) {
   const locale = t.dateLocale;
@@ -172,6 +175,7 @@ export function SuggestionsInbox({
       t={t}
       onRefresh={inbox.reload}
       control={control}
+      automations={automations}
     />
   );
 
@@ -478,19 +482,21 @@ function InboxMoreButton({
   );
 }
 
-/** The inbox's ⋯: refresh, the keyboard help, and the memory and control entry (or the host's settings). */
+/** The inbox's ⋯: refresh, the keyboard help, the automations, and the memory and control entry (or the host's settings). */
 function InboxMenu({
   more,
   buttonRef,
   t,
   onRefresh,
   control,
+  automations,
 }: {
   more: InboxMore;
   buttonRef: RefObject<HTMLButtonElement | null>;
   t: SuggestionLabels;
   onRefresh: () => void;
   control?: HostSettingsEntry;
+  automations?: HostSettingsEntry;
 }) {
   const close = () => more.setOpen(false);
   return (
@@ -511,18 +517,21 @@ function InboxMenu({
           buttonRef.current?.focus();
         }}
       />
-      {control ? (
-        <button
-          type="button"
-          className="sk-menu-item"
-          onClick={() => {
-            close();
-            control.onOpen();
-          }}
-        >
-          {control.label}
-        </button>
-      ) : null}
+      {[automations, control].map((entry) =>
+        entry ? (
+          <button
+            key={entry.label}
+            type="button"
+            className="sk-menu-item"
+            onClick={() => {
+              close();
+              entry.onOpen();
+            }}
+          >
+            {entry.label}
+          </button>
+        ) : null,
+      )}
     </Menu>
   );
 }

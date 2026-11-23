@@ -75,7 +75,7 @@ export type SidekickShellLabels = {
     /** The ×, closing what the detail shows, by "room:view" ("Stäng uppgiften"); `closeOther` for any other view. */
     close: Record<string, string>;
     closeOther: string;
-    /** The sentence of the empty detail, by the list's room ("Välj en uppgift för att se den här"). */
+    /** The sentence of the empty detail, by the list's "room:view" first and then its room ("Välj en uppgift för att se den här"). */
     pick: Record<string, string>;
     pickOther: string;
     /** The keys listed under it. */
@@ -102,6 +102,7 @@ export const sidekickShellLabelsSv: SidekickShellLabels = {
   },
   viewNames: {
     "start:suggestions": "Förslag",
+    "start:automations": "Automationer",
     "work:agenda": "Agenda",
     "work:board": "Status",
     "work:hierarchy": "Projekt",
@@ -144,6 +145,7 @@ export const sidekickShellLabelsSv: SidekickShellLabels = {
   split: {
     kinds: {
       "start:suggestion": "Förslag",
+      "start:automation": "Automation",
       "work:task": "Uppgift",
       "work:project": "Projekt",
       "work:process": "Process",
@@ -153,6 +155,7 @@ export const sidekickShellLabelsSv: SidekickShellLabels = {
     },
     close: {
       "start:suggestion": "Stäng förslaget",
+      "start:automation": "Stäng automationen",
       "work:task": "Stäng uppgiften",
       "work:project": "Stäng projektet",
       "work:process": "Stäng processen",
@@ -163,6 +166,7 @@ export const sidekickShellLabelsSv: SidekickShellLabels = {
     closeOther: "Stäng",
     pick: {
       start: "Välj ett förslag för att se det här",
+      "start:automations": "Välj en automation för att se den här",
       work: "Välj en uppgift för att se den här",
       contacts: "Välj en kontakt för att se den här",
       journal: "Välj en anteckning för att se den här",
@@ -191,6 +195,7 @@ export const sidekickShellLabelsEn: SidekickShellLabels = {
   },
   viewNames: {
     "start:suggestions": "Suggestions",
+    "start:automations": "Automations",
     "work:agenda": "Agenda",
     "work:board": "Status",
     "work:hierarchy": "Projects",
@@ -233,6 +238,7 @@ export const sidekickShellLabelsEn: SidekickShellLabels = {
   split: {
     kinds: {
       "start:suggestion": "Suggestion",
+      "start:automation": "Automation",
       "work:task": "Task",
       "work:project": "Project",
       "work:process": "Process",
@@ -242,6 +248,7 @@ export const sidekickShellLabelsEn: SidekickShellLabels = {
     },
     close: {
       "start:suggestion": "Close the suggestion",
+      "start:automation": "Close the automation",
       "work:task": "Close the task",
       "work:project": "Close the project",
       "work:process": "Close the process",
@@ -252,6 +259,7 @@ export const sidekickShellLabelsEn: SidekickShellLabels = {
     closeOther: "Close",
     pick: {
       start: "Choose a suggestion to see it here",
+      "start:automations": "Choose an automation to see it here",
       work: "Choose a task to see it here",
       contacts: "Choose a contact to see it here",
       journal: "Choose an entry to see it here",

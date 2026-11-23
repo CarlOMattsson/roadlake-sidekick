@@ -5,6 +5,9 @@
  * - root and `suggestions`: the inbox (SuggestionsInbox); inline, its card (SuggestionsCard).
  * - `suggestion`: one suggestion in full, the detail beside the inbox in a wide frame; inline, its decision card.
  * - `decided`: the receipt card of what Claude decided or undid in the chat; in the full view, the inbox.
+ * - `automations`: the automations (AutomationsList), reached from the inbox's lead row and its ⋯.
+ * - `automation`: one automation in full, with its runs and its approval (AutomationDetailView), beside the list in a
+ *   wide frame.
  *
  * Every read and write goes through `props.transport` (the host's tools/call): no credential and no request of its
  * own. The room's day view (the start page) will take the root; the inbox then becomes a view under it.
@@ -37,12 +40,30 @@ import {
 } from "./suggestions/model";
 import { SuggestionDetailView } from "./suggestions/suggestion-detail";
 import { createSuggestionTransport } from "./suggestions/transport";
+import { AutomationDetailView } from "./automations/automation-detail";
+import {
+  AutomationsEntry,
+  automationsTarget,
+} from "./automations/automations-entry";
+import { AutomationsList } from "./automations/automations-list";
+import { automationLabelsFor } from "./automations/labels";
+import {
+  automationIdOf,
+  isAutomationPage,
+  isAutomationResult,
+} from "./automations/model";
+import { createAutomationTransport } from "./automations/transport";
 
 export function StartRoom(props: RoomProps) {
   const { transport, onNavigate, mode } = props;
   const api = useMemo(() => createSuggestionTransport(transport), [transport]);
+  const automations = useMemo(
+    () => createAutomationTransport(transport),
+    [transport],
+  );
   const locale = appLocale();
   const t = suggestionLabelsFor(locale);
+  const ta = automationLabelsFor(locale);
   const initial = props.initialError ? undefined : props.initial;
   const full = mode === "full";
 
@@ -69,6 +90,41 @@ export function StartRoom(props: RoomProps) {
   const openRecord = onNavigate;
 
   const view = props.view;
+  const frameMode = full ? "full" : "inline";
+
+  if (view === "automations")
+    return (
+      <AppFrame mode={frameMode}>
+        <AutomationsList
+          api={automations}
+          t={ta}
+          initial={isAutomationPage(initial) ? initial : undefined}
+          refreshKey={props.refreshKey}
+          onOpen={onNavigate}
+          sendMessage={props.sendMessage}
+        />
+      </AppFrame>
+    );
+  const automationId =
+    view === "automation" ? automationIdOf(initial) : undefined;
+  if (automationId !== undefined)
+    return (
+      <section className="sidekick-start start-detail" aria-label={ta.kicker}>
+        <AppFrame mode={frameMode}>
+          <AutomationDetailView
+            key={automationId}
+            api={automations}
+            t={ta}
+            id={automationId}
+            initial={
+              isAutomationResult(initial) ? initial.automation : undefined
+            }
+            refreshKey={props.refreshKey}
+          />
+        </AppFrame>
+      </section>
+    );
+
   const id = view === "suggestion" ? suggestionIdOf(initial) : undefined;
 
   if (view === "suggestion" && id !== undefined) {
@@ -133,6 +189,24 @@ export function StartRoom(props: RoomProps) {
         initial={page}
         refreshKey={props.refreshKey}
         control={control}
+        automations={
+          automations.offered && onNavigate
+            ? {
+                label: ta.entry,
+                onOpen: () => onNavigate(automationsTarget(ta)),
+              }
+            : undefined
+        }
+        lead={
+          automations.offered && onNavigate ? (
+            <AutomationsEntry
+              api={automations}
+              t={ta}
+              refreshKey={props.refreshKey}
+              onOpen={onNavigate}
+            />
+          ) : undefined
+        }
         onOpenSuggestion={
           onNavigate
             ? (item) =>

@@ -26,7 +26,9 @@ const apps = {
 // 2026-11-23: 270 KiB to 275 KiB for the room strip that follows the frame (glyphs on a phone, also in the placeholder; measured 277 578).
 // 2026-11-23: 275 KiB to 285 KiB for the Start room's suggestion inbox and the decision family it is the first to draw
 // (DecisionCard, ApproveGroup, TrustNote, QuoteBlock; measured 290 693 bytes, 283.9 KiB).
-const GZIP_BUDGET_BYTES = 285 * 1024;
+// 2026-11-23: 285 KiB to 291 KiB for the Start room's automations (list, detail with its runs, the approval and its
+// separate confirmation of applying without a click; measured 297 815 bytes, 290.8 KiB).
+const GZIP_BUDGET_BYTES = 291 * 1024;
 type AppName = keyof typeof apps;
 
 const LOCALES = ["sv", "en"] as const;

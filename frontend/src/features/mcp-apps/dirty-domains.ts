@@ -25,6 +25,8 @@ function domainsOfWrite(toolName: string): RoomId[] {
   if (EVERYWHERE.test(toolName))
     return ["start", "work", "journal", "contacts", "shopping"];
   if (toolName.includes("shopping")) return ["shopping"];
+  // An automation's approval or report mark changes only what Start shows of it.
+  if (toolName.includes("automation")) return ["start"];
   // An approved suggestion creates Tasks and Contacts, and may write a journal entry.
   if (toolName.includes("suggestion"))
     return ["start", "work", "contacts", "journal"];

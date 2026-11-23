@@ -35499,6 +35499,11 @@
     "title": "Visa AI-anv\u00e4ndning"
   },
   {
+    "_meta": {
+      "ui": {
+        "resourceUri": "ui://sidekick/app-v1.html"
+      }
+    },
     "annotations": {
       "destructiveHint": false,
       "idempotentHint": true,
@@ -35565,6 +35570,11 @@
                 ],
                 "title": "ApprovalState",
                 "type": "string"
+              },
+              "auto_apply_confirmed": {
+                "description": "The approval also confirmed that suggestions apply without a click. False for a spec that does not, and for an approval made before there was a confirmation.",
+                "title": "Auto Apply Confirmed",
+                "type": "boolean"
               },
               "changed_since_approval": {
                 "title": "Changed Since Approval",
@@ -35644,6 +35654,7 @@
               "approval",
               "changed_since_approval",
               "runnable",
+              "auto_apply_confirmed",
               "pending_suggestions",
               "version"
             ],
@@ -35676,6 +35687,11 @@
     "title": "Lista automationer"
   },
   {
+    "_meta": {
+      "ui": {
+        "resourceUri": "ui://sidekick/app-v1.html"
+      }
+    },
     "annotations": {
       "destructiveHint": false,
       "idempotentHint": true,
@@ -35683,7 +35699,7 @@
       "readOnlyHint": true,
       "title": "Visa automation"
     },
-    "description": "Read one automation in full: its spec (instruction, sources, allowed effects, thresholds, run budget, model tier), the digest the owner approves and its approval state. Only an active automation approved at exactly its current spec can run.",
+    "description": "Read one automation in full: its spec (instruction, sources, allowed effects, thresholds, run budget, model tier), the digest the owner approves, its approval state, whether that approval confirmed applying without a click, and the caps on that. Only an active automation approved at exactly its current spec can run.",
     "inputSchema": {
       "additionalProperties": false,
       "properties": {
@@ -35747,6 +35763,31 @@
               ],
               "default": null,
               "title": "Approved At"
+            },
+            "auto_apply_confirmed": {
+              "description": "The approval also confirmed that suggestions apply without a click. False for a spec that does not, and for an approval made before there was a confirmation.",
+              "title": "Auto Apply Confirmed",
+              "type": "boolean"
+            },
+            "auto_apply_limits": {
+              "additionalProperties": false,
+              "description": "What one automation applies without a click, at most (the server's caps).",
+              "properties": {
+                "per_day": {
+                  "title": "Per Day",
+                  "type": "integer"
+                },
+                "per_run": {
+                  "title": "Per Run",
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "per_run",
+                "per_day"
+              ],
+              "title": "AutoApplyLimits",
+              "type": "object"
             },
             "auto_effects": {
               "items": {
@@ -35966,6 +36007,7 @@
             "approval",
             "changed_since_approval",
             "runnable",
+            "auto_apply_confirmed",
             "pending_suggestions",
             "version",
             "purpose",
@@ -35978,6 +36020,7 @@
             "auto_threshold",
             "max_suggestions_per_run",
             "run_budget_usd",
+            "auto_apply_limits",
             "spec_digest",
             "created_at",
             "updated_at"
@@ -36389,6 +36432,31 @@
               "default": null,
               "title": "Approved At"
             },
+            "auto_apply_confirmed": {
+              "description": "The approval also confirmed that suggestions apply without a click. False for a spec that does not, and for an approval made before there was a confirmation.",
+              "title": "Auto Apply Confirmed",
+              "type": "boolean"
+            },
+            "auto_apply_limits": {
+              "additionalProperties": false,
+              "description": "What one automation applies without a click, at most (the server's caps).",
+              "properties": {
+                "per_day": {
+                  "title": "Per Day",
+                  "type": "integer"
+                },
+                "per_run": {
+                  "title": "Per Run",
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "per_run",
+                "per_day"
+              ],
+              "title": "AutoApplyLimits",
+              "type": "object"
+            },
             "auto_effects": {
               "items": {
                 "description": "What a suggestion may do. Every member is undoable and stays inside Sidekick.",
@@ -36607,6 +36675,7 @@
             "approval",
             "changed_since_approval",
             "runnable",
+            "auto_apply_confirmed",
             "pending_suggestions",
             "version",
             "purpose",
@@ -36619,6 +36688,7 @@
             "auto_threshold",
             "max_suggestions_per_run",
             "run_budget_usd",
+            "auto_apply_limits",
             "spec_digest",
             "created_at",
             "updated_at"
@@ -36742,6 +36812,31 @@
               "default": null,
               "title": "Approved At"
             },
+            "auto_apply_confirmed": {
+              "description": "The approval also confirmed that suggestions apply without a click. False for a spec that does not, and for an approval made before there was a confirmation.",
+              "title": "Auto Apply Confirmed",
+              "type": "boolean"
+            },
+            "auto_apply_limits": {
+              "additionalProperties": false,
+              "description": "What one automation applies without a click, at most (the server's caps).",
+              "properties": {
+                "per_day": {
+                  "title": "Per Day",
+                  "type": "integer"
+                },
+                "per_run": {
+                  "title": "Per Run",
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "per_run",
+                "per_day"
+              ],
+              "title": "AutoApplyLimits",
+              "type": "object"
+            },
             "auto_effects": {
               "items": {
                 "description": "What a suggestion may do. Every member is undoable and stays inside Sidekick.",
@@ -36960,6 +37055,7 @@
             "approval",
             "changed_since_approval",
             "runnable",
+            "auto_apply_confirmed",
             "pending_suggestions",
             "version",
             "purpose",
@@ -36972,6 +37068,7 @@
             "auto_threshold",
             "max_suggestions_per_run",
             "run_budget_usd",
+            "auto_apply_limits",
             "spec_digest",
             "created_at",
             "updated_at"

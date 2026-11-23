@@ -47,7 +47,8 @@ export type StripRoomId = (typeof STRIP_ROOM_IDS)[number];
 
 /**
  * The view a room opens on. The names are the room's own; a room maps an unknown view to its root.
- * start: suggestions (the suggestion inbox), suggestion (one suggestion, a record), decided (the receipt card of a decision or an undo, inline only).
+ * start: suggestions (the suggestion inbox), suggestion (one suggestion, a record), decided (the receipt card of a decision or an undo, inline only),
+ *   automations (the automations), automation (one automation with its approval, a record).
  * work: agenda, board, hierarchy, task, project, process, changes (confirmation card), review (the review queue's card).
  * journal: day, entry, card (one entry as a compact card), draft, pending.
  * contacts: list, contact (with context), compact (one contact record).
@@ -70,6 +71,8 @@ export const TOOL_ROUTES: Readonly<Record<string, Route>> = {
   get_suggestion: start("suggestion"),
   decide_suggestions: start("decided"),
   undo_suggestion: start("decided"),
+  list_automations: start("automations"),
+  get_automation: start("automation"),
   // Work
   get_work_agenda: work("agenda"),
   get_work_board: work("board"),

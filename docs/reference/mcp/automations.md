@@ -24,7 +24,7 @@ Returns: `AutomationPageOutput` with `items` (array of AutomationSummary), `next
 
 ## `get_automation`
 
-Read one automation in full: its spec (instruction, sources, allowed effects, thresholds, run budget, model tier), the digest the owner approves and its approval state.
+Read one automation in full: its spec (instruction, sources, allowed effects, thresholds, run budget, model tier), the digest the owner approves, its approval state, whether that approval confirmed applying without a click, and the caps on that.
 
 Access: read
 

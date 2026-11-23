@@ -15,6 +15,7 @@ const FEATURE_FOLDERS = [
   "journal-app",
   "mcp-apps",
   "shopping-app",
+  "start-app",
   "work-app",
 ];
 const SHARED_FEATURE_FOLDER = "mcp-apps";
@@ -40,6 +41,7 @@ const EXISTING_BOUNDARY_EXCEPTIONS = {
     "control-app/room",
     "journal-app/room",
     "shopping-app/room",
+    "start-app/room",
     "work-app/contacts/contacts-room",
     "work-app/room",
   ],

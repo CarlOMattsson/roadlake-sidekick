@@ -442,6 +442,8 @@ describe("the heading of a failed read, for every view a tool can open", () => {
   const expected: Record<string, string> = {
     "start:suggestions": "Förslagen kunde inte hämtas",
     "start:suggestion": "Förslaget kunde inte hämtas",
+    "start:automations": "Automationerna kunde inte hämtas",
+    "start:automation": "Automationen kunde inte hämtas",
     "start:decided": "Förslagen kunde inte hämtas",
     "work:agenda": "Uppgifterna kunde inte hämtas",
     "work:board": "Uppgifterna kunde inte hämtas",

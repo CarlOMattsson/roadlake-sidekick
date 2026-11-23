@@ -77,6 +77,7 @@ function journalEntryId(data: unknown): string | undefined {
 export function idInData(entry: NavEntry): string | undefined {
   const keys: Record<string, string> = {
     "start:suggestion": "suggestion",
+    "start:automation": "automation",
     "work:task": "task",
     "work:project": "project",
     "work:process": "process",
@@ -104,6 +105,8 @@ function idOnlyResult(entry: NavEntry): unknown {
   switch (`${entry.room}:${entry.view}`) {
     case "start:suggestion":
       return { suggestion: { id } };
+    case "start:automation":
+      return { automation: { id } };
     case "work:task":
       return { task: { id } };
     case "work:project":

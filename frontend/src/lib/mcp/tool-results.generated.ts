@@ -750,6 +750,7 @@ export type ToolResults = {
   list_automations: {
     items: Array<{
       approval: "not_approved" | "approved" | "changed_since_approval";
+      auto_apply_confirmed: boolean;
       changed_since_approval: boolean;
       id: string;
       last_run_at: string | null;
@@ -2796,6 +2797,11 @@ export type AppliedRecordRef = {
   kind: string;
 };
 
+export type AutoApplyLimits = {
+  per_day: number;
+  per_run: number;
+};
+
 export type AutomationOutput = {
   automation: AutomationRecord;
 };
@@ -2805,6 +2811,8 @@ export type AutomationRecord = {
   apply_mode: "suggest" | "auto_low_risk";
   approval: "not_approved" | "approved" | "changed_since_approval";
   approved_at: string | null;
+  auto_apply_confirmed: boolean;
+  auto_apply_limits: AutoApplyLimits;
   auto_effects: Array<"create_task" | "create_contact">;
   auto_threshold: number;
   bulk_threshold: number;

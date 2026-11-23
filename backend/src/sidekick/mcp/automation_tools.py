@@ -41,6 +41,7 @@ from sidekick.mcp.idempotency import IdempotencyKey
 from sidekick.mcp.patch import CLEAR_SENTENCE, ignored_nulls_note
 from sidekick.mcp.results import output_schema
 from sidekick.mcp.results import result as tool_result
+from sidekick.mcp.sidekick_app import SIDEKICK_APP_URI
 from sidekick.mcp.tool_context import ToolContext
 from sidekick.mcp.work_text import cell, found_sentence, spoken_line
 from sidekick.shared.types import MAX_CURSOR_LENGTH
@@ -56,6 +57,7 @@ from sidekick.work.domain.ai_spec import MAX_SPEC_BUDGET_USD
 
 _Version = Annotated[int, Field(ge=1)]
 _Cursor = Annotated[str | None, Field(max_length=MAX_CURSOR_LENGTH)]
+_OPENS_APP = AppConfig(resource_uri=SIDEKICK_APP_URI)
 _Digest = Annotated[str, Field(min_length=64, max_length=64, pattern="^[0-9a-f]{64}$")]
 
 LIST_DESCRIPTION = (
@@ -65,7 +67,8 @@ LIST_DESCRIPTION = (
 )
 GET_DESCRIPTION = (
     "Read one automation in full: its spec (instruction, sources, allowed effects, thresholds, run "
-    "budget, model tier), the digest the owner approves and its approval state. Only an active "
+    "budget, model tier), the digest the owner approves, its approval state, whether that "
+    "approval confirmed applying without a click, and the caps on that. Only an active "
     "automation approved at exactly its current spec can run."
 )
 SAVE_DESCRIPTION = (
@@ -172,6 +175,7 @@ def _register_list_automations(mcp: FastMCP, ctx: ToolContext) -> None:
         description=LIST_DESCRIPTION,
         output_schema=output_schema(AutomationPageOutput),
         annotations=READ,
+        app=_OPENS_APP,
     )
     @ctx.instrument("list_automations")
     def list_automations(
@@ -206,6 +210,7 @@ def _register_get_automation(mcp: FastMCP, ctx: ToolContext) -> None:
         description=GET_DESCRIPTION,
         output_schema=output_schema(AutomationOutput),
         annotations=READ,
+        app=_OPENS_APP,
     )
     @ctx.instrument("get_automation")
     def get_automation(automation_id: UUID) -> ToolResult:

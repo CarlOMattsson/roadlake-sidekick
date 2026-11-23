@@ -16,6 +16,8 @@ from sidekick.automations.domain.spec import (
     NotRunnableError,
     approval_state,
     approve,
+    auto_confirmed_digest,
+    is_auto_apply_confirmed,
     is_runnable,
     missing_write_scopes,
     normalise_title,
@@ -204,6 +206,17 @@ def test_the_approval_state_reads_the_two_digests() -> None:
     assert approval_state(digest, None) is ApprovalState.NOT_APPROVED
     assert approval_state(digest, digest) is ApprovalState.APPROVED
     assert approval_state(digest, "0" * 64) is ApprovalState.CHANGED_SINCE_APPROVAL
+
+
+def test_auto_apply_is_confirmed_only_by_the_auto_confirmed_digest() -> None:
+    digest = spec_digest(spec())
+    assert is_auto_apply_confirmed(digest, auto_confirmed_digest(digest))
+    # An approval made without the confirmation, or before there was one, stores the plain digest.
+    assert not is_auto_apply_confirmed(digest, digest)
+    assert not is_auto_apply_confirmed(digest, None)
+    assert not is_auto_apply_confirmed(digest, "0" * 64)
+    # A confirmation of another spec confirms nothing for this one.
+    assert not is_auto_apply_confirmed(digest, auto_confirmed_digest("1" * 64))
 
 
 def test_the_owner_approves_exactly_the_digest_that_was_shown() -> None:

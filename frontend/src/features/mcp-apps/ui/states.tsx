@@ -36,6 +36,8 @@ const errorEn = {
   subjects: {
     start: "Couldn’t load your suggestions",
     "start:suggestion": "Couldn’t load the suggestion",
+    "start:automations": "Couldn’t load your automations",
+    "start:automation": "Couldn’t load the automation",
     work: "Couldn’t load your tasks",
     "work:task": "Couldn’t load the task",
     "work:project": "Couldn’t load the project",
@@ -73,6 +75,8 @@ const errorSv: typeof errorEn = {
   subjects: {
     start: "Förslagen kunde inte hämtas",
     "start:suggestion": "Förslaget kunde inte hämtas",
+    "start:automations": "Automationerna kunde inte hämtas",
+    "start:automation": "Automationen kunde inte hämtas",
     work: "Uppgifterna kunde inte hämtas",
     "work:task": "Uppgiften kunde inte hämtas",
     "work:project": "Projektet kunde inte hämtas",

@@ -1,0 +1,254 @@
+/* The automations in the Start room: the list (automations-list.tsx), the inbox's row to it (automations-entry.tsx),
+   one automation in full (automation-detail.tsx) and its approval (approval.tsx). Rows, cards, buttons and boxes are
+   the family's; this file places them and draws the facts and the confirmation step. */
+
+/* The list: the inbox's title row, then the rows. */
+.sidekick-start.start-automations {
+  display: grid;
+  gap: var(--sk-s2);
+  min-width: 0;
+}
+.sidekick-start .start-automation-rows,
+.sidekick-start .start-automations-entry {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+/* The inbox's one row to the automations, above the groups. Its line names what waits in the text colour. */
+.sidekick-start .start-automations-entry [data-waiting="true"] {
+  color: var(--sk-fg);
+  font-weight: var(--sk-weight-medium);
+}
+.sidekick-start .start-automation-meta[data-state="waiting"],
+.sidekick-start .start-automation-meta[data-state="changed"] {
+  color: var(--sk-fg);
+}
+
+/* One automation: kicker, title and its state, the purpose in body text, the facts, the instruction, the runs, and the
+   approval last. 16 between the blocks. */
+.sidekick-start.start-automation {
+  display: grid;
+  gap: var(--sk-s4);
+  min-width: 0;
+}
+.sidekick-start .start-automation-head {
+  display: grid;
+  gap: var(--sk-s1);
+}
+.sidekick-start .start-automation-title {
+  margin: 0;
+  font: var(--sk-type-title);
+  color: var(--sk-fg);
+  overflow-wrap: anywhere;
+}
+.sidekick-start .start-automation-state {
+  margin: 0;
+  font: var(--sk-type-meta);
+  color: var(--sk-muted);
+}
+.sidekick-start
+  .start-automation-state:is([data-state="waiting"], [data-state="changed"]) {
+  color: var(--sk-fg);
+  font-weight: var(--sk-weight-medium);
+}
+.sidekick-start .start-automation-purpose {
+  margin: 0;
+  max-width: var(--sk-read-measure);
+  font: var(--sk-type-body);
+  color: var(--sk-fg);
+  overflow-wrap: anywhere;
+}
+
+/* The facts: a label over its value, a hairline between them, each at least 44 high. */
+.sidekick-start .start-facts {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  border-block: var(--sk-hairline) solid var(--sk-line);
+}
+.sidekick-start .start-fact {
+  display: grid;
+  align-content: center;
+  gap: 2px;
+  min-height: var(--sk-tap);
+  padding: var(--sk-s2) 0;
+}
+.sidekick-start .start-fact + .start-fact {
+  border-top: var(--sk-hairline) solid var(--sk-line);
+}
+.sidekick-start .start-fact dt {
+  font: var(--sk-type-meta);
+  color: var(--sk-muted);
+}
+.sidekick-start .start-fact dd {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  font: var(--sk-type-row);
+  color: var(--sk-fg);
+  overflow-wrap: anywhere;
+}
+.sidekick-start .start-fact-note {
+  font: var(--sk-type-meta);
+  color: var(--sk-muted);
+}
+/* From 30 rem the label stands beside its value, so the facts read as a table. */
+@container (min-width: 30rem) {
+  .sidekick-start .start-fact {
+    grid-template-columns: 9rem minmax(0, 1fr);
+    align-items: baseline;
+    column-gap: var(--sk-s3);
+  }
+}
+.sidekick-start.start-automation {
+  container-type: inline-size;
+}
+
+/* A block with its own heading: the instruction and the runs. */
+.sidekick-start .start-automation-section {
+  display: grid;
+  gap: var(--sk-s2);
+  justify-items: start;
+}
+.sidekick-start .start-automation-section > * {
+  max-width: 100%;
+}
+.sidekick-start .start-automation-section-title {
+  margin: 0;
+  font: var(--sk-type-section);
+  color: var(--sk-fg);
+}
+/* The instruction as the owner wrote it with Claude: its own lines kept, in the reading measure; a long one shows its
+   first six lines until "Visa allt". */
+.sidekick-start .start-instruction {
+  margin: 0;
+  max-width: var(--sk-read-measure);
+  font: var(--sk-type-body);
+  color: var(--sk-fg);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.sidekick-start .start-instruction[data-folded="true"] {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 6;
+  overflow: hidden;
+}
+.sidekick-start .start-instruction-more {
+  margin-inline-start: calc(var(--sk-s3) * -1);
+}
+.sidekick-start .start-runs-line {
+  margin: 0;
+  font: var(--sk-type-row);
+  color: var(--sk-fg);
+}
+.sidekick-start .start-runs-highlights {
+  display: grid;
+  gap: var(--sk-s1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.sidekick-start .start-runs-highlights li {
+  display: grid;
+  font: var(--sk-type-row);
+  color: var(--sk-fg);
+}
+
+/* The approval: the family's card. Its answer stands at the card's end edge; on a narrow card it takes the width. */
+.sidekick-start .start-approval {
+  container-type: inline-size;
+}
+.sidekick-start .start-approval .sk-card__title {
+  -webkit-line-clamp: unset;
+}
+.sidekick-start .start-approval-body {
+  margin: 0;
+  font: var(--sk-type-body);
+  color: var(--sk-fg);
+}
+.sidekick-start .start-approval-actions {
+  justify-content: flex-end;
+  margin-top: var(--sk-s1);
+}
+.sidekick-start .start-approval-error {
+  margin: 0;
+  font: var(--sk-type-meta);
+  color: var(--sk-danger-fg);
+}
+
+/* The separate step of a spec that applies without a click: a framed block in the warning tone (not red: nothing
+   failed), its heading, the consequences as a list, the box to tick, and Avbryt beside Godkänn. */
+.sidekick-start .start-confirm {
+  display: grid;
+  gap: var(--sk-s3);
+  margin-top: var(--sk-s1);
+  padding: var(--sk-s3);
+  border: var(--sk-hairline) solid var(--sk-warning-line);
+  border-inline-start-width: 3px;
+  border-radius: var(--sk-radius);
+  background: var(--sk-warning-bg);
+}
+.sidekick-start .start-confirm-title {
+  margin: 0;
+  font: var(--sk-type-section);
+  color: var(--sk-fg);
+}
+.sidekick-start .start-confirm-title:focus {
+  outline: none;
+}
+.sidekick-start .start-confirm-title:focus-visible {
+  outline: 2px solid var(--sk-ring);
+  outline-offset: 2px;
+}
+.sidekick-start .start-confirm-lines {
+  display: grid;
+  gap: var(--sk-s2);
+  margin: 0;
+  padding-inline-start: var(--sk-s4);
+  font: var(--sk-type-body);
+  color: var(--sk-fg);
+}
+/* The box and its sentence are one 48 target; the box itself is 24. */
+.sidekick-start .start-confirm-check {
+  display: flex;
+  align-items: center;
+  gap: var(--sk-s3);
+  min-height: var(--sk-tap-lg);
+  margin-inline: calc(var(--sk-s2) * -1);
+  padding: var(--sk-s1) var(--sk-s2);
+  border-radius: var(--sk-radius);
+  font: var(--sk-type-row);
+  font-weight: var(--sk-weight-medium);
+  color: var(--sk-fg);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.sidekick-start .start-confirm-check:hover {
+  background: var(--sk-hover);
+}
+.sidekick-start .start-confirm-check input {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  margin: 0;
+  accent-color: var(--sk-fg);
+  cursor: pointer;
+}
+.sidekick-start .start-confirm-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--sk-s2);
+}
+@container (max-width: 30rem) {
+  .sidekick-start .start-confirm-actions > .sk-btn,
+  .sidekick-start .start-approval-actions > .sk-btn {
+    flex: 1 1 0;
+  }
+}
+.sidekick-start .start-confirm-tick {
+  margin: 0;
+  font: var(--sk-type-meta);
+  color: var(--sk-fg);
+}

@@ -4,7 +4,7 @@ import {
   weekdayNamesEn,
   weekdayNamesSv,
   type RuleWords,
-} from "./repeat-words";
+} from "../../mcp-apps/repeat-words";
 
 /**
  * Words of the Task's place chip (the `place` label and the place's name), the repeat chip and its picker, and the `unsortedHeading`

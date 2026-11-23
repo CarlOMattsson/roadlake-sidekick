@@ -55,7 +55,7 @@ function perRoom<T>(make: (room: RoomId) => T): Record<RoomId, T> {
 
 /** The views that show one record (a Task, a Contact, a post). They are details, never a room's overview. */
 const RECORD_VIEWS: Readonly<Record<string, readonly string[]>> = {
-  start: ["suggestion"],
+  start: ["suggestion", "automation"],
   work: ["task", "project", "process"],
   contacts: ["contact", "compact"],
   journal: ["entry", "draft", "card", "source"],
@@ -177,7 +177,7 @@ export function goBack(state: NavState): NavState {
  * one column.
  */
 const SPLIT_LISTS: Readonly<Record<string, readonly string[]>> = {
-  start: [ROOT_VIEW, "suggestions"],
+  start: [ROOT_VIEW, "suggestions", "automations"],
   work: [ROOT_VIEW, "agenda", "board", "hierarchy"],
   contacts: [ROOT_VIEW, "list"],
   journal: [ROOT_VIEW, "day"],

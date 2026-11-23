@@ -410,6 +410,18 @@ async def test_suggestion_tools_open_the_sidekick_app() -> None:
 
 
 @pytest.mark.asyncio
+async def test_automation_reads_open_the_sidekick_app_and_the_approval_stays_app_only() -> None:
+    server = create_mcp_server(create_container(make_settings()), enable_auth=False)
+    tools = {tool.name: tool for tool in await server.list_tools()}
+    for name in ("list_automations", "get_automation"):
+        assert tools[name].meta["ui"]["resourceUri"] == SIDEKICK_APP_URI, name
+    approve = tools["approve_automation"].meta
+    assert approve["ui"]["visibility"] == ["app"]
+    assert "resourceUri" not in approve["ui"]
+    assert approve["anthropic/requiresUserInteraction"] is True
+
+
+@pytest.mark.asyncio
 async def test_app_only_tools_are_pinned_and_no_other_tool_is_app_only() -> None:
     server = create_mcp_server(create_container(make_settings()), enable_auth=False)
     tools = {tool.name: tool for tool in await server.list_tools()}
