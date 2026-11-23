@@ -6,6 +6,7 @@ import type { useReceipt } from "../../mcp-apps/ui/receipt";
 import { ErrorNotice } from "../../mcp-apps/ui/states";
 import type { HomeLabels } from "./labels";
 import { phraseTitle, readyTime, type StartReadyRow } from "./model";
+import { withId, withoutId } from "./sets";
 import type { HomeTransport } from "./transport";
 
 export type ReadyState = ReturnType<typeof useReady>;
@@ -47,17 +48,17 @@ export function useReady({
     const pending = keyFor(keys.current.get(signature), signature);
     keys.current.set(signature, pending);
     running.current.add(row.id);
-    setBusy((now) => with_(now, row.id));
+    setBusy((now) => withId(now, row.id));
     skip(row.id, undo, pending.key).then(
       () => {
         running.current.delete(row.id);
         keys.current.delete(signature);
-        setBusy((now) => without(now, row.id));
+        setBusy((now) => withoutId(now, row.id));
         done();
       },
       () => {
         running.current.delete(row.id);
-        setBusy((now) => without(now, row.id));
+        setBusy((now) => withoutId(now, row.id));
         fail();
       },
     );
@@ -68,7 +69,7 @@ export function useReady({
       row,
       true,
       () => {
-        setHidden((now) => without(now, row.id));
+        setHidden((now) => withoutId(now, row.id));
         receipt.show({ message: t.unskipped(row.title) });
         reload();
       },
@@ -76,12 +77,12 @@ export function useReady({
     );
 
   const skip = (row: StartReadyRow) => {
-    setFailed((now) => without(now, row.id));
+    setFailed((now) => withoutId(now, row.id));
     write(
       row,
       false,
       () => {
-        setHidden((now) => with_(now, row.id));
+        setHidden((now) => withId(now, row.id));
         // The card leaves: the focus goes to the page's title rather than to nothing.
         titleRef.current?.focus();
         receipt.show({
@@ -90,7 +91,7 @@ export function useReady({
         });
         reload();
       },
-      () => setFailed((now) => with_(now, row.id)),
+      () => setFailed((now) => withId(now, row.id)),
     );
   };
 
@@ -101,9 +102,9 @@ export function useReady({
     sendMessage(t.startMessage(phraseTitle(row.title), row.id)).then(
       (sent) => {
         if (sent) receipt.show({ message: t.sent });
-        else setUnsent((now) => with_(now, row.id));
+        else setUnsent((now) => withId(now, row.id));
       },
-      () => setUnsent((now) => with_(now, row.id)),
+      () => setUnsent((now) => withId(now, row.id)),
     );
   };
 
@@ -115,16 +116,6 @@ export function useReady({
     skip: api.skip ? skip : undefined,
     start,
   };
-}
-
-function with_(set: ReadonlySet<string>, id: string): ReadonlySet<string> {
-  return new Set([...set, id]);
-}
-function without(set: ReadonlySet<string>, id: string): ReadonlySet<string> {
-  if (!set.has(id)) return set;
-  const next = new Set(set);
-  next.delete(id);
-  return next;
 }
 
 /**

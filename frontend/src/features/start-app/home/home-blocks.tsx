@@ -6,6 +6,7 @@ import { ChevronRightIcon } from "../../mcp-apps/ui/icons";
 import { InsightLine } from "../../mcp-apps/ui/insight-line";
 import { Row } from "../../mcp-apps/ui/row";
 import { EmptyState, ErrorNotice } from "../../mcp-apps/ui/states";
+import { StatusGlyph } from "../../mcp-apps/ui/status-glyph";
 import type { HomeLabels } from "./labels";
 import {
   automationsMeta,
@@ -19,16 +20,19 @@ import {
   waitingMeta,
   waitingMore,
   waitingTarget,
+  withoutDone,
   type StartHome,
   type StartPart,
 } from "./model";
 import { ReadyCard, type ReadyState } from "./ready";
+import type { TaskDoneState } from "./use-task-done";
 
 /** The page under its title: the blocks get_start sent, in their order, or the quiet day's one line. */
 export function HomeBlocks({
-  start,
+  start: served,
   t,
   ready,
+  done,
   sendMessage,
   onNavigate,
   onRetry,
@@ -39,6 +43,7 @@ export function HomeBlocks({
   start: StartHome;
   t: HomeLabels;
   ready: ReadyState;
+  done: TaskDoneState;
   sendMessage?: (text: string) => Promise<boolean>;
   onNavigate?: (target: RoomTarget) => void;
   onRetry: () => void;
@@ -48,6 +53,8 @@ export function HomeBlocks({
 }) {
   const ids = useId();
   const now = new Date();
+  // The tasks ticked done here leave "Idag" and its count before the server's next answer.
+  const start = withoutDone(served, done.hidden);
   const failed = new Set(failedParts(start));
   const notice = (part: StartPart) =>
     failed.has(part) ? (
@@ -151,9 +158,20 @@ export function HomeBlocks({
                 {today.items.map((row) => {
                   const meta = todayMeta(row, now, t);
                   const target = recordTarget(row);
+                  const ring = row.kind === "task" && done.complete;
                   return (
                     <Row
                       key={row.id}
+                      leading={
+                        ring ? (
+                          <StatusGlyph kind="task" status="todo" />
+                        ) : undefined
+                      }
+                      onLeading={ring ? () => done.complete?.(row) : undefined}
+                      leadingLabel={
+                        ring ? t.completeTask(row.title) : undefined
+                      }
+                      leadingDisabled={done.busy.has(row.id)}
                       primary={row.title}
                       secondary={
                         <span className="start-home-meta">

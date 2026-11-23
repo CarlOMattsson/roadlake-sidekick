@@ -30,6 +30,8 @@ const apps = {
 // separate confirmation of applying without a click; measured 297 815 bytes, 290.8 KiB).
 // 2026-11-23: 291 KiB to 296 KiB for the Start room's home view on get_start (the day's blocks, the ready
 // conversations' cards with their skip and Ångra, the inbox beside it in a wide frame; measured 302 251 bytes, 295.2 KiB).
+// 2026-11-23: 296 KiB kept for the Start home's ring on today's tasks (it reuses Row, StatusGlyph and the receipt bar;
+// measured 302 927 bytes, 295.8 KiB, 177 bytes under the budget).
 const GZIP_BUDGET_BYTES = 296 * 1024;
 type AppName = keyof typeof apps;
 

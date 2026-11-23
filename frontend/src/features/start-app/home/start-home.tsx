@@ -14,6 +14,7 @@ import { HomeBlocks } from "./home-blocks";
 import type { HomeLabels } from "./labels";
 import { homeHeading, type StartHome } from "./model";
 import { useReady } from "./ready";
+import { useTaskDone } from "./use-task-done";
 import type { HomeTransport } from "./transport";
 import { useHome } from "./use-home";
 import "../suggestions/suggestions.css";
@@ -27,7 +28,8 @@ import "./home.css";
  *
  * A ready conversation is started in the chat: "Starta" sends a phrase that names it (ui/message), and Claude starts
  * it with start_ready_conversation. Its instruction is never on this page and never a button; where the host has no
- * messages the phrase stands as text. "Hoppa över idag" skips it here, with Ångra in the receipt bar.
+ * messages the phrase stands as text. "Hoppa över idag" skips it here, with Ångra in the receipt bar. A task of today
+ * has the Agenda's ring: ticking it leaves the row, the count follows, and Ångra is in the receipt bar (use-task-done).
  *
  * In a wide frame the suggestion inbox (`aside`) stands beside the page, and the page then draws no row to it.
  */
@@ -119,6 +121,7 @@ export function StartHomeView({
   );
 
   const ready = useReady({ api, t, receipt, reload: home.reload, titleRef });
+  const done = useTaskDone({ api, t, receipt, reload: home.reload, titleRef });
 
   const day =
     read.phase === "ready" ? read.start.day : ownerDayPlus(new Date(), 0);
@@ -146,6 +149,7 @@ export function StartHomeView({
         start={read.start}
         t={t}
         ready={ready}
+        done={done}
         sendMessage={sendMessage}
         onNavigate={onNavigate}
         onRetry={home.reload}

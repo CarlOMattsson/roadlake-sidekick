@@ -40,6 +40,12 @@ const homeEn = {
     pending === 1
       ? "1 waits for your answer"
       : `${pending} wait for your answer`,
+  /** The ring of a task of today: its accessible name, the receipt after it, Ångra's receipt and the failures. */
+  completeTask: (title: string) => `Mark ${title} as done`,
+  taskDone: (title: string) => `Done: ${title}`,
+  taskReopened: (title: string) => `Reopened: ${title}`,
+  completeFailed: "Could not mark it as done. Try again.",
+  reopenFailed: "Could not undo. Try again.",
   todayTitle: "Today",
   todayHeading: (count: number) => `Today (${count})`,
   openAgenda: "Open Agenda",
@@ -101,6 +107,11 @@ const homeSv: HomeLabels = {
   skipFailed: "Det gick inte att hoppa över. Försök igen.",
   suggestions: "Förslag",
   suggestionsWaiting: (pending) => `${pending} väntar på ditt svar`,
+  completeTask: (title) => `Markera ${title} som klar`,
+  taskDone: (title) => `Klar: ${title}`,
+  taskReopened: (title) => `Öppen igen: ${title}`,
+  completeFailed: "Det gick inte att markera som klar. Försök igen.",
+  reopenFailed: "Det gick inte att ångra. Försök igen.",
   todayTitle: "Idag",
   todayHeading: (count) => `Idag (${count})`,
   openAgenda: "Öppna Agenda",

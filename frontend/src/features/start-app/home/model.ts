@@ -59,6 +59,31 @@ export function readyRows(
 }
 
 /**
+ * The page without the tasks of today the owner ticked done here while the page waits for the server: those rows
+ * and their share of the counts are gone, so the heading and "n till" stay true.
+ */
+export function withoutDone(
+  start: StartHome,
+  done: ReadonlySet<string>,
+): StartHome {
+  const today = start.today;
+  if (!today || done.size === 0) return start;
+  const gone = today.items.filter((row) => done.has(row.id));
+  if (gone.length === 0) return start;
+  const count = (group: StartTodayRow["agenda_group"]) =>
+    gone.filter((row) => row.agenda_group === group).length;
+  return {
+    ...start,
+    today: {
+      ...today,
+      items: today.items.filter((row) => !done.has(row.id)),
+      overdue_count: Math.max(0, today.overdue_count - count("overdue")),
+      today_count: Math.max(0, today.today_count - count("today")),
+    },
+  };
+}
+
+/**
  * True when nothing on the page asks for the owner: no sentence, no ready conversation, no task of today and none
  * that waits, and no part that failed. The ways to the suggestions and the automations stay under it.
  */

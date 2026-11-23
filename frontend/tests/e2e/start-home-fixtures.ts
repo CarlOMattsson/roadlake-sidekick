@@ -151,6 +151,23 @@ export const skipped = {
   },
 };
 
+/** The part of update_task's answer the home view reads: the Task's status and the version the write left. */
+export const taskReply = (
+  id: string,
+  status: "completed" | "todo",
+  version: number,
+) => ({ task: { id, status, version } });
+
+/** The day after the first task of today is done: that row and its share of the counts are gone. */
+export const afterTick: StartHome = {
+  ...fullStart,
+  today: fullStart.today && {
+    ...fullStart.today,
+    overdue_count: 1,
+    items: fullStart.today.items.filter((row) => row.id !== homeIds.overdueOld),
+  },
+};
+
 const ok = (structuredContent: unknown) => ({ structuredContent });
 
 /** The host's answers for the home view, as the simulated host takes them. */

@@ -10,7 +10,8 @@ import "./row.css";
  * so Enter and Space work without extra handlers, and focus order follows the DOM order.
  *
  * A control is only rendered when its handler is given. Without `onLeading` the leading slot is
- * plain content; without `onOpen` the body is plain content. The chevron is shown only when
+ * plain content; without `onOpen` the body is plain content. A leading button names its action with `leadingLabel`
+ * (a glyph alone has no name) and is held with `leadingDisabled` while its write runs. The chevron is shown only when
  * `navigates` is true. `primary` is never clipped, and `secondary` may wrap. Texts come from the caller, so
  * this component has no labels of its own. `trailing` must be plain text or a chip, never a control.
  *
@@ -24,6 +25,8 @@ export type RowProps = {
   trailing?: ReactNode;
   navigates?: boolean;
   onLeading?: () => void;
+  leadingLabel?: string;
+  leadingDisabled?: boolean;
   onOpen?: () => void;
   /** The record `onOpen` opens: beside a split list the row is drawn chosen while it is open (useRecordRow). */
   record?: RecordRef;
@@ -36,6 +39,8 @@ export function Row({
   trailing,
   navigates = false,
   onLeading,
+  leadingLabel,
+  leadingDisabled,
   onOpen,
   record,
 }: RowProps) {
@@ -61,7 +66,13 @@ export function Row({
       {...recordRow}
     >
       {onLeading ? (
-        <button type="button" className="sk-row-lead" onClick={onLeading}>
+        <button
+          type="button"
+          className="sk-row-lead"
+          aria-label={leadingLabel}
+          disabled={leadingDisabled}
+          onClick={onLeading}
+        >
           {leading}
         </button>
       ) : leading ? (

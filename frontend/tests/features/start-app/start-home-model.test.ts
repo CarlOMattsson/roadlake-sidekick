@@ -18,6 +18,7 @@ import {
   todayMore,
   waitingMeta,
   waitingMore,
+  withoutDone,
 } from "@/features/start-app/home/model";
 import {
   fullStart,
@@ -220,6 +221,52 @@ describe("the ways to the suggestions and the automations", () => {
     expect(
       sinceLastLine({ ...window, runs: 0, suggestions_created: 0 }, sv),
     ).toBeUndefined();
+  });
+});
+
+describe("the tasks ticked done here", () => {
+  it("leave the rows and their share of the counts, so the heading stays true", () => {
+    const shown = withoutDone(fullStart, new Set([homeIds.overdueOld]));
+    expect(shown.today?.items.map((row) => row.id)).toEqual([
+      homeIds.overdueRecent,
+      homeIds.dueToday,
+    ]);
+    expect(shown.today?.overdue_count).toBe(1);
+    expect(shown.today?.today_count).toBe(2);
+    expect(todayMore(shown.today!)).toBe(todayMore(fullStart.today!));
+  });
+
+  it("change nothing for ids the page does not hold, and never count below zero", () => {
+    expect(withoutDone(fullStart, new Set(["unknown"]))).toBe(fullStart);
+    expect(withoutDone(quietStart, new Set([homeIds.overdueOld]))).toBe(
+      quietStart,
+    );
+    const all = new Set(fullStart.today!.items.map((row) => row.id));
+    const shown = withoutDone(
+      {
+        ...fullStart,
+        today: { ...fullStart.today!, overdue_count: 1, today_count: 0 },
+      },
+      all,
+    );
+    expect(shown.today?.overdue_count).toBe(0);
+    expect(shown.today?.today_count).toBe(0);
+  });
+
+  it("make a day quiet when the last task of today is done", () => {
+    const one = {
+      day: fullStart.day,
+      today: {
+        ...fullStart.today!,
+        items: [fullStart.today!.items[0]!],
+        overdue_count: 1,
+        today_count: 0,
+      },
+    };
+    expect(isQuiet(one, none)).toBe(false);
+    expect(isQuiet(withoutDone(one, new Set([homeIds.overdueOld])), none)).toBe(
+      true,
+    );
   });
 });
 

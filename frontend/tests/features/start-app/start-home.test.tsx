@@ -15,12 +15,18 @@ import {
   partlyStart,
   quietStart,
   skipped,
+  afterTick,
+  taskReply,
 } from "../../e2e/start-home-fixtures";
 import { inboxPage } from "../../e2e/suggestions-fixtures";
 
 type Answers = Record<string, (args: Record<string, unknown>) => unknown>;
 
-function transportOf(answers: Answers, offered?: (name: string) => boolean) {
+function transportOf(
+  answers: Answers,
+  offered?: (name: string) => boolean,
+  offeredCall?: (name: string, args: object) => boolean,
+) {
   const call = vi.fn((name: string, args: object) =>
     Promise.resolve().then(() => {
       const answer = answers[name];
@@ -33,6 +39,7 @@ function transportOf(answers: Answers, offered?: (name: string) => boolean) {
     requestDisplayMode: vi.fn(() => Promise.resolve("fullscreen" as const)),
     updateModelContext: vi.fn(() => Promise.resolve()),
     ...(offered ? { supportsTool: offered } : {}),
+    ...(offeredCall ? { supportsCall: offeredCall } : {}),
   } as unknown as RoomTransport;
   return { transport, call };
 }
@@ -277,6 +284,169 @@ describe("the Start room's home view", () => {
     expect(
       screen.queryByRole("button", { name: "Hoppa över idag" }),
     ).toBeNull();
+  });
+
+  const ring = (title: string) =>
+    screen.getByRole("button", { name: `Markera ${title} som klar` });
+  const updates = (call: ReturnType<typeof transportOf>["call"]) =>
+    call.mock.calls
+      .filter(([name]) => name === "update_task")
+      .map(([, args]) => args as Record<string, unknown>);
+
+  it("ticks a task of today done once per press, and Ångra brings the row back", async () => {
+    let reads = 0;
+    const { transport, call } = transportOf({
+      get_start: () => {
+        reads += 1;
+        return reads === 2 ? afterTick : fullStart;
+      },
+      update_task: (args) =>
+        taskReply(
+          homeIds.overdueOld,
+          (args.changes as { status: "completed" | "todo" }).status,
+          3,
+        ),
+    });
+    render(
+      <StartRoom mode="full" transport={transport} onNavigate={vi.fn()} />,
+    );
+    await screen.findByRole("heading", { name: /^Idag\s*\(4\)$/ });
+    const tick = ring("Boka tid hos tandläkaren");
+    expect(tick.className).toContain("sk-row-lead");
+    fireEvent.click(tick);
+    fireEvent.click(tick);
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("button", { name: /^Markera Boka tid/ }),
+      ).toBeNull(),
+    );
+    expect(
+      screen.getByRole("heading", { name: /^Idag\s*\(3\)$/ }),
+    ).toBeTruthy();
+    expect(screen.getByText("Klar: Boka tid hos tandläkaren")).toBeTruthy();
+    expect(
+      screen.getByRole("button", { name: "Öppna Agenda · 1 till" }),
+    ).toBeTruthy();
+    expect(
+      screen.getByRole("heading", { level: 2, name: "Måndag 23 november" }),
+    ).toBe(document.activeElement);
+    const first = updates(call);
+    expect(first).toHaveLength(1);
+    expect(first[0]).toMatchObject({
+      task_id: homeIds.overdueOld,
+      version: 2,
+      changes: { status: "completed" },
+    });
+    expect(first[0]!.idempotency_key).toMatch(/^[0-9a-f-]{36}$/);
+
+    fireEvent.click(screen.getByRole("button", { name: "Ångra" }));
+    await waitFor(() => expect(updates(call)).toHaveLength(2));
+    const second = updates(call)[1]!;
+    // Ångra writes "todo" against the version the tick left, with a key of its own.
+    expect(second).toMatchObject({
+      task_id: homeIds.overdueOld,
+      version: 3,
+      changes: { status: "todo" },
+    });
+    expect(second.idempotency_key).not.toBe(first[0]!.idempotency_key);
+    expect(
+      await screen.findByRole("heading", { name: /^Idag\s*\(4\)$/ }),
+    ).toBeTruthy();
+    expect(ring("Boka tid hos tandläkaren")).toBeTruthy();
+    expect(
+      screen.getByText("Öppen igen: Boka tid hos tandläkaren"),
+    ).toBeTruthy();
+  });
+
+  it("says a tick that failed, keeps the row, and retries with the same key", async () => {
+    let tries = 0;
+    const { transport, call } = transportOf({
+      get_start: () => fullStart,
+      update_task: () => {
+        tries += 1;
+        if (tries === 1) throw new Error("down");
+        return taskReply(homeIds.overdueOld, "completed", 3);
+      },
+    });
+    render(<StartRoom mode="full" transport={transport} />);
+    await screen.findByRole("heading", { name: /^Idag\s*\(4\)$/ });
+    fireEvent.click(ring("Boka tid hos tandläkaren"));
+    expect(
+      await screen.findByText(
+        "Det gick inte att markera som klar. Försök igen.",
+      ),
+    ).toBeTruthy();
+    expect(
+      screen.getByRole("heading", { name: /^Idag\s*\(4\)$/ }),
+    ).toBeTruthy();
+    await waitFor(() =>
+      expect(
+        (ring("Boka tid hos tandläkaren") as HTMLButtonElement).disabled,
+      ).toBe(false),
+    );
+    fireEvent.click(ring("Boka tid hos tandläkaren"));
+    await waitFor(() => expect(updates(call)).toHaveLength(2));
+    const [first, second] = updates(call);
+    expect(second!.idempotency_key).toBe(first!.idempotency_key);
+  });
+
+  it("gives a recurring task's tick no Ångra: the server reopened it for its next date", async () => {
+    const { transport } = transportOf({
+      get_start: () => fullStart,
+      update_task: () => taskReply(homeIds.overdueOld, "todo", 3),
+    });
+    render(<StartRoom mode="full" transport={transport} />);
+    await screen.findByRole("heading", { name: /^Idag\s*\(4\)$/ });
+    fireEvent.click(ring("Boka tid hos tandläkaren"));
+    expect(
+      await screen.findByText("Klar: Boka tid hos tandläkaren"),
+    ).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Ångra" })).toBeNull();
+  });
+
+  it("offers no ring where the host cannot write the tick, and no Ångra where it cannot write it back", async () => {
+    const without = transportOf(
+      { get_start: () => fullStart },
+      (name) => name !== "update_task",
+    );
+    const first = render(
+      <StartRoom mode="full" transport={without.transport} />,
+    );
+    await screen.findByRole("heading", { name: /^Idag\s*\(4\)$/ });
+    expect(
+      screen.queryByRole("button", { name: /^Markera .* som klar$/ }),
+    ).toBeNull();
+    first.unmount();
+
+    // A host that answers update_task only with the completing change (the phone app).
+    const completing = transportOf(
+      {
+        get_start: () => fullStart,
+        update_task: () => taskReply(homeIds.overdueOld, "completed", 3),
+      },
+      undefined,
+      (_name, args) =>
+        (args as { changes?: { status?: string } }).changes?.status ===
+        "completed",
+    );
+    render(<StartRoom mode="full" transport={completing.transport} />);
+    await screen.findByRole("heading", { name: /^Idag\s*\(4\)$/ });
+    fireEvent.click(ring("Boka tid hos tandläkaren"));
+    expect(
+      await screen.findByText("Klar: Boka tid hos tandläkaren"),
+    ).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Ångra" })).toBeNull();
+  });
+
+  it("says Mark … as done in English", async () => {
+    setLocale("en");
+    const { transport } = transportOf({ get_start: () => fullStart });
+    render(<StartRoom mode="full" transport={transport} />);
+    expect(
+      await screen.findByRole("button", {
+        name: "Mark Boka tid hos tandläkaren as done",
+      }),
+    ).toBeTruthy();
   });
 
   it("shows a failed read with Försök igen, which reads again", async () => {

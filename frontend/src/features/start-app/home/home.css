@@ -62,7 +62,13 @@
   font-weight: var(--sk-weight-medium);
 }
 
-/* "Öppna Agenda · 1 till ›": the tertiary way on, on the rows' text edge; the count muted. */
+/* The ring of a task of today: its 48 px target hangs 12 px into the page margin, so the 24 px ring starts on the
+   margin, under the heading's own edge, as the Agenda's ring does; the text follows 12 px after it. */
+.sidekick-start .start-home-rows .sk-row-lead {
+  margin-left: calc(var(--sk-s3) * -1);
+}
+
+/* "Öppna Agenda · 1 till ›": the tertiary way on, on the margin's edge under the rings; the count muted. */
 .sidekick-start .start-home-open {
   justify-self: start;
   gap: var(--sk-s1);

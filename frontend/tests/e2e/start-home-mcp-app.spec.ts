@@ -17,7 +17,13 @@ import {
 } from "./mcp-host-fixture";
 import { automationReplies } from "./automations-fixtures";
 import { domainReplies, opening } from "./sidekick-domain-fixtures";
-import { homeIds, homeReplies, fullStart } from "./start-home-fixtures";
+import {
+  afterTick,
+  fullStart,
+  homeIds,
+  homeReplies,
+  taskReply,
+} from "./start-home-fixtures";
 import { suggestionReplies } from "./suggestions-fixtures";
 
 // The Start room's home view on the SIMULATED host (mcp-host-fixture.ts): every tool answer is a fixture, no backend,
@@ -224,6 +230,69 @@ test("a ready conversation is skipped for today, and Ångra brings it back", asy
   });
   expect(skips[0]?.arguments.idempotency_key).not.toBe(
     skips[1]?.arguments.idempotency_key,
+  );
+});
+
+test("a task of today is ticked done with its ring, and Ångra brings it back", async ({
+  page,
+}) => {
+  const { app } = await open(page, {
+    width: 390,
+    replies: {
+      get_start: {
+        __sequence: [
+          { structuredContent: fullStart },
+          { structuredContent: afterTick },
+          { structuredContent: fullStart },
+        ],
+      },
+      update_task: {
+        __sequence: [
+          { structuredContent: taskReply(homeIds.overdueOld, "completed", 3) },
+          { structuredContent: taskReply(homeIds.overdueOld, "todo", 4) },
+        ],
+      },
+    },
+  });
+  const view = home(app);
+  const ring = view.getByRole("button", {
+    name: "Markera Boka tid hos tandläkaren som klar",
+  });
+  // The ring is a 44 px target, and the row beside it still opens the task.
+  const size = await effectiveTargetSize(ring);
+  expect(size?.height ?? 0).toBeGreaterThanOrEqual(44);
+  expect(size?.width ?? 0).toBeGreaterThanOrEqual(44);
+  await shot(page, "complete-390-light-sv");
+  await ring.click();
+  await expect(
+    app
+      .getByRole("status")
+      .filter({ hasText: "Klar: Boka tid hos tandläkaren" }),
+  ).toBeVisible();
+  await expect(ring).toHaveCount(0);
+  await expect(
+    view.getByRole("heading", { level: 3, name: "Idag (3)" }),
+  ).toBeVisible();
+  await shot(page, "complete-receipt-390-light-sv");
+  await app.getByRole("button", { name: "Ångra" }).click();
+  await expect(
+    view.getByRole("heading", { level: 3, name: "Idag (4)" }),
+  ).toBeVisible();
+  await expect(ring).toBeVisible();
+  const writes = await calls(page, "update_task");
+  expect(writes).toHaveLength(2);
+  expect(writes[0]?.arguments).toMatchObject({
+    task_id: homeIds.overdueOld,
+    version: 2,
+    changes: { status: "completed" },
+  });
+  expect(writes[1]?.arguments).toMatchObject({
+    task_id: homeIds.overdueOld,
+    version: 3,
+    changes: { status: "todo" },
+  });
+  expect(writes[0]?.arguments.idempotency_key).not.toBe(
+    writes[1]?.arguments.idempotency_key,
   );
 });
 
