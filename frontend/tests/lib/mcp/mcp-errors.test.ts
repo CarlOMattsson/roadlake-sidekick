@@ -54,6 +54,17 @@ describe("MCP error helpers", () => {
     expect(writeFailure(undefined)).toBe("failed");
   });
 
+  it("reads a forbidden refusal for a call without the app's mark as a failure, not as no permission", () => {
+    expect(writeFailure({ code: "forbidden", reason: "app_only" })).toBe(
+      "failed",
+    );
+    // Any other forbidden refusal is still a permission refusal.
+    expect(writeFailure({ code: "forbidden", reason: "stale_version" })).toBe(
+      "forbidden",
+    );
+    expect(writeFailure({ code: "forbidden" })).toBe("forbidden");
+  });
+
   it("is the one copy every transport exports", () => {
     expect(work.writeFailure).toBe(writeFailure);
     expect(journal.writeFailure).toBe(writeFailure);

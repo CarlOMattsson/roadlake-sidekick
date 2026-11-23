@@ -26,7 +26,7 @@ reuse its Task-bound plan code.
   (`claude`, `claude_code`, `server`, `any`), a cadence, the allowed effects, the apply mode and the thresholds, a per-run budget and a
   `model_tier`.
 - The spec is bound to a SHA-256 digest. The owner approves it in the app (`approve_automation`, app-only,
-  `requiresUserInteraction`). A changed spec is not runnable until it is approved again; the read model shows
+  `ownerDecision`, not `requiresUserInteraction`, see ADR-011). A changed spec is not runnable until it is approved again; the read model shows
   `changed_since_approval`. A model can edit only a draft (`save_automation`), never approve it.
 - An automation is archived, never erased, so its run costs stay counted.
 - Automations are enabled per installation by default and are part of every licence tier. The default `apply_mode` is `suggest` per
@@ -98,7 +98,7 @@ payload validated again.
 
 1. **In the app**, one at a time (the owner may edit the payload first; the original is kept and the card shows "edited by you"), or as
    a group of at most 25 per call. The group is shown per automation and is bound to `group_digest`, a SHA-256 over the sorted
-   `(id, version)` pairs the owner saw. `approve_suggestion_group` is app-only and `requiresUserInteraction`, recomputes eligibility and the
+   `(id, version)` pairs the owner saw. `approve_suggestion_group` is app-only and `requiresApp` (not `requiresUserInteraction`, see ADR-011), recomputes eligibility and the
    digest, and refuses the whole call if either changed. A card is group-eligible only when it was checked, its verdict is `ok`, its
    confidence is at least the automation's bulk threshold (default 90), it has no flags, its effect is low-risk, it is not edited and the
    run is done.

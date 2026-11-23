@@ -33,6 +33,7 @@ Nothing in stage 1 depends on stage 2.
 - `approve_ai_plan` is app-only (`visibility=["app"]`), carries `anthropic/requiresUserInteraction`, needs
   `tasks:write` and takes the plan's current digest. Four independent gates, so a model that calls tools cannot
   commit its own plan.
+  Amendment 2026-11-23 (issue #53): the tool no longer carries `anthropic/requiresUserInteraction`; it carries `com.roadlake.sidekick/ownerDecision`. Claude Code asks before each flagged call and a host may apply that to the app's own click and refuse it. The gates are app-only visibility, the server's app-origin check (`app_only`) and the click.
 - The approval stores a SHA-256 digest over the canonical JSON of the task's title and description and every active
   step (id, title, performer, instruction, `ai_spec`, action titles). Every start recomputes the digest and refuses to
   run when it differs, so a plan changed after approval, by any client, is not run. No trigger or invalidation

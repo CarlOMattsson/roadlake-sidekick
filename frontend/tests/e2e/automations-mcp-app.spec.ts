@@ -18,7 +18,7 @@ import { inboxPage, suggestionReplies } from "./suggestions-fixtures";
 
 // The Start room's automations on the SIMULATED host (mcp-host-fixture.ts): every tool answer is a fixture, no backend,
 // no database, no network. This is not a run in a real Claude or Android host, and it does not show the host's own
-// confirmation of approve_automation (requiresUserInteraction). With AUTOMATION_SHOTS=<dir> each test also writes its
+// confirmation of approve_automation (the tool no longer carries requiresUserInteraction). With AUTOMATION_SHOTS=<dir> each test also writes its
 // screenshots there.
 
 type Open = {

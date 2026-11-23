@@ -20,6 +20,7 @@ from fastmcp.tools import ToolResult
 from pydantic import Field
 
 from sidekick.mcp.annotations import READ, WRITE
+from sidekick.mcp.change_source import OWNER_DECISION_META
 from sidekick.mcp.correlation import request_correlation_id_or_new
 from sidekick.mcp.idempotency import IdempotencyKey
 from sidekick.mcp.results import output_schema
@@ -195,8 +196,10 @@ def _register_approve_ai_plan(mcp: FastMCP, ctx: ToolContext) -> None:
         output_schema=output_schema(AiPlanOutput),
         annotations=WRITE,
         app=AppConfig(visibility=["app"]),
-        # Claude Code asks a person at every call, also in its permissive modes.
-        meta={"anthropic/requiresUserInteraction": True},
+        # The owner clicks this in the app. No `anthropic/requiresUserInteraction`: Claude Code
+        # would ask before a call the app makes too (see `OWNER_DECISION_META`). App-only
+        # visibility keeps it from the model and the server refuses a call without the app's mark.
+        meta={OWNER_DECISION_META: True},
     )
     @ctx.instrument("approve_ai_plan")
     def approve_ai_plan(
@@ -225,8 +228,9 @@ def _register_run_ai_plan(mcp: FastMCP, ctx: ToolContext) -> None:
         output_schema=output_schema(AiPlanOutput),
         annotations=WRITE,
         app=AppConfig(visibility=["app"]),
-        # Spending money is the owner's own decision: Claude Code asks a person at every call.
-        meta={"anthropic/requiresUserInteraction": True},
+        # Spending money is the owner's own decision, made by a click in the app (see
+        # `OWNER_DECISION_META` for why this is not `anthropic/requiresUserInteraction`).
+        meta={OWNER_DECISION_META: True},
     )
     @ctx.instrument("run_ai_plan")
     def run_ai_plan(task_id: UUID, digest: _Digest, idempotency_key: IdempotencyKey) -> ToolResult:

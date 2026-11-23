@@ -29,7 +29,7 @@ must not bring back a built-in chat runtime, a provider registry or an agent (D-
 
 ### The run row is the queue
 
-- "Run" (`run_ai_plan`) is app-only, carries `anthropic/requiresUserInteraction`, needs `tasks:write` and the plan's
+- "Run" (`run_ai_plan`) is app-only, carries `com.roadlake.sidekick/ownerDecision` (not `anthropic/requiresUserInteraction`, see ADR-011), needs `tasks:write` and the plan's
   current digest, and queues the one ready step as an `ai_step_runs` row with `runner = server` and `state = queued`.
 - The worker finds the oldest queued row without locking it, locks the run's Task, reads the run again and claims it
   only if it is still queued (the lock order every writer of a run keeps: Task, then run). It holds a lease and returns

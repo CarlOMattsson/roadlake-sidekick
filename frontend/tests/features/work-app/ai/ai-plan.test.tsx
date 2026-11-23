@@ -367,6 +367,22 @@ it("says nothing from the backend when the approval is forbidden", async () => {
   expect(await screen.findByText(a.approveForbidden)).toBeInTheDocument();
 });
 
+it("shows a general failure with Try again when the server refused a call without the app's mark", async () => {
+  const user = userEvent.setup();
+  const approveAiPlan = vi
+    .fn()
+    .mockRejectedValueOnce(new HostToolError("forbidden", "app_only"))
+    .mockResolvedValue({
+      plan: plan({ state: "approved", approved_at: new Date().toISOString() }),
+    });
+  render(rootTask(aiTransport({ approveAiPlan })));
+  await user.click(await screen.findByRole("button", { name: a.approve }));
+  expect(await screen.findByText(a.approveFailed)).toBeInTheDocument();
+  expect(screen.queryByText(a.approveForbidden)).toBeNull();
+  await user.click(screen.getByRole("button", { name: /try again/i }));
+  await waitFor(() => expect(approveAiPlan).toHaveBeenCalledTimes(2));
+});
+
 it("offers Try again when the plan cannot be read", async () => {
   const user = userEvent.setup();
   const getAiPlan = vi

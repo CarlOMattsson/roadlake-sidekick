@@ -31965,7 +31965,7 @@
   },
   {
     "_meta": {
-      "anthropic/requiresUserInteraction": true,
+      "com.roadlake.sidekick/ownerDecision": true,
       "ui": {
         "visibility": [
           "app"
@@ -32630,7 +32630,7 @@
   },
   {
     "_meta": {
-      "anthropic/requiresUserInteraction": true,
+      "com.roadlake.sidekick/ownerDecision": true,
       "ui": {
         "visibility": [
           "app"
@@ -36720,7 +36720,7 @@
   },
   {
     "_meta": {
-      "anthropic/requiresUserInteraction": true,
+      "com.roadlake.sidekick/ownerDecision": true,
       "ui": {
         "visibility": [
           "app"

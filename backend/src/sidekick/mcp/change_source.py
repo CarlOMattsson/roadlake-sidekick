@@ -31,8 +31,15 @@ APP_ORIGIN_META = "com.roadlake.sidekick/origin"
 """The `_meta` key the Sidekick app puts on its `tools/call`; its value is `"app"`."""
 
 
-REQUIRES_PERSON_META: Final = "anthropic/requiresUserInteraction"
-"""The tool meta that marks a decision only the owner makes, confirmed by a person at every call."""
+OWNER_DECISION_META: Final = "com.roadlake.sidekick/ownerDecision"
+"""The tool meta that marks a decision only the owner makes, by a click in the app (approve, run).
+
+It is not `anthropic/requiresUserInteraction`. That key makes Claude Code ask a person before each
+call that Claude makes, and a host may apply it to a call the app makes as well, so the owner's own
+click in the open app could be refused by the host. The gates here are the app-only visibility (the
+model never lists the tool), the server refusal of a call without the app's origin mark, and the
+click itself.
+"""
 
 
 REQUIRES_APP_META: Final = "com.roadlake.sidekick/requiresApp"
@@ -88,11 +95,9 @@ class ToolChangeSource(Middleware):
 
 
 def is_owner_decision(tool_meta: Mapping[str, object] | None) -> bool:
-    """Whether the tool is hidden from the model and always confirmed by a person (an approval)."""
+    """Whether the tool is hidden from the model and is the owner's decision (approve or run)."""
 
-    return (
-        source_of_tool(tool_meta) == "you" and (tool_meta or {}).get(REQUIRES_PERSON_META) is True
-    )
+    return source_of_tool(tool_meta) == "you" and (tool_meta or {}).get(OWNER_DECISION_META) is True
 
 
 def requires_app(tool_meta: Mapping[str, object] | None) -> bool:
@@ -103,7 +108,7 @@ def requires_app(tool_meta: Mapping[str, object] | None) -> bool:
     """
 
     return source_of_tool(tool_meta) == "you" and (
-        (tool_meta or {}).get(REQUIRES_PERSON_META) is True
+        (tool_meta or {}).get(OWNER_DECISION_META) is True
         or (tool_meta or {}).get(REQUIRES_APP_META) is True
     )
 
@@ -144,6 +149,9 @@ class OwnerDecisionsFromTheApp(Middleware):
                     ),
                     "mcp_tool_name": context.message.name,
                     "mcp_error_class": type(error).__name__,
+                    # Tells this refusal from a scope refusal: a host that does not forward the
+                    # app's origin mark would show up here.
+                    "mcp_error_code": "app_only",
                 }
             ),
         )

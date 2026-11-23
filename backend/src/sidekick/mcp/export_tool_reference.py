@@ -25,7 +25,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, cast
 
-from sidekick.mcp.change_source import REQUIRES_PERSON_META
+from sidekick.mcp.change_source import OWNER_DECISION_META
 from sidekick.mcp.tool_scopes import TOOL_SCOPES, describe
 
 # A JSON object read from the contract file: a tool, or a (nested) JSON Schema. The keys and the
@@ -489,7 +489,7 @@ def _is_app_only(tool: JsonObject) -> bool:
 
 
 def _is_owner_decision(tool: JsonObject) -> bool:
-    return _object(tool.get("_meta")).get(REQUIRES_PERSON_META) is True
+    return _object(tool.get("_meta")).get(OWNER_DECISION_META) is True
 
 
 def _tool_section(tool: JsonObject, level: str) -> list[str]:

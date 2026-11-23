@@ -5,6 +5,7 @@ carries the app's origin mark, which the model cannot set, and the refusal chang
 audits nothing as the owner's.
 """
 
+import logging
 from typing import Any
 from uuid import uuid4
 
@@ -129,3 +130,18 @@ async def test_a_model_call_to_approve_an_automation_is_refused_and_an_app_call_
 
     approvals = [source for event, source in _audit(container) if event == "automation.approved"]
     assert approvals == ["you"]
+
+
+@pytest.mark.asyncio
+@pytest.mark.integration
+async def test_the_refusal_is_logged_with_its_own_code_so_it_tells_from_a_scope_refusal(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    _, _, client = _setup()
+    caplog.set_level(logging.INFO, logger="sidekick.mcp.tool")
+    async with client:
+        draft = (await _ok(client, "save_automation", {"changes": AUTOMATION}))["automation"]
+        arguments = {"automation_id": draft["id"], "spec_digest": draft["spec_digest"]}
+        await _refused(client, "approve_automation", arguments)
+    refused = [r for r in caplog.records if getattr(r, "mcp_error_code", None) == "app_only"]
+    assert [getattr(r, "mcp_tool_name", None) for r in refused] == ["approve_automation"]

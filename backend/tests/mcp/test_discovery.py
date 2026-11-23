@@ -7,6 +7,7 @@ from fastmcp import Client
 from mcp.types import GetPromptResult, TextContent, ToolAnnotations
 
 from sidekick.api.app import create_container
+from sidekick.mcp.change_source import OWNER_DECISION_META
 from sidekick.mcp.review import REVIEW_GUIDE
 from sidekick.mcp.server import create_mcp_server
 from sidekick.mcp.sidekick_app import SIDEKICK_APP_URI
@@ -425,7 +426,8 @@ async def test_automation_reads_open_the_sidekick_app_and_the_approval_stays_app
     approve = tools["approve_automation"].meta
     assert approve["ui"]["visibility"] == ["app"]
     assert "resourceUri" not in approve["ui"]
-    assert approve["anthropic/requiresUserInteraction"] is True
+    assert approve[OWNER_DECISION_META] is True
+    assert "anthropic/requiresUserInteraction" not in approve
 
 
 @pytest.mark.asyncio
@@ -444,14 +446,17 @@ async def test_app_only_tools_are_pinned_and_no_other_tool_is_app_only() -> None
 
 
 @pytest.mark.asyncio
-async def test_approvals_and_server_run_are_app_only_and_always_ask_a_person() -> None:
+async def test_approvals_and_server_run_are_app_only_owner_decisions_no_host_gates() -> None:
     server = create_mcp_server(create_container(make_settings()), enable_auth=False)
     tools = {tool.name: tool for tool in await server.list_tools()}
     pinned_tools = ("approve_ai_plan", "run_ai_plan", "approve_automation")
     for pinned in pinned_tools:
         meta = tools[pinned].meta or {}
         assert meta["ui"]["visibility"] == ["app"]
-        assert meta["anthropic/requiresUserInteraction"] is True
+        assert meta[OWNER_DECISION_META] is True
     for name, tool in tools.items():
         if name not in pinned_tools:
-            assert "anthropic/requiresUserInteraction" not in (tool.meta or {}), name
+            assert OWNER_DECISION_META not in (tool.meta or {}), name
+        # A host may refuse a flagged call that the app makes, so no tool carries the key: the gates
+        # are app-only visibility, the server's app-origin check and the click.
+        assert "anthropic/requiresUserInteraction" not in (tool.meta or {}), name

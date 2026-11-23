@@ -60,6 +60,10 @@ export function isConflict(error: unknown): boolean {
  * means no permission, `invalid` means the values were refused and `not_found` means the record
  * no longer exists (for example it was removed in another chat). None of these is retried;
  * anything else is `failed`, a transient failure that may be retried.
+ *
+ * `forbidden` is a real permission refusal (a scope the token lacks). The refusal with the reason
+ * `app_only` is not one: the server refused a call that did not carry the app's origin mark, which
+ * says nothing about what the owner may do, so it reads as `failed` and never as "no permission".
  */
 export type WriteFailure =
   "conflict" | "forbidden" | "invalid" | "not_found" | "failed";
@@ -69,7 +73,7 @@ export function writeFailure(error: unknown): WriteFailure {
     case "conflict":
       return "conflict";
     case "forbidden":
-      return "forbidden";
+      return errorReason(error) === "app_only" ? "failed" : "forbidden";
     // validation_error, bad_request, method_not_allowed: the server refused this request for good
     // (companion envelope included); sending the same request again cannot help.
     case "validation_error":
