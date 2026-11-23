@@ -32,6 +32,7 @@ from uuid import UUID
 
 from sidekick.automations.application.check_release import CHECKED, close_checked_run
 from sidekick.automations.application.runs import AutomationRunLimits
+from sidekick.automations.application.suggestions import AutoApplyOutcome
 from sidekick.automations.domain.automation import Automation, SuggestionCheck
 from sidekick.automations.domain.checking import (
     CheckAnswer,
@@ -50,7 +51,7 @@ from sidekick.automations.domain.runs import (
     usage_for_check,
 )
 from sidekick.automations.domain.suggestion import Suggestion, SuggestionState
-from sidekick.shared.observability import TelemetryPort, safe_log_fields
+from sidekick.shared.observability import TelemetryPort, log_failure, safe_log_fields
 from sidekick.shared.owner_day import month_start
 from sidekick.shared.types import AuditingStore, Clock, TransactionalStore, TxSession, new_uuid7
 from sidekick.work.domain.ai_model_port import (
@@ -79,6 +80,19 @@ class CheckerPort(Protocol):
     def reserve_microusd(self, context: CheckContext, items: Sequence[CheckItem]) -> int: ...
 
     def check(self, context: CheckContext, items: Sequence[CheckItem]) -> CheckerCall: ...
+
+
+class AutoApplier(Protocol):
+    """The opt-in policy that applies what the check cleared (`SuggestionService`)."""
+
+    def auto_apply_run(
+        self,
+        owner_id: UUID,
+        run_id: UUID,
+        *,
+        checker_configured: bool,
+        correlation_id: str | None = None,
+    ) -> AutoApplyOutcome: ...
 
 
 class CheckStore(TransactionalStore, AuditingStore, Protocol):
@@ -158,6 +172,7 @@ class AutomationCheckService:
         telemetry: TelemetryPort,
         sleep: Callable[[float], None] = time.sleep,
         stopping: Callable[[], bool] = lambda: False,
+        auto_applier: AutoApplier | None = None,
     ) -> None:
         self.store = store
         self.clock = clock
@@ -167,6 +182,7 @@ class AutomationCheckService:
         self.telemetry = telemetry
         self.sleep = sleep
         self.stopping = stopping
+        self.auto_applier = auto_applier
         self.credentials_rejected = False
         """Set once the provider refused the key: no run is taken until a restart."""
         self.progress: Callable[[], None] = lambda: None
@@ -243,7 +259,8 @@ class AutomationCheckService:
                 break
             if outcome is _Reservation.LOST:
                 return
-        self.store.transaction(lambda session: self._finish(session, claim, worker_id))
+        if self.store.transaction(lambda session: self._finish(session, claim, worker_id)):
+            self._auto_apply(claim.run)
 
     def _check_batch(
         self, claim: _Claim, batch: Sequence[CheckItem], worker_id: str
@@ -416,18 +433,19 @@ class AutomationCheckService:
             "sidekick.automations.checks", {"kind": self.checker.kind, "outcome": verdict}
         )
 
-    def _finish(self, session: TxSession, claim: _Claim, worker_id: str) -> None:
-        """Every card has its check: the run is done and the group is turned on."""
+    def _finish(self, session: TxSession, claim: _Claim, worker_id: str) -> bool:
+        """Every card has its check: the run is done and the group is turned on. False when the
+        run was not closed here."""
 
         owner_id = claim.run.owner_id
         now = self.clock.now()
         run = self.store.get_run(session, owner_id, claim.run.id, lock=True)
         if run.state is not RunState.CHECKING or run.worker_id != worker_id:
-            return  # another worker took the run over
+            return False  # another worker took the run over
         if self.store.list_suggestions(
             session, owner_id, run_id=run.id, states=[SuggestionState.CHECKING]
         ):
-            return  # a card is still waiting: the lease runs out and the run is taken again
+            return False  # a card is still waiting: the lease runs out and the run is taken again
         close_checked_run(
             self.store,
             session,
@@ -437,6 +455,31 @@ class AutomationCheckService:
             event=CHECKED,
             outcome="done",
         )
+        return True
+
+    def _auto_apply(self, run: AutomationRun) -> None:
+        """Let the owner's opt-in policy apply what the check cleared. A step of its own, after the
+        run is closed: a failure here leaves the cards pending, for the owner to decide."""
+
+        if self.auto_applier is None:
+            return
+        try:
+            outcome = self.auto_applier.auto_apply_run(
+                run.owner_id,
+                run.id,
+                checker_configured=self.limits.checker_enabled,
+                correlation_id=str(new_uuid7()),
+            )
+        except Exception as error:
+            log_failure(LOGGER, "automation_auto_apply_failed", error)
+            return
+        if outcome.applied:
+            LOGGER.info(
+                "automation_auto_applied",
+                extra=safe_log_fields(
+                    {"automation_run_id": str(run.id), "outcome": "auto_applied"}
+                ),
+            )
 
     # --- shared -------------------------------------------------------------------------------
 

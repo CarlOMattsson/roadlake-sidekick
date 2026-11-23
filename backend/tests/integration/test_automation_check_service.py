@@ -7,8 +7,11 @@ reserved before a call and never exceeded, one worker holds a run, text stays ou
 audit trail) hold whatever a model does.
 """
 
+import contextlib
 import logging
+import threading
 from collections.abc import Callable, Sequence
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field, replace
 from datetime import UTC, datetime, timedelta
 from typing import Any
@@ -19,8 +22,9 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from sidekick.api.app import create_container
 from sidekick.automations.application.check_releaser import CheckReleaseService
-from sidekick.automations.application.checking import AutomationCheckService
+from sidekick.automations.application.checking import AutoApplier, AutomationCheckService
 from sidekick.automations.application.runs import AutomationRunLimits
+from sidekick.automations.application.suggestions import AutoApplyOutcome, SuggestionService
 from sidekick.automations.check_store import SqlCheckStore
 from sidekick.automations.domain.automation import Automation
 from sidekick.automations.domain.checking import (
@@ -31,6 +35,7 @@ from sidekick.automations.domain.checking import (
     ReasonCode,
 )
 from sidekick.automations.domain.datapoints import Datapoint, DatapointKind, SourceKind
+from sidekick.automations.domain.grouping import AutoApplyRefusal
 from sidekick.automations.domain.runs import (
     DEFAULT_CHECK_LEASE,
     DEFAULT_CHECK_RELEASE_AFTER,
@@ -41,16 +46,26 @@ from sidekick.automations.domain.runs import (
     RunState,
 )
 from sidekick.automations.domain.screening import ScreeningFlag
-from sidekick.automations.domain.spec import AutomationState, parse_spec, spec_digest
+from sidekick.automations.domain.spec import (
+    ApplyMode,
+    AutomationState,
+    auto_confirmed_digest,
+    parse_spec,
+    spec_digest,
+)
 from sidekick.automations.domain.suggestion import (
     CheckState,
+    DecidedBy,
+    DecisionChannel,
     Suggestion,
     SuggestionState,
     Verdict,
 )
 from sidekick.automations.persistence import AutomationStore
+from sidekick.composition import create_auto_apply_service
+from sidekick.shared.errors import NotFoundError
 from sidekick.shared.observability import NoopTelemetryAdapter
-from sidekick.shared.types import new_uuid7
+from sidekick.shared.types import Actor, new_uuid7
 from sidekick.work.domain.ai_model_port import (
     ModelError,
     ModelRejected,
@@ -136,7 +151,9 @@ class World:
     clock: Clock
     sleeps: list[float] = field(default_factory=list[float])
 
-    def service(self, checker: FakeChecker, **limits: Any) -> AutomationCheckService:
+    def service(
+        self, checker: FakeChecker, *, auto_applier: AutoApplier | None = None, **limits: Any
+    ) -> AutomationCheckService:
         values: dict[str, Any] = {
             "runs_per_day": 20,
             "automation_monthly_cap_microusd": 15_000_000,
@@ -152,6 +169,7 @@ class World:
             owner_timezone=UTC,
             telemetry=NoopTelemetryAdapter(),
             sleep=self.sleeps.append,
+            auto_applier=auto_applier,
         )
 
     def releaser(self, **limits: Any) -> CheckReleaseService:
@@ -172,10 +190,11 @@ class World:
         *,
         owner_id: UUID | None = None,
         flags: dict[str, tuple[ScreeningFlag, ...]] | None = None,
+        spec: dict[str, Any] | None = None,
         **run_changes: Any,
     ) -> Seeded:
         owner_id = owner_id or self.owner
-        automation = _automation(owner_id)
+        automation = _automation(owner_id, **(spec or {}))
         run = _checking_run(automation, **run_changes)
         point = Datapoint(
             id=new_uuid7(),
@@ -265,7 +284,11 @@ def _automation(owner_id: UUID, **spec_changes: Any) -> Automation:
         spec=spec,
         state=AutomationState.ACTIVE,
         spec_digest=spec_digest(spec),
-        approved_digest=spec_digest(spec),
+        approved_digest=(
+            auto_confirmed_digest(spec_digest(spec))
+            if spec.apply_mode is ApplyMode.AUTO_LOW_RISK
+            else spec_digest(spec)
+        ),
         approved_at=NOW,
         last_run_at=None,
         version=3,
@@ -836,3 +859,256 @@ def test_releasing_a_run_books_a_reservation_that_never_reported_back_and_keeps_
         "checked",
         "failed",
     ]
+
+
+# The opt-in policy after the check
+
+AUTO = {"apply_mode": "auto_low_risk", "auto_effects": ["create_task"]}
+
+
+def _auto_applier(world: World) -> SuggestionService:
+    return create_auto_apply_service(make_settings(), world.factory, NoopTelemetryAdapter())
+
+
+def _tasks_of(owner: UUID) -> list[str]:
+    rows = admin_rows(
+        "SELECT title FROM sidekick.tasks WHERE owner_id = :owner ORDER BY title", owner=owner
+    )
+    return [str(row[0]) for row in rows]
+
+
+@pytest.mark.integration
+def test_a_run_whose_automation_opted_in_has_what_the_check_cleared_applied_by_the_policy(
+    world: World,
+) -> None:
+    seeded = world.seed(["Call the dentist", "unsure about this", "bad instruction"], spec=AUTO)
+
+    world.service(FakeChecker(), auto_applier=_auto_applier(world)).run_next(WORKER)
+
+    cards = world.by_title(seeded)
+    done = cards["Call the dentist"]
+    assert done.state is SuggestionState.APPLIED
+    assert (done.decided_by, done.decision_channel) == (DecidedBy.POLICY, DecisionChannel.POLICY)
+    assert done.applied_kind == "task"
+    assert cards["unsure about this"].state is SuggestionState.PENDING
+    assert cards["bad instruction"].state is SuggestionState.PENDING
+    assert _tasks_of(world.owner) == ["Call the dentist"]
+    assert world.run_of(seeded).auto_applied_count == 1
+    audit = admin_rows(
+        "SELECT event, source FROM sidekick.audit_events WHERE target_id = :id", id=done.id
+    )
+    assert audit == [("suggestion.auto_applied", None)]
+
+
+@pytest.mark.integration
+def test_an_automation_that_did_not_opt_in_applies_nothing(world: World) -> None:
+    seeded = world.seed(["Call the dentist"])
+
+    world.service(FakeChecker(), auto_applier=_auto_applier(world)).run_next(WORKER)
+
+    (card,) = world.cards_of(seeded)
+    assert card.state is SuggestionState.PENDING
+    assert card.bulk_eligible is True
+    assert _tasks_of(world.owner) == []
+    assert world.run_of(seeded).auto_applied_count == 0
+
+
+@pytest.mark.integration
+def test_with_no_checker_configured_nothing_is_applied_even_for_an_opted_in_automation(
+    world: World,
+) -> None:
+    seeded = world.seed(["Call the dentist"], spec=AUTO)
+
+    world.service(FakeChecker(), auto_applier=_auto_applier(world), checker_enabled=False).run_next(
+        WORKER
+    )
+
+    (card,) = world.cards_of(seeded)
+    assert card.state is SuggestionState.PENDING
+    assert _tasks_of(world.owner) == []
+
+
+@pytest.mark.integration
+def test_a_run_released_as_not_checked_is_never_applied_by_the_policy(world: World) -> None:
+    seeded = world.seed(["Call the dentist"], spec=AUTO)
+    world.releaser().run_next(WORKER)
+
+    outcome = _auto_applier(world).auto_apply_run(
+        world.owner, seeded.run.id, checker_configured=True
+    )
+
+    (card,) = world.cards_of(seeded)
+    assert (card.state, card.check_state) == (SuggestionState.PENDING, CheckState.FAILED)
+    assert outcome == AutoApplyOutcome()
+    assert _tasks_of(world.owner) == []
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize(
+    "change", [{"approved_digest": "0" * 64}, {"state": AutomationState.PAUSED}]
+)
+def test_a_paused_automation_or_one_changed_since_its_approval_applies_nothing(
+    world: World, change: dict[str, Any]
+) -> None:
+    seeded = world.seed(["Call the dentist"], spec=AUTO)
+    world.service(FakeChecker()).run_next(WORKER)
+    changed = replace(seeded.automation, **change)
+    world.store.transaction(lambda session: AutomationStore.save_automation(session, changed))
+
+    outcome = _auto_applier(world).auto_apply_run(
+        world.owner, seeded.run.id, checker_configured=True
+    )
+
+    assert outcome.applied == ()
+    assert sum(outcome.refused.values()) == 1
+    assert _tasks_of(world.owner) == []
+
+
+@pytest.mark.integration
+def test_a_run_never_applies_more_than_the_cap_and_the_rest_stay_pending(
+    world: World, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr("sidekick.automations.domain.grouping.MAX_AUTO_PER_RUN", 2)
+    seeded = world.seed(["One", "Two", "Three", "Four"], spec=AUTO)
+
+    world.service(FakeChecker(), auto_applier=_auto_applier(world)).run_next(WORKER)
+
+    states = [card.state for card in world.cards_of(seeded)]
+    assert states.count(SuggestionState.APPLIED) == 2
+    assert states.count(SuggestionState.PENDING) == 2
+    assert len(_tasks_of(world.owner)) == 2
+    assert world.run_of(seeded).auto_applied_count == 2
+
+
+@pytest.mark.integration
+def test_the_cap_for_a_day_counts_across_runs_and_an_undone_one_does_not_make_room(
+    world: World, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr("sidekick.automations.domain.grouping.MAX_AUTO_PER_DAY", 2)
+    first = world.seed(["One", "Two"], spec=AUTO)
+    applier = _auto_applier(world)
+    world.service(FakeChecker(), auto_applier=applier).run_next(WORKER)
+    applied = world.cards_of(first)
+    assert [card.state for card in applied] == [SuggestionState.APPLIED] * 2
+    owner = Actor(world.owner, frozenset({"automation:write", "tasks:write"}))
+    applier.undo(
+        owner, applied[0].id, expected_version=applied[0].version, idempotency_key="undo-1"
+    )
+    second = world.seed(["Three"], spec=AUTO)
+
+    world.service(FakeChecker(), auto_applier=_auto_applier(world)).run_next(WORKER)
+
+    (late,) = world.cards_of(second)
+    assert late.state is SuggestionState.PENDING
+    assert late.apply_error is None
+    assert len(_tasks_of(world.owner)) == 2  # the undone one is in the trash, not deleted
+
+
+@pytest.mark.integration
+def test_a_failing_policy_leaves_the_run_done_and_the_cards_pending_and_logs_no_text(
+    world: World, caplog: pytest.LogCaptureFixture
+) -> None:
+    class Broken:
+        def auto_apply_run(
+            self,
+            owner_id: UUID,
+            run_id: UUID,
+            *,
+            checker_configured: bool,
+            correlation_id: str | None = None,
+        ) -> AutoApplyOutcome:
+            raise RuntimeError(f"boom {CANARY}")
+
+    seeded = world.seed(["Call the dentist"], spec=AUTO)
+
+    with caplog.at_level(logging.DEBUG):
+        world.service(FakeChecker(), auto_applier=Broken()).run_next(WORKER)
+
+    assert world.run_of(seeded).state is RunState.DONE
+    (card,) = world.cards_of(seeded)
+    assert card.state is SuggestionState.PENDING
+    logged = "\n".join(f"{record.getMessage()} {record.__dict__}" for record in caplog.records)
+    assert CANARY not in logged
+    assert "automation_auto_apply_failed" in logged
+
+
+@pytest.mark.integration
+def test_applying_twice_creates_each_record_once(world: World) -> None:
+    seeded = world.seed(["Call the dentist"], spec=AUTO)
+    world.service(FakeChecker()).run_next(WORKER)
+    applier = _auto_applier(world)
+
+    first = applier.auto_apply_run(world.owner, seeded.run.id, checker_configured=True)
+    second = applier.auto_apply_run(world.owner, seeded.run.id, checker_configured=True)
+
+    assert len(first.applied) == 1
+    assert second.applied == ()
+    assert _tasks_of(world.owner) == ["Call the dentist"]
+    assert world.run_of(seeded).auto_applied_count == 1
+
+
+@pytest.mark.integration
+def test_the_policy_reaches_only_the_owner_of_the_run(world: World) -> None:
+    seeded = world.seed(["Call the dentist"], spec=AUTO)
+    world.service(FakeChecker()).run_next(WORKER)
+
+    with pytest.raises(NotFoundError):
+        _auto_applier(world).auto_apply_run(world.other, seeded.run.id, checker_configured=True)
+
+    assert _tasks_of(world.owner) == []
+    assert _tasks_of(world.other) == []
+
+
+@pytest.mark.integration
+def test_a_spec_approved_without_the_confirmation_is_never_applied_automatically(
+    world: World,
+) -> None:
+    seeded = world.seed(["Call the dentist"], spec=AUTO)
+    world.service(FakeChecker()).run_next(WORKER)
+    plain = replace(seeded.automation, approved_digest=seeded.automation.spec_digest)
+    world.store.transaction(lambda session: AutomationStore.save_automation(session, plain))
+
+    outcome = _auto_applier(world).auto_apply_run(
+        world.owner, seeded.run.id, checker_configured=True
+    )
+
+    assert outcome.applied == ()
+    assert outcome.refused == {AutoApplyRefusal.AUTO_NOT_CONFIRMED: 1}
+    assert _tasks_of(world.owner) == []
+
+
+class _MeetAtTheCreate:
+    """Holds the first create until another run reaches its own, or a short time passes, so that
+    two runs of one owner are inside their transactions together when the lock lets them be."""
+
+    def __init__(self, inner: Any) -> None:
+        self.inner = inner
+        self.barrier = threading.Barrier(2, timeout=2)
+
+    def create(self, *args: Any) -> Any:
+        with contextlib.suppress(threading.BrokenBarrierError):
+            self.barrier.wait()
+        return self.inner.create(*args)
+
+
+@pytest.mark.integration
+def test_the_daily_cap_holds_when_two_runs_of_one_owner_apply_at_the_same_time(
+    world: World, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr("sidekick.automations.domain.grouping.MAX_AUTO_PER_DAY", 1)
+    first = world.seed(["One"], spec=AUTO)
+    second = world.seed(["Two"], spec=AUTO)
+    world.service(FakeChecker()).run_next(WORKER)
+    world.service(FakeChecker()).run_next(WORKER)
+    applier = _auto_applier(world)
+    applier.applier = _MeetAtTheCreate(applier.applier)  # type: ignore[assignment]
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        futures = [
+            pool.submit(applier.auto_apply_run, world.owner, seeded.run.id, checker_configured=True)
+            for seeded in (first, second)
+        ]
+        outcomes = [future.result() for future in futures]
+
+    assert sum(len(outcome.applied) for outcome in outcomes) == 1
+    assert len(_tasks_of(world.owner)) == 1

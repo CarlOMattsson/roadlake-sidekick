@@ -280,3 +280,23 @@ def test_a_cadence_past_its_end_is_not_due() -> None:
 
 def test_the_clock_of_the_test_is_utc() -> None:
     assert NOW.tzinfo is UTC
+
+
+def test_a_done_run_counts_what_the_policy_applied() -> None:
+    done = run(state=RunState.DONE)
+
+    counted = done.with_auto_applied(2, now=NOW).with_auto_applied(1, now=NOW)
+
+    assert counted.auto_applied_count == 3
+    assert counted.version == done.version + 2
+
+
+@pytest.mark.parametrize("state", [RunState.RUNNING, RunState.CHECKING, RunState.FAILED])
+def test_a_run_that_is_not_done_takes_no_automatic_applies(state: RunState) -> None:
+    with pytest.raises(ConflictError):
+        run(state=state).with_auto_applied(1, now=NOW)
+
+
+def test_the_count_of_automatic_applies_cannot_be_negative() -> None:
+    with pytest.raises(ValidationError):
+        run(state=RunState.DONE).with_auto_applied(-1, now=NOW)

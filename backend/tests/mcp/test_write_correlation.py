@@ -78,6 +78,7 @@ REPLAYED: tuple[str, ...] = (
     "review_ai_step_result",
     "run_ai_plan",
     "cancel_ai_step_run",
+    "mark_automation_report_seen",
 )
 
 #: Write tools the scenario does not exercise yet. Only shrinks; remove a name when it is covered.
@@ -974,6 +975,14 @@ async def _run_scenario(monkeypatch: pytest.MonkeyPatch) -> Scenario:
                 "suggestion_id": first["id"],
                 "expected_version": decided["items"][0]["version"],
                 "idempotency_key": key + "sugundo",
+            },
+        )
+        await call(
+            "mark_automation_report_seen",
+            {
+                "seen_until": "2026-01-01T00:00:00Z",
+                "expected_version": 0,
+                "idempotency_key": key + "autoseen",
             },
         )
         await call(

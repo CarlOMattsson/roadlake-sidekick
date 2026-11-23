@@ -15,7 +15,12 @@ from tests.support.settings import make_settings
 
 # Read-only tools that are not named list_/get_: one closing confirmation card for Work changes,
 # search by words, and recall over the memory provider.
-READ_TOOLS_WITHOUT_READ_PREFIX = {"show_work_changes", "search", "recall_memory"}
+READ_TOOLS_WITHOUT_READ_PREFIX = {
+    "show_work_changes",
+    "search",
+    "recall_memory",
+    "export_automation_report_html",
+}
 
 EXPECTED_TOOLS = {
     "set_ai_plan",
@@ -35,6 +40,9 @@ EXPECTED_TOOLS = {
     "approve_automation",
     "start_automation_run",
     "record_automation_results",
+    "get_automation_report",
+    "mark_automation_report_seen",
+    "export_automation_report_html",
     "list_suggestions",
     "get_suggestion",
     "decide_suggestions",
@@ -153,6 +161,8 @@ EXPECTED_TOOLS = {
 APP_ONLY_TOOLS = {
     "approve_ai_plan",
     "approve_automation",
+    "mark_automation_report_seen",
+    "export_automation_report_html",
     "approve_suggestion_group",
     "run_ai_plan",
     "get_ai_usage",
@@ -386,7 +396,7 @@ async def test_journal_app_tools_open_the_sidekick_app() -> None:
 async def test_app_only_tools_are_pinned_and_no_other_tool_is_app_only() -> None:
     server = create_mcp_server(create_container(make_settings()), enable_auth=False)
     tools = {tool.name: tool for tool in await server.list_tools()}
-    assert len(APP_ONLY_TOOLS) == 35
+    assert len(APP_ONLY_TOOLS) == 37
     assert set(EXPECTED_TOOLS) >= APP_ONLY_TOOLS
     assert app_only_tool_names() == APP_ONLY_TOOLS
     for name in APP_ONLY_TOOLS:

@@ -77,7 +77,8 @@ SAVE_DESCRIPTION = (
 APPROVE_DESCRIPTION = (
     "App-only. The owner approves the automation whose spec has this digest. The approval holds "
     "only for exactly that spec, model tier included: a spec changed afterwards is not run until "
-    "approved again. Needs the write scope of every effect the automation may propose."
+    "approved again. Needs the write scope of every effect the automation may propose. A spec "
+    "that applies suggestions without a click needs auto_apply_confirmed."
 )
 
 
@@ -259,13 +260,19 @@ def _register_approve_automation(mcp: FastMCP, ctx: ToolContext) -> None:
     )
     @ctx.instrument("approve_automation")
     def approve_automation(
-        automation_id: UUID, spec_digest: _Digest, idempotency_key: IdempotencyKey
+        automation_id: UUID,
+        spec_digest: _Digest,
+        idempotency_key: IdempotencyKey,
+        auto_apply_confirmed: Annotated[
+            bool, Field(description="The owner confirmed that suggestions apply without a click.")
+        ] = False,
     ) -> ToolResult:
         view = ctx.container.automation_registry.approve(
             ctx.actor_provider(),
             automation_id,
             spec_digest=spec_digest,
             idempotency_key=idempotency_key,
+            auto_apply_confirmed=auto_apply_confirmed,
             correlation_id=request_correlation_id_or_new(),
         )
         output = AutomationOutput(automation=automation_record(view))

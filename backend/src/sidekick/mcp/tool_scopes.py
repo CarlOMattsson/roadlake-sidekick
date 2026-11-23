@@ -115,6 +115,12 @@ _OWN_SCOPES: Final[Mapping[str, ToolScopes]] = {
     "approve_automation": ToolScopes(
         ("automation:write",), optional=("contacts:write", "tasks:write")
     ),
+    # The report: counts, ids and closed codes of the owner's automations. Marking it as seen moves
+    # one cursor and shows nothing.
+    **_tools(
+        ToolScopes(("automation:read",)), "get_automation_report", "export_automation_report_html"
+    ),
+    "mark_automation_report_seen": ToolScopes(("automation:write",)),
     # The runner tools need `automation:run` and nothing else, so a routine's token reaches no
     # other part of Sidekick.
     **_tools(ToolScopes(("automation:run",)), "start_automation_run", "record_automation_results"),

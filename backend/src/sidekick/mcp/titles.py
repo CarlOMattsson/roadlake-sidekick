@@ -144,6 +144,15 @@ TOOL_TITLES: dict[str, LocalizedText] = {
     "get_automation": {"sv": "Visa automation", "en": "View automation"},
     "save_automation": {"sv": "Spara automation", "en": "Save automation"},
     "approve_automation": {"sv": "Godkänn automation", "en": "Approve automation"},
+    "get_automation_report": {"sv": "Visa automationsrapport", "en": "View automation report"},
+    "mark_automation_report_seen": {
+        "sv": "Markera automationsrapport som sedd",
+        "en": "Mark automation report as seen",
+    },
+    "export_automation_report_html": {
+        "sv": "Exportera automationsrapport",
+        "en": "Export automation report",
+    },
     "start_automation_run": {"sv": "Starta automationskörning", "en": "Start automation run"},
     "record_automation_results": {
         "sv": "Spara automationens resultat",

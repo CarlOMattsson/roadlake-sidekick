@@ -260,12 +260,30 @@ def spec_digest(spec: AutomationSpecV1) -> str:
     return hashlib.sha256(encoded.encode("utf-8")).hexdigest()
 
 
+AUTO_CONFIRMED_VERSION = 1
+
+
+def auto_confirmed_digest(current_digest: str) -> str:
+    """The digest stored when the owner approved a spec that applies without a click and
+    confirmed that in the same call. It covers the spec's digest and the marker, so an approval
+    made without the confirmation (or before there was one) never equals it."""
+
+    marker = f"auto_apply_confirmed:v{AUTO_CONFIRMED_VERSION}:{current_digest}"
+    return hashlib.sha256(marker.encode("utf-8")).hexdigest()
+
+
 def approval_state(current_digest: str, approved_digest: str | None) -> ApprovalState:
     if approved_digest is None:
         return ApprovalState.NOT_APPROVED
-    if approved_digest == current_digest:
+    if approved_digest in (current_digest, auto_confirmed_digest(current_digest)):
         return ApprovalState.APPROVED
     return ApprovalState.CHANGED_SINCE_APPROVAL
+
+
+def is_auto_apply_confirmed(current_digest: str, approved_digest: str | None) -> bool:
+    """Whether the owner approved exactly this spec and confirmed it applies without a click."""
+
+    return approved_digest == auto_confirmed_digest(current_digest)
 
 
 def require_runnable(
@@ -292,8 +310,13 @@ def is_runnable(state: AutomationState, current_digest: str, approved_digest: st
     return True
 
 
-def approve(spec: AutomationSpecV1, presented_digest: str) -> str:
+def approve(
+    spec: AutomationSpecV1, presented_digest: str, *, auto_apply_confirmed: bool = False
+) -> str:
     """The digest to store as approved, when the owner approved exactly the current spec.
+
+    A spec that applies without a click is stored with the confirmation bound into the digest
+    (`auto_confirmed_digest`) and is refused without it.
 
     The owner approves the digest the app showed. When the spec changed since then, the approval
     is refused and the owner looks again.
@@ -306,6 +329,10 @@ def approve(spec: AutomationSpecV1, presented_digest: str) -> str:
     current = spec_digest(spec)
     if presented_digest != current:
         raise ApprovalDigestMismatchError("the automation changed since it was shown")
+    if spec.apply_mode is ApplyMode.AUTO_LOW_RISK:
+        if not auto_apply_confirmed:
+            raise ValidationError("applying without a click needs the owner's confirmation")
+        return auto_confirmed_digest(current)
     return current
 
 

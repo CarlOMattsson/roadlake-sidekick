@@ -132,9 +132,10 @@ def text_blocks(result: CallToolResult) -> list[str]:
 
 
 async def approved_automation(
-    world: World, *, drop: tuple[str, ...] = (), **changes: Any
+    world: World, *, drop: tuple[str, ...] = (), auto_apply_confirmed: bool = False, **changes: Any
 ) -> dict[str, Any]:
-    """An automation the owner has approved at its current spec; `drop` leaves fields out."""
+    """An automation the owner has approved at its current spec; `drop` leaves fields out.
+    `auto_apply_confirmed` is the owner's confirmation that suggestions apply without a click."""
 
     values = {key: value for key, value in {**CHANGES, **changes}.items() if key not in drop}
     saved = await ok(world, world.claude, "save_automation", changes=values)
@@ -145,6 +146,7 @@ async def approved_automation(
         "approve_automation",
         automation_id=draft["id"],
         spec_digest=draft["spec_digest"],
+        **({"auto_apply_confirmed": True} if auto_apply_confirmed else {}),
     )
     return approved["automation"]
 

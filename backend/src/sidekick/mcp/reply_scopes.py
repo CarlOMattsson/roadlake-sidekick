@@ -159,6 +159,8 @@ RECEIPT_ONLY_WRITES: Final[frozenset[str]] = frozenset(
         "report_ai_step_result",
         "review_ai_step_result",
         "cancel_ai_step_run",
+        # The mark that the owner has seen the automation report: a time and a version.
+        "mark_automation_report_seen",
         # The installation licence key; reaches no record.
         "set_license_key",
         # The journal tools that write the user's own text answer with that text and stay

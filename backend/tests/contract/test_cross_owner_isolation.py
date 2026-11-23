@@ -65,7 +65,9 @@ NO_REFERENCE_TOOLS: dict[str, str] = {
     "create_domain": "creates the caller's own Domain from text fields",
     "create_saved_work_view": "creates the caller's own view; the definition holds filters, no ids",
     "create_shopping_list": "creates the caller's own list from a name",
+    "export_automation_report_html": "reads the caller's own automations over a time window",
     "get_ai_usage": "sums the caller's own runs for this month and today, no input",
+    "get_automation_report": "reads the caller's own automations over a time window, no ids",
     "get_daily_journal_summary": "addressed by a date inside the caller's own journal",
     "get_journal_day": "addressed by a date inside the caller's own journal",
     "get_memory_status": "reads the caller's own memory settings and counts",
@@ -85,6 +87,7 @@ NO_REFERENCE_TOOLS: dict[str, str] = {
     "list_shopping_lists": "pages the caller's own lists",
     "list_tags": "pages the caller's own tags",
     "list_trash": "pages the caller's own trash",
+    "mark_automation_report_seen": "moves the caller's own mark, one per owner and no id",
     "recall_memory": "a text query over the caller's own memory",
     "search": "a text query over the caller's own records",
     "set_daily_journal_summary": "writes the caller's own day, addressed by date and fingerprint",
@@ -133,6 +136,8 @@ EXTRA_ARGUMENTS: dict[str, dict[str, Any]] = {
     "update_saved_work_view": {"name": "Renamed view"},
     "update_shopping_item": {"item": {"name": "Milk"}},
     "add_journal_photo": PHOTO_ARGUMENTS,
+    # Nobody has marked the report yet, so the mark is at version 0, not the sample's 1.
+    "mark_automation_report_seen": {"expected_version": 0},
 }
 
 

@@ -117,6 +117,11 @@ export type ToolResults = {
     id: string;
     kind: "journal_entry" | "contact" | "project" | "task";
   };
+  export_automation_report_html: {
+    file_name: string;
+    html: string;
+    window: ReportWindowRecord;
+  };
   finalize_journal_draft: {
     created_task_ids: Array<string>;
     entry: JournalEntryRecord;
@@ -133,6 +138,48 @@ export type ToolResults = {
     starts_today: number;
   };
   get_automation: AutomationOutput;
+  get_automation_report: {
+    automations: Array<{
+      automation_id: string;
+      counts: ReportCounts;
+      model_tier: "standard" | "strong";
+      state: "draft" | "active" | "paused" | "archived";
+      title: string;
+    }>;
+    highlights: Array<{
+      ai_summary: string | null;
+      at: string;
+      automation_id: string;
+      automation_title: string;
+      effect: "create_task" | "create_contact" | null;
+      flags: Array<
+        | "contains_link"
+        | "payment_related"
+        | "contact_detail_unverified"
+        | "homoglyph_domain"
+        | "instruction_like_text"
+        | "duplicate_existing"
+        | "large_batch"
+      > | null;
+      kind: "run_failed" | "suggestion_flagged" | "suggestion_auto_applied";
+      outcome:
+        | "ok"
+        | "nothing_found"
+        | "failed"
+        | "budget"
+        | "invalid_output"
+        | "provider"
+        | "refused"
+        | null;
+      run_id: string | null;
+      suggestion_id: string | null;
+      verdict: "ok" | "uncertain" | "suspicious" | null;
+    }>;
+    omitted_automations: number;
+    report_version: number;
+    totals: ReportCounts;
+    window: ReportWindowRecord;
+  };
   get_contact_context: {
     contact: ContactRecord;
     journal_entries: {
@@ -920,6 +967,10 @@ export type ToolResults = {
     items: Array<TrashItemRecord>;
     next_cursor: string | null;
   };
+  mark_automation_report_seen: {
+    seen_until: string;
+    version: number;
+  };
   move_to_trash: TrashItemRecord;
   recall_memory: {
     facts: Array<{
@@ -1239,6 +1290,7 @@ export type ToolInputs = {
     task_id: string;
   };
   approve_automation: {
+    auto_apply_confirmed?: boolean;
     automation_id: string;
     idempotency_key: string;
     spec_digest: string;
@@ -1452,6 +1504,9 @@ export type ToolInputs = {
     id: string;
     kind: "journal_entry" | "contact" | "project" | "task";
   };
+  export_automation_report_html: {
+    since?: string | null;
+  };
   finalize_journal_draft: {
     draft_id: string;
     expected_version: number;
@@ -1512,6 +1567,10 @@ export type ToolInputs = {
   get_ai_usage: Record<string, unknown>;
   get_automation: {
     automation_id: string;
+  };
+  get_automation_report: {
+    limit?: number;
+    since?: string | null;
   };
   get_contact_context: {
     contact_id: string;
@@ -1775,6 +1834,11 @@ export type ToolInputs = {
       | "shopping_item"
       | null;
     limit?: number;
+  };
+  mark_automation_report_seen: {
+    expected_version: number;
+    idempotency_key: string;
+    seen_until: string;
   };
   move_to_trash: {
     idempotency_key: string;
@@ -3041,6 +3105,25 @@ export type RejectionRecord = {
     | "datapoint_not_in_run"
     | "over_run_cap";
   index: number;
+};
+
+export type ReportCounts = {
+  applied: number;
+  auto_applied: number;
+  cost_usd: number;
+  dismissed: number;
+  failed_runs: number;
+  flagged: number;
+  ok_runs: number;
+  pending: number;
+  runs: number;
+  suggestions_created: number;
+};
+
+export type ReportWindowRecord = {
+  basis: "last_seen" | "first_look" | "given";
+  since: string;
+  until: string;
 };
 
 export type RunRecord = {

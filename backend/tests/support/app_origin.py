@@ -11,11 +11,19 @@ APP_ORIGIN: dict[str, str] = {APP_ORIGIN_META: "app"}
 
 OWNER_DECISIONS = frozenset({"approve_ai_plan", "run_ai_plan", "approve_automation"})
 
+AUTOMATION_REPORT_APP_TOOLS = frozenset(
+    {"mark_automation_report_seen", "export_automation_report_html"}
+)
+
 # Every tool the server refuses unless the request comes from the app: the decisions above, the
-# Journal photo tools, which take or return the bytes of a photo, and the owner's approval of a
-# whole group of suggestions.
+# Journal photo tools, which take or return the bytes of a photo, and the two report tools that move
+# the owner's mark or hand a page to the app's download, and the owner's approval of a whole group
+# of suggestions.
 APP_ONLY_CALLS = (
-    OWNER_DECISIONS | frozenset(JOURNAL_PHOTO_TOOL_NAMES) | frozenset({"approve_suggestion_group"})
+    OWNER_DECISIONS
+    | frozenset(JOURNAL_PHOTO_TOOL_NAMES)
+    | AUTOMATION_REPORT_APP_TOOLS
+    | frozenset({"approve_suggestion_group"})
 )
 
 

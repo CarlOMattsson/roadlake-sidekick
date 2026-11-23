@@ -20,6 +20,7 @@ from sidekick.automations.domain.spec import (
     ApprovalState,
     AutomationState,
     approval_state,
+    auto_confirmed_digest,
     is_runnable,
 )
 from sidekick.shared.config import Settings
@@ -281,3 +282,44 @@ def test_a_monthly_cap_below_the_automation_default_lowers_the_default_with_it()
 
     assert settings.ai_monthly_cap_usd == 10.0
     assert settings.ai_automation_monthly_cap_usd == 10.0
+
+
+def test_a_spec_that_applies_without_a_click_is_approved_only_with_the_owners_confirmation() -> (
+    None
+):
+    draft = _draft(apply_mode="auto_low_risk", auto_effects=["create_task"])
+
+    with pytest.raises(ValidationError):
+        approve_current(draft, draft.spec_digest, run_budget_cap_microusd=CAP, now=NOW)
+    approved = approve_current(
+        draft, draft.spec_digest, run_budget_cap_microusd=CAP, now=NOW, auto_apply_confirmed=True
+    ).automation
+
+    assert approved.approved_digest == auto_confirmed_digest(draft.spec_digest)
+    assert approved.spec_digest == draft.spec_digest
+    assert approval_state(approved.spec_digest, approved.approved_digest) is ApprovalState.APPROVED
+    assert is_runnable(approved.state, approved.spec_digest, approved.approved_digest)
+
+
+def test_the_confirmation_changes_nothing_for_a_spec_that_only_suggests() -> None:
+    draft = _draft()
+
+    plain = approve_current(draft, draft.spec_digest, run_budget_cap_microusd=CAP, now=NOW)
+    confirmed = approve_current(
+        draft, draft.spec_digest, run_budget_cap_microusd=CAP, now=NOW, auto_apply_confirmed=True
+    )
+
+    assert plain == confirmed
+
+
+def test_turning_the_policy_on_later_withdraws_the_approval_and_needs_a_new_confirmation() -> None:
+    approved = _approved()
+
+    turned_on = _change(
+        approved, spec_fields={"apply_mode": "auto_low_risk", "auto_effects": ["create_task"]}
+    ).automation
+
+    assert turned_on.approved_digest is None
+    assert turned_on.state is AutomationState.DRAFT
+    with pytest.raises(ValidationError):
+        approve_current(turned_on, turned_on.spec_digest, run_budget_cap_microusd=CAP, now=LATER)

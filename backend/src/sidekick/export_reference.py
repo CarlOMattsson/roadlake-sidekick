@@ -55,10 +55,14 @@ MCP_SCOPE_DESCRIPTIONS: dict[str, str] = {
     "shopping:read": "Read shopping lists and their items.",
     "shopping:write": "Create and change shopping lists and items, and mark items as bought.",
     "license:write": "Enter the instance's license key (administrative, owner only).",
-    "automation:read": "Read the owner's automations: their specs, approval state and costs.",
+    "automation:read": (
+        "Read the owner's automations: their specs, approval state and costs, and the report of "
+        "what they did."
+    ),
     "automation:write": (
-        "Draft, change, pause and archive automations, and approve an automation's exact spec in "
-        "the app (together with the write scope of each effect it may propose)."
+        "Draft, change, pause and archive automations, approve an automation's exact spec in "
+        "the app (together with the write scope of each effect it may propose), and mark the "
+        "report as seen."
     ),
     "automation:run": (
         "Claim and report a run of an approved automation, for the owner's own Claude or "

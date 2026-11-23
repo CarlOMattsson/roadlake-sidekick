@@ -6,7 +6,7 @@ from uuid import UUID
 
 import pytest
 
-from sidekick.automations.domain.effects import EffectKind
+from sidekick.automations.domain.effects import EffectKind, PayloadProblem, parse_payload
 from sidekick.automations.domain.screening import (
     LARGE_BATCH_LIMIT,
     Proposal,
@@ -14,6 +14,7 @@ from sidekick.automations.domain.screening import (
     RejectionCode,
     ScreeningFlag,
     SourceInfo,
+    contact_domain_matches_sender,
     email_matches_sender,
     flags_for_edit,
     screen_proposals,
@@ -409,3 +410,28 @@ def test_a_mixed_script_domain_is_still_flagged_next_to_the_folded_forms() -> No
 def test_swedish_text_with_diacritics_is_not_changed_into_something_flagged() -> None:
     title = "Skicka påminnelse till Åsa i Örebro"
     assert screen_proposals([proposal(payload={"title": title})], context()).accepted[0].flags == ()
+
+
+@pytest.mark.parametrize(
+    ("email", "sources", "expected"),
+    [
+        ("anna@example.se", [SOURCE], True),
+        ("anna@ELEXAMPLE.se".replace("ELEXAMPLE", "Example"), [SOURCE], True),
+        ("anna@other.example", [SOURCE], False),
+        ("anna@sub.example.se", [SOURCE], False),
+        ("anna@example.se", [], False),
+        ("anna@example.se", [SourceInfo(kind="mail", fingerprint="f" * 64)], False),
+        ("anna@example.se", [SourceInfo(kind="web", fingerprint="f" * 64)], False),
+        (None, [SOURCE], None),
+    ],
+)
+def test_a_contact_matches_the_sender_only_on_the_exact_domain_of_a_mail_source(
+    email: str | None, sources: list[SourceInfo], expected: bool | None
+) -> None:
+    payload: dict[str, Any] = {"display_name": "Anna Svensson"}
+    if email is not None:
+        payload["email"] = email
+    parsed = parse_payload(EffectKind.CREATE_CONTACT, payload)
+    assert not isinstance(parsed, PayloadProblem)
+
+    assert contact_domain_matches_sender(parsed, sources) is expected

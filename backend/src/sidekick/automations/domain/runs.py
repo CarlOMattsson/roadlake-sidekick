@@ -367,6 +367,16 @@ class AutomationRun:
             now, state=RunState.DONE, stage=None, worker_id=None, lease_until=None, finished_at=now
         )
 
+    def with_auto_applied(self, count: int, *, now: datetime) -> "AutomationRun":
+        """The run with `count` more suggestions applied by the opt-in policy. Only a finished
+        run takes it: the policy runs after the check, never while a run is open."""
+
+        if self.state is not RunState.DONE:
+            raise ConflictError("the run is not done", reason="run_not_open")
+        if count < 0:
+            raise ValidationError("the count of automatic applies cannot be negative")
+        return self._next(now, auto_applied_count=self.auto_applied_count + count)
+
 
 def usage_for_check(usage: AiUsage, source: CostSource) -> AiUsage:
     """The run's usage, ready to take the cost of a check booked under `source`.

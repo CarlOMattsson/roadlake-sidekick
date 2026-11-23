@@ -64,13 +64,22 @@ async def make_desk(
     *,
     effects: tuple[str, ...] = ("create_task",),
     settings_overrides: dict[str, Any] | None = None,
+    spec: dict[str, Any] | None = None,
+    auto_apply_confirmed: bool = False,
 ) -> Desk:
-    """An approved automation with a run in progress, started in the session `RUN_SESSION`."""
+    """An approved automation with a run in progress, started in the session `RUN_SESSION`.
+    `spec` adds fields to the automation's spec (an opt-in policy, thresholds)."""
 
     world = make_world(settings_overrides=settings_overrides)
     world.container.automation_suggestions.clock = world.clock
     monkeypatch.setattr("sidekick.mcp.automation_run_tools.request_session_id", lambda: RUN_SESSION)
-    automation = await approved_automation(world, allowed_effects=list(effects), sources=["mail"])
+    automation = await approved_automation(
+        world,
+        allowed_effects=list(effects),
+        sources=["mail"],
+        auto_apply_confirmed=auto_apply_confirmed,
+        **(spec or {}),
+    )
     run = await started(world, automation)
     other = Actor(world.stranger_runner.user_id, frozenset(OWNER_SCOPES))
     return Desk(

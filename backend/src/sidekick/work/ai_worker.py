@@ -36,6 +36,7 @@ from sidekick.automations.application.checking import AutomationCheckService
 from sidekick.automations.application.runs import AutomationRunLimits
 from sidekick.automations.check_store import SqlCheckStore
 from sidekick.automations.infrastructure.checkers import build_suggestion_checker
+from sidekick.composition import create_auto_apply_service
 from sidekick.shared.cli_errors import run_guarded
 from sidekick.shared.config import Settings, get_settings
 from sidekick.shared.db_timeouts import database_timeout_reason
@@ -122,6 +123,7 @@ def build_checker(
         owner_timezone=settings.owner_zone,
         telemetry=resolved_telemetry,
         stopping=stopping,
+        auto_applier=create_auto_apply_service(settings, factory, resolved_telemetry),
     )
 
 

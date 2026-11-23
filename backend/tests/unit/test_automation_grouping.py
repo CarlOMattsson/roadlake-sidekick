@@ -1,6 +1,7 @@
 """Who is in the high-confidence group, who may be applied by the policy (invariant I3)."""
 
 import dataclasses
+from datetime import timedelta
 from typing import Any
 
 import pytest
@@ -20,7 +21,7 @@ from sidekick.automations.domain.grouping import (
     with_bulk_eligibility,
 )
 from sidekick.automations.domain.screening import ScreeningFlag
-from sidekick.automations.domain.spec import AutomationSpecV1, spec_digest
+from sidekick.automations.domain.spec import AutomationSpecV1, auto_confirmed_digest, spec_digest
 from sidekick.automations.domain.suggestion import (
     DecisionChannel,
     DecisionContext,
@@ -175,6 +176,12 @@ def test_a_group_holds_one_automation_and_each_card_once() -> None:
 # --- applying without the owner ----------------------------------------------------------------
 
 
+def eligible(**kwargs: Any) -> Suggestion:
+    """A card the group holds, the one the policy may look at."""
+
+    return suggestion(**{"bulk_eligible": True, "confidence": 96, **kwargs})
+
+
 def auto(
     card: Suggestion | None = None,
     spec_: AutomationSpecV1 | None = None,
@@ -184,12 +191,17 @@ def auto(
     auto_applied_in_run: int = 0,
     auto_applied_today: int = 0,
     approved_digest: str | None = "",
+    automation_active: bool = True,
 ) -> AutoApplyRefusal | None:
     used = spec_ or auto_spec()
     return auto_apply_refusal(
-        card or suggestion(confidence=96),
+        card or eligible(),
         used,
-        approved_digest=spec_digest(used) if approved_digest == "" else approved_digest,
+        now=NOW,
+        approved_digest=auto_confirmed_digest(spec_digest(used))
+        if approved_digest == ""
+        else approved_digest,
+        automation_active=automation_active,
         checker_configured=checker_configured,
         contact_domain_matches_sender=contact_domain_matches_sender,
         auto_applied_in_run=auto_applied_in_run,
@@ -221,29 +233,35 @@ def test_the_checker_and_the_counts_gate_the_policy(
 
 def test_a_spec_that_is_not_the_approved_one_applies_nothing() -> None:
     changed = auto_spec(auto_threshold=90)
-    assert auto(card=suggestion(confidence=92), spec_=changed, approved_digest=None) is (
+    assert auto(card=eligible(confidence=92), spec_=changed, approved_digest=None) is (
         AutoApplyRefusal.SPEC_NOT_APPROVED
     )
     assert auto(
-        card=suggestion(confidence=92),
+        card=eligible(confidence=92),
         spec_=changed,
-        approved_digest=spec_digest(auto_spec()),
+        approved_digest=auto_confirmed_digest(spec_digest(auto_spec())),
     ) is (AutoApplyRefusal.SPEC_NOT_APPROVED)
-    assert auto(card=suggestion(confidence=96), approved_digest=spec_digest(auto_spec())) is None
+    assert (
+        auto(
+            card=eligible(confidence=96),
+            approved_digest=auto_confirmed_digest(spec_digest(auto_spec())),
+        )
+        is None
+    )
 
 
 def test_the_policy_needs_the_opt_in_and_the_effect() -> None:
     assert auto(spec_=spec()) is AutoApplyRefusal.MODE_OFF
-    assert auto(card=suggestion(effect=EffectKind.CREATE_CONTACT, confidence=96)) is (
+    assert auto(card=eligible(effect=EffectKind.CREATE_CONTACT)) is (
         AutoApplyRefusal.EFFECT_NOT_AUTO
     )
 
 
 def test_the_policy_has_its_own_stricter_threshold() -> None:
-    assert auto(card=suggestion(confidence=94)) is AutoApplyRefusal.BELOW_THRESHOLD
-    assert auto(card=suggestion(confidence=95)) is None
-    assert auto(card=suggestion(confidence=100), spec_=auto_spec(auto_threshold=99)) is None
-    assert auto(card=suggestion(confidence=98), spec_=auto_spec(auto_threshold=99)) is (
+    assert auto(card=eligible(confidence=94)) is AutoApplyRefusal.BELOW_THRESHOLD
+    assert auto(card=eligible(confidence=95)) is None
+    assert auto(card=eligible(confidence=100), spec_=auto_spec(auto_threshold=99)) is None
+    assert auto(card=eligible(confidence=98), spec_=auto_spec(auto_threshold=99)) is (
         AutoApplyRefusal.BELOW_THRESHOLD
     )
 
@@ -270,9 +288,33 @@ def test_a_flagged_card_is_never_applied_by_the_policy(flag: ScreeningFlag) -> N
 
 def test_a_contact_with_an_address_needs_the_sender_domain_to_match() -> None:
     contact_spec = auto_spec(auto_effects=["create_contact"])
-    card = suggestion(effect=EffectKind.CREATE_CONTACT, confidence=99)
+    card = eligible(effect=EffectKind.CREATE_CONTACT, confidence=99)
     assert auto(card=card, spec_=contact_spec) is AutoApplyRefusal.SENDER_DOMAIN_MISMATCH
     assert auto(card=card, spec_=contact_spec, contact_domain_matches_sender=False) is (
         AutoApplyRefusal.SENDER_DOMAIN_MISMATCH
     )
     assert auto(card=card, spec_=contact_spec, contact_domain_matches_sender=True) is None
+
+
+def test_a_card_the_group_does_not_hold_is_not_applied_by_the_policy() -> None:
+    assert auto(card=suggestion(confidence=99)) is AutoApplyRefusal.NOT_BULK_ELIGIBLE
+    assert auto(card=eligible(confidence=99)) is None
+
+
+def test_an_automation_that_is_paused_or_archived_applies_nothing() -> None:
+    assert auto(automation_active=False) is AutoApplyRefusal.NOT_ACTIVE
+
+
+def test_a_card_past_its_time_to_live_is_not_applied() -> None:
+    expired = eligible(expires_in=timedelta(seconds=0))
+    assert auto(card=expired) is AutoApplyRefusal.EXPIRED
+    assert auto(card=eligible(expires_in=timedelta(seconds=1))) is None
+
+
+def test_an_approval_made_without_the_confirmation_never_applies_by_policy() -> None:
+    used = auto_spec()
+
+    assert auto(spec_=used, approved_digest=spec_digest(used)) is (
+        AutoApplyRefusal.AUTO_NOT_CONFIRMED
+    )
+    assert auto(spec_=used) is None

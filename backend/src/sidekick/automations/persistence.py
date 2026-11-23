@@ -12,14 +12,13 @@ from datetime import date, datetime
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import ColumnElement, func, or_, select, update
+from sqlalchemy import ColumnElement, func, or_, select, text, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, sessionmaker
 
 from sidekick.automations.domain.activity import PendingSuggestions, RunFacts, WindowCounts
 from sidekick.automations.domain.automation import Automation, ReportCursor, SuggestionCheck
 from sidekick.automations.domain.datapoints import Datapoint, DatapointKind, SourceKind
-from sidekick.automations.domain.effects import EffectKind
 from sidekick.automations.domain.runs import (
     AutomationRun,
     CredentialKind,
@@ -28,20 +27,18 @@ from sidekick.automations.domain.runs import (
     RunState,
     scheduled_day,
 )
-from sidekick.automations.domain.screening import ScreeningFlag
 from sidekick.automations.domain.spec import (
     AutomationSpecV1,
     AutomationState,
     parse_spec,
 )
 from sidekick.automations.domain.suggestion import (
-    ApplyError,
-    CheckState,
-    DecidedBy,
-    DecisionChannel,
     Suggestion,
     SuggestionState,
-    Verdict,
+)
+from sidekick.automations.suggestion_store import (
+    MAX_LIST_ROWS,
+    SuggestionQueries,
 )
 from sidekick.shared.errors import ConflictError, NotFoundError
 from sidekick.shared.observability import TelemetryPort
@@ -67,9 +64,6 @@ from sidekick.shared.types import validate_limit
 from sidekick.tasks.domain import TaskStatus
 from sidekick.work.domain.ai_runs import AiUsage, CostSource
 from sidekick.work.persistence.ai_runs import AiRunStore, automation_run_cost_query
-
-MAX_LIST_ROWS = 200
-"""The most rows one list read returns."""
 
 
 def spec_columns(spec: AutomationSpecV1) -> dict[str, object]:
@@ -128,40 +122,6 @@ def _apply_automation(row: AutomationRow, automation: Automation) -> None:
     row.last_run_at = automation.last_run_at
     row.updated_at = automation.updated_at
     row.version = automation.version
-
-
-def suggestion_from_row(row: AutomationSuggestionRow) -> Suggestion:
-    """A purged payload (kept as NULL with `payload_purged_at`) reads as an empty one."""
-
-    return Suggestion(
-        id=row.id,
-        owner_id=row.owner_id,
-        automation_id=row.automation_id,
-        run_id=row.run_id,
-        effect=EffectKind(row.effect),
-        effect_version=row.effect_version,
-        payload=row.payload or {},
-        proposed_payload=row.proposed_payload or {},
-        rationale=row.rationale or "",
-        datapoint_ids=tuple(row.datapoint_ids),
-        dedupe_fingerprint=row.dedupe_fingerprint,
-        state=SuggestionState(row.state),
-        expires_at=row.expires_at,
-        screening_flags=tuple(ScreeningFlag(flag) for flag in row.screening_flags),
-        check_state=CheckState(row.check_state),
-        verdict=Verdict(row.verdict) if row.verdict else None,
-        confidence=row.confidence,
-        bulk_eligible=row.bulk_eligible,
-        decided_at=row.decided_at,
-        decided_by=DecidedBy(row.decided_by) if row.decided_by else None,
-        decision_channel=DecisionChannel(row.decision_channel) if row.decision_channel else None,
-        applied_kind=row.applied_kind,
-        applied_id=row.applied_id,
-        applied_version=row.applied_version,
-        undone_at=row.undone_at,
-        apply_error=ApplyError(row.apply_error) if row.apply_error else None,
-        version=row.version,
-    )
 
 
 def _apply_suggestion(row: AutomationSuggestionRow, suggestion: Suggestion, now: datetime) -> None:
@@ -329,7 +289,7 @@ def unattended_conditions(now: datetime, idle_since: datetime | None) -> list[Co
     return conditions
 
 
-class AutomationStore:
+class AutomationStore(SuggestionQueries):
     """Automations, suggestions and their checks.
 
     The operations are static and owner-filtered; a store that adds the transaction boundary
@@ -518,67 +478,6 @@ class AutomationStore:
         if expected_version is not None and row.version != expected_version:
             raise ConflictError("stale automation version", reason="stale_version")
         _apply_automation(row, automation)
-
-    @staticmethod
-    def get_suggestion(
-        session: Session, owner_id: UUID, suggestion_id: UUID, *, lock: bool = False
-    ) -> Suggestion:
-        statement = select(AutomationSuggestionRow).where(
-            AutomationSuggestionRow.id == suggestion_id,
-            AutomationSuggestionRow.owner_id == owner_id,
-        )
-        row = session.scalar(statement.with_for_update() if lock else statement)
-        if row is None:
-            raise NotFoundError("suggestion not found")
-        return suggestion_from_row(row)
-
-    @staticmethod
-    def list_suggestions(
-        session: Session,
-        owner_id: UUID,
-        *,
-        states: Collection[SuggestionState] | None = None,
-        automation_id: UUID | None = None,
-        run_id: UUID | None = None,
-        bulk_eligible: bool | None = None,
-        expires_after: datetime | None = None,
-        limit: int = MAX_LIST_ROWS,
-        offset: int = 0,
-    ) -> list[Suggestion]:
-        statement = select(AutomationSuggestionRow).where(
-            AutomationSuggestionRow.owner_id == owner_id
-        )
-        if bulk_eligible is not None:
-            statement = statement.where(AutomationSuggestionRow.bulk_eligible == bulk_eligible)
-        if expires_after is not None:
-            statement = statement.where(AutomationSuggestionRow.expires_at > expires_after)
-        if states is not None:
-            statement = statement.where(
-                AutomationSuggestionRow.state.in_([item.value for item in states])
-            )
-        if automation_id is not None:
-            statement = statement.where(AutomationSuggestionRow.automation_id == automation_id)
-        if run_id is not None:
-            statement = statement.where(AutomationSuggestionRow.run_id == run_id)
-        rows = session.scalars(
-            statement.order_by(AutomationSuggestionRow.created_at, AutomationSuggestionRow.id)
-            .offset(offset)
-            .limit(validate_limit(limit, maximum=MAX_LIST_ROWS))
-        )
-        return [suggestion_from_row(row) for row in rows]
-
-    @staticmethod
-    def known_fingerprints(session: Session, owner_id: UUID, automation_id: UUID) -> frozenset[str]:
-        """Every dedupe fingerprint the automation has ever had, in any state."""
-
-        return frozenset(
-            session.scalars(
-                select(AutomationSuggestionRow.dedupe_fingerprint).where(
-                    AutomationSuggestionRow.owner_id == owner_id,
-                    AutomationSuggestionRow.automation_id == automation_id,
-                )
-            )
-        )
 
     @staticmethod
     def save_suggestion(
@@ -965,6 +864,17 @@ class AutomationStore:
     # The owner's spend is one lock for every kind of AI run (`ai-spend:{owner}`), so a cap holds
     # while an AI step and an automation run are decided side by side.
     lock_owner_spend = staticmethod(AiRunStore.lock_owner_spend)
+
+    @staticmethod
+    def lock_owner_auto_apply(session: Session, owner_id: UUID) -> None:
+        """Serialize the owner's automatic applies until the transaction ends, so two runs of
+        different automations cannot both pass a daily cap that only one of them fits under."""
+
+        session.execute(
+            text("SELECT pg_advisory_xact_lock(hashtextextended(:key, 0))"),
+            {"key": f"auto-apply:{owner_id}"},
+        )
+
     sum_ai_cost_since = staticmethod(AiRunStore.sum_ai_cost_since)
 
 

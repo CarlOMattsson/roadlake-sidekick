@@ -11,6 +11,7 @@ counts. Both rules are pure functions of the suggestion and the approved spec.
 import hashlib
 from collections.abc import Sequence
 from dataclasses import replace
+from datetime import datetime
 from enum import StrEnum
 
 from sidekick.automations.domain.effects import AUTO_APPLY_EFFECTS, CATALOGUE, EffectKind
@@ -19,6 +20,7 @@ from sidekick.automations.domain.spec import (
     ApprovalState,
     AutomationSpecV1,
     approval_state,
+    is_auto_apply_confirmed,
     spec_digest,
 )
 from sidekick.automations.domain.suggestion import (
@@ -123,8 +125,11 @@ class AutoApplyRefusal(StrEnum):
     """Why a suggestion stays a pending card instead of being applied by the policy."""
 
     NOT_PENDING = "not_pending"
+    EXPIRED = "expired"
     SPEC_NOT_APPROVED = "spec_not_approved"
+    NOT_ACTIVE = "not_active"
     MODE_OFF = "mode_off"
+    AUTO_NOT_CONFIRMED = "auto_not_confirmed"
     EFFECT_NOT_AUTO = "effect_not_auto"
     NO_CHECKER = "no_checker"
     NOT_CHECKED = "not_checked"
@@ -132,6 +137,7 @@ class AutoApplyRefusal(StrEnum):
     BELOW_THRESHOLD = "below_threshold"
     FLAGGED = "flagged"
     EDITED = "edited"
+    NOT_BULK_ELIGIBLE = "not_bulk_eligible"
     SENDER_DOMAIN_MISMATCH = "sender_domain_mismatch"
     RUN_CAP = "run_cap"
     DAY_CAP = "day_cap"
@@ -149,7 +155,9 @@ def auto_apply_refusal(
     suggestion: Suggestion,
     spec: AutomationSpecV1,
     *,
+    now: datetime,
     approved_digest: str | None,
+    automation_active: bool,
     checker_configured: bool,
     contact_domain_matches_sender: bool | None,
     auto_applied_in_run: int,
@@ -158,7 +166,8 @@ def auto_apply_refusal(
     """The first reason the policy may not apply the suggestion, or None when it may.
 
     `approved_digest` is the digest the owner approved for the automation. A spec that differs
-    from it (or none approved) never applies anything: only what the owner approved decides.
+    from it (or none approved) never applies anything: only what the owner approved decides, and
+    only while the automation is active (a pause or an archive stops the policy too).
     `contact_domain_matches_sender` is `screening.email_matches_sender` for a contact that has an
     e-mail address; anything but True refuses.
     """
@@ -169,7 +178,15 @@ def auto_apply_refusal(
             AutoApplyRefusal.SPEC_NOT_APPROVED,
             approval_state(spec_digest(spec), approved_digest) is not ApprovalState.APPROVED,
         ),
+        (AutoApplyRefusal.EXPIRED, now >= suggestion.expires_at),
+        (AutoApplyRefusal.NOT_ACTIVE, not automation_active),
         (AutoApplyRefusal.MODE_OFF, spec.apply_mode is not ApplyMode.AUTO_LOW_RISK),
+        # An approval made without the owner's confirmation of this mode (or before it existed)
+        # never applies anything: the confirmation is part of the stored digest.
+        (
+            AutoApplyRefusal.AUTO_NOT_CONFIRMED,
+            not is_auto_apply_confirmed(spec_digest(spec), approved_digest),
+        ),
         (
             AutoApplyRefusal.EFFECT_NOT_AUTO,
             suggestion.effect not in spec.auto_effects
@@ -184,6 +201,9 @@ def auto_apply_refusal(
         ),
         (AutoApplyRefusal.FLAGGED, bool(suggestion.screening_flags)),
         (AutoApplyRefusal.EDITED, suggestion.edited),
+        # The group's own test, as stored when the run's check ended: the policy never applies a
+        # card the high-confidence group would not hold.
+        (AutoApplyRefusal.NOT_BULK_ELIGIBLE, not suggestion.bulk_eligible),
         (
             AutoApplyRefusal.SENDER_DOMAIN_MISMATCH,
             _contact_domain_unverified(suggestion, contact_domain_matches_sender),

@@ -89,8 +89,8 @@ async def test_the_session_only_automation_read_is_not_a_tool() -> None:
     names = {tool.name for tool in await _server_for(container, actor).list_tools()}
     assert "list_assistant_activity" in names
     # The retired automation engine's settings, policies and runs are no tools. What is left is the
-    # registry of ADR-013: the owner's own list of automations, read, drafted and approved, and the
-    # two tools a routine runs one with.
+    # registry of ADR-013: the owner's own list of automations, read, drafted and approved, the
+    # two tools a routine runs one with, and the three of the report.
     assert {name for name in names if "automation" in name} == {
         "list_automations",
         "get_automation",
@@ -98,6 +98,9 @@ async def test_the_session_only_automation_read_is_not_a_tool() -> None:
         "approve_automation",
         "start_automation_run",
         "record_automation_results",
+        "get_automation_report",
+        "mark_automation_report_seen",
+        "export_automation_report_html",
     }
     assert not {name for name in names if "policy" in name or "automation_settings" in name}
 

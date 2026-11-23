@@ -15,10 +15,12 @@ from sidekick.activity.application.service import ActivityLedger, ActivityServic
 from sidekick.activity.persistence import ActivityStore
 from sidekick.automations.application.activity import AutomationActivityService
 from sidekick.automations.application.registry import AutomationRegistryService
+from sidekick.automations.application.report import AutomationReportService
 from sidekick.automations.application.runs import AutomationRunService
 from sidekick.automations.application.suggestions import SuggestionService
 from sidekick.automations.effect_applier import ServiceEffectApplier
 from sidekick.automations.persistence import SqlAutomationStore
+from sidekick.automations.report_store import SqlReportStore
 from sidekick.companion.persistence import CompanionDeviceStore
 from sidekick.companion.push import PushSubscriptionService
 from sidekick.companion.push_outbox_store import install_wake_hook
@@ -137,6 +139,8 @@ class Container:
     automation_suggestions: SuggestionService
     # What the automations have been doing, in counts: the overview the Start view reads.
     automation_activity: AutomationActivityService
+    # What the automations did since the owner last looked, and the mark that they have looked.
+    automation_report: AutomationReportService
     # The Android companion's services (ADR-005): pairing and device tokens, push endpoints, and
     # the reminders the phone fetches. The companion routes reach them only through here.
     companion_devices: CompanionDeviceService
@@ -353,6 +357,50 @@ def _create_suggestion_service(
     )
 
 
+def _create_task_service(
+    settings: Settings,
+    stores: ContextStores,
+    cursor_codec: CursorCodec,
+    activity_ledger: ActivityLedger,
+) -> TaskService:
+    return TaskService(
+        stores.tasks,
+        SystemClock(),
+        cursor_codec,
+        activity_ledger,
+        owner_timezone=settings.owner_zone,
+        step_closer=TaskStepClosing(stores.work),
+    )
+
+
+def create_auto_apply_service(
+    settings: Settings, factory: SessionFactory, telemetry: TelemetryPort
+) -> SuggestionService:
+    """The suggestion use case for the AI worker, which applies what the check cleared for an
+    automation whose owner opted in. It builds the same task and contact use cases as the API
+    and holds no model key of its own beyond what the worker already has."""
+
+    if settings.push_enabled:
+        install_wake_hook(
+            factory, min_interval=timedelta(seconds=settings.push_wake_min_interval_seconds)
+        )
+    stores = create_stores(factory, telemetry)
+    cursor_codec = CursorCodec(settings.cursor_signing_key)
+    tasks = _create_task_service(
+        settings, stores, cursor_codec, ActivityLedger(ActivityStore(factory, telemetry))
+    )
+    contacts = ContactService(stores.contacts, SystemClock(), cursor_codec)
+    return _create_suggestion_service(
+        SqlAutomationStore(factory, telemetry),
+        tasks,
+        contacts,
+        cursor_codec,
+        factory,
+        settings,
+        telemetry,
+    )
+
+
 def create_container(
     settings: Settings,
     session_factory: SessionFactory | None = None,
@@ -376,14 +424,7 @@ def create_container(
     activity_store = ActivityStore(factory, resolved_telemetry)
     activity_ledger = ActivityLedger(activity_store)
     activity_service = ActivityService(activity_store, cursor_codec)
-    tasks = TaskService(
-        stores.tasks,
-        SystemClock(),
-        cursor_codec,
-        activity_ledger,
-        owner_timezone=settings.owner_zone,
-        step_closer=TaskStepClosing(stores.work),
-    )
+    tasks = _create_task_service(settings, stores, cursor_codec, activity_ledger)
     projects = ProjectService(stores.tasks, SystemClock(), cursor_codec)
     contexts = ContextService(
         stores.work, SystemClock(), cursor_codec, owner_timezone=settings.owner_zone
@@ -457,6 +498,9 @@ def create_container(
             automation_store, tasks, contacts, cursor_codec, factory, settings, resolved_telemetry
         ),
         automation_activity=AutomationActivityService(automation_store),
+        automation_report=AutomationReportService(
+            SqlReportStore(factory, resolved_telemetry), SystemClock()
+        ),
         companion_devices=CompanionDeviceService(CompanionDeviceStore(factory), auth_service),
         push_subscriptions=PushSubscriptionService.from_settings(
             SqlPushSubscriptionStore(factory), settings

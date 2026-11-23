@@ -15,8 +15,10 @@ from uuid import UUID
 
 from sidekick.automations.domain.automation import Automation
 from sidekick.automations.domain.spec import (
+    ApprovalState,
     AutomationSpecV1,
     AutomationState,
+    approval_state,
     approve,
     normalise_title,
     parse_spec,
@@ -147,7 +149,11 @@ def change(
             state = AutomationState.DRAFT
     if spec_changed or title != current.title:
         events.insert(0, RegistryEvent.UPDATED)
-    state, state_events = _requested_state(state, requested, approved=approved_digest == digest)
+    state, state_events = _requested_state(
+        state,
+        requested,
+        approved=approval_state(digest, approved_digest) is ApprovalState.APPROVED,
+    )
     events.extend(state_events)
     if not events:
         return RegistryResult(current, ())
@@ -166,17 +172,24 @@ def change(
 
 
 def approve_current(
-    current: Automation, presented_digest: str, *, run_budget_cap_microusd: int, now: datetime
+    current: Automation,
+    presented_digest: str,
+    *,
+    run_budget_cap_microusd: int,
+    now: datetime,
+    auto_apply_confirmed: bool = False,
 ) -> RegistryResult:
     """The automation approved at `presented_digest`, which must be its current digest.
 
     Approving what is already approved changes nothing. A draft becomes active; a paused one stays
-    paused until the owner resumes it.
+    paused until the owner resumes it. A spec that applies changes without the owner's click
+    (`apply_mode` `auto_low_risk`) is approved only when the owner confirmed that in the same call,
+    so a draft that a model prepared never turns it on by an approval of the digest alone.
     """
 
     if current.state is AutomationState.ARCHIVED:
         raise ValidationError("an archived automation must be restored before it is approved")
-    approved = approve(current.spec, presented_digest)
+    approved = approve(current.spec, presented_digest, auto_apply_confirmed=auto_apply_confirmed)
     require_budget_within(current.spec, run_budget_cap_microusd)
     if current.approved_digest == approved:
         return RegistryResult(current, ())
@@ -184,7 +197,7 @@ def approve_current(
     changed = replace(
         current,
         state=state,
-        spec_digest=approved,
+        spec_digest=presented_digest,
         approved_digest=approved,
         approved_at=now,
         updated_at=now,

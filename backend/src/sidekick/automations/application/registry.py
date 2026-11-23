@@ -203,12 +203,14 @@ class AutomationRegistryService:
         *,
         spec_digest: str,
         idempotency_key: str,
+        auto_apply_confirmed: bool = False,
         correlation_id: str | None = None,
     ) -> AutomationView:
         """Approve the automation whose spec has this digest.
 
         The actor also needs the write scope of every effect the automation may propose. The
-        digest is what the owner saw: a spec that changed since is refused.
+        digest is what the owner saw: a spec that changed since is refused. A spec that applies
+        suggestions without a click is approved only with `auto_apply_confirmed`.
         """
 
         actor.require(WRITE_SCOPE)
@@ -222,11 +224,16 @@ class AutomationRegistryService:
                 spec_digest,
                 run_budget_cap_microusd=self.run_budget_cap_microusd,
                 now=self.clock.now(),
+                auto_apply_confirmed=auto_apply_confirmed,
             )
             self._persist(session, actor, approved, current.version, correlation_id)
             return id_result(automation_id)
 
-        payload = {"automation_id": str(automation_id), "spec_digest": spec_digest}
+        payload = {
+            "automation_id": str(automation_id),
+            "spec_digest": spec_digest,
+            "auto_apply_confirmed": auto_apply_confirmed,
+        }
         return self._idempotent(actor, "approve_automation", idempotency_key, payload, operation)
 
     def _idempotent(

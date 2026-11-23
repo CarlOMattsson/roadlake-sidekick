@@ -223,6 +223,9 @@ def test_the_check_is_built_with_its_key_without_opening_a_connection(
     assert service is not None
     assert service.checker.model == "typesafe/jev-1.14"
     assert service.credentials_rejected is False
+    # What the check cleared is applied for an automation whose owner opted in, by the same use
+    # case the API applies an approval with.
+    assert service.auto_applier is not None
 
 
 def test_after_the_check_the_worker_ends_the_wait_of_runs_nobody_checks() -> None:

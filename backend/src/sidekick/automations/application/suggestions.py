@@ -13,14 +13,15 @@ hold ids and closed codes only.
 
 import logging
 from collections.abc import Callable, Collection, Mapping, Sequence
-from dataclasses import dataclass
-from datetime import datetime
+from dataclasses import dataclass, field
+from datetime import datetime, tzinfo
 from enum import StrEnum
 from typing import Any, Protocol
 from uuid import UUID
 
 from sidekick.automations.application.runs import RunKeys
 from sidekick.automations.application.suggestion_reads import (
+    MAX_CANDIDATES,
     Lookup,
     SuggestionReads,
     SuggestionReadStore,
@@ -36,8 +37,20 @@ from sidekick.automations.domain.effects import (
     project_reference,
 )
 from sidekick.automations.domain.fingerprints import keyed_hash
-from sidekick.automations.domain.grouping import MAX_GROUP_SIZE, check_group
-from sidekick.automations.domain.screening import ScreeningContext, SourceInfo, flags_for_edit
+from sidekick.automations.domain.grouping import (
+    MAX_GROUP_SIZE,
+    AutoApplyRefusal,
+    auto_apply_refusal,
+    check_group,
+)
+from sidekick.automations.domain.runs import AutomationRun, RunState
+from sidekick.automations.domain.screening import (
+    ScreeningContext,
+    SourceInfo,
+    contact_domain_matches_sender,
+    flags_for_edit,
+)
+from sidekick.automations.domain.spec import ApplyMode, AutomationState
 from sidekick.automations.domain.suggestion import (
     AppliedRecord,
     ApplyError,
@@ -61,6 +74,7 @@ from sidekick.shared.errors import (
 )
 from sidekick.shared.errors.core import SidekickError
 from sidekick.shared.observability import TelemetryPort, safe_log_fields
+from sidekick.shared.owner_day import day_start
 from sidekick.shared.types import (
     Actor,
     AuditingStore,
@@ -132,6 +146,13 @@ class SuggestionStore(SuggestionReadStore, IdempotentStore, AuditingStore, Proto
     def has_attachments(
         self, session: TxSession, owner_id: UUID, kind: str, record_id: UUID
     ) -> bool: ...
+    def save_run(
+        self, session: TxSession, run: AutomationRun, expected_version: int | None = None
+    ) -> None: ...
+    def count_auto_applied_since(
+        self, session: TxSession, owner_id: UUID, since: datetime
+    ) -> int: ...
+    def lock_owner_auto_apply(self, session: TxSession, owner_id: UUID) -> None: ...
 
 
 class EffectApplier(Protocol):
@@ -185,6 +206,16 @@ class UndoOutcome:
     suggestion: Suggestion
 
 
+@dataclass(frozen=True, slots=True)
+class AutoApplyOutcome:
+    """What the policy did for one finished run: the cards it applied, how many stayed pending for
+    each closed reason, and how many it could not apply (they show the code on the card)."""
+
+    applied: tuple[UUID, ...] = ()
+    refused: Mapping[AutoApplyRefusal, int] = field(default_factory=dict[AutoApplyRefusal, int])
+    failed: int = 0
+
+
 class _ApplyFailed(SidekickError):
     def __init__(self, error: ApplyError) -> None:
         super().__init__(error.value)
@@ -205,6 +236,7 @@ class SuggestionService(SuggestionReads):
         trash: RecordTrash,
         keys: RunKeys,
         telemetry: TelemetryPort,
+        owner_timezone: tzinfo,
     ) -> None:
         super().__init__(store, clock, cursor_codec)
         self.store: SuggestionStore = store
@@ -212,6 +244,7 @@ class SuggestionService(SuggestionReads):
         self.trash = trash
         self.keys = keys
         self.telemetry = telemetry
+        self.owner_timezone = owner_timezone
 
     @classmethod
     def from_settings(
@@ -232,6 +265,7 @@ class SuggestionService(SuggestionReads):
             trash,
             RunKeys.from_secret(settings.token_pepper),
             telemetry,
+            settings.owner_zone,
         )
 
     # --- decide -------------------------------------------------------------------------------
@@ -589,6 +623,127 @@ class SuggestionService(SuggestionReads):
             or run.session_digest == keyed_hash(self.keys.session, session_id)
         )
         return DecisionContext(channel, session_matches_run=same)
+
+    # --- applying without the owner -----------------------------------------------------------
+
+    def auto_apply_run(
+        self,
+        owner_id: UUID,
+        run_id: UUID,
+        *,
+        checker_configured: bool,
+        correlation_id: str | None = None,
+    ) -> AutoApplyOutcome:
+        """Apply the cards of a finished run that the owner's opt-in policy allows, and no others.
+
+        Only an automation the owner approved with apply mode `auto_low_risk` takes part, and only
+        cards the checker called `ok` that are bulk eligible (`grouping.auto_apply_refusal` holds
+        every rule and the caps). Each card goes through the path an owner's approval takes
+        (`_apply`) and ends as an applied card decided by the policy, so the owner's undo works on
+        it unchanged. A card the policy may not apply stays pending, untouched. With no checker,
+        or a run whose check did not finish, nothing is applied.
+        """
+
+        return self.store.transaction(
+            lambda session: self._auto_apply_run(
+                session, owner_id, run_id, checker_configured, correlation_id
+            )
+        )
+
+    def _auto_apply_run(
+        self,
+        session: TxSession,
+        owner_id: UUID,
+        run_id: UUID,
+        checker_configured: bool,
+        correlation_id: str | None,
+    ) -> AutoApplyOutcome:
+        # The owner's lock first: the daily count below is read and extended under it.
+        self.store.lock_owner_auto_apply(session, owner_id)
+        # The automation first, then the run: the order every writer of a run takes its locks in.
+        automation_id = self.store.get_run(session, owner_id, run_id).automation_id
+        automation = self.store.get_automation(session, owner_id, automation_id, lock=True)
+        run = self.store.get_run(session, owner_id, run_id, lock=True)
+        if run.automation_id != automation_id:
+            raise ConflictError("the run belongs to another automation", reason="stale_version")
+        spec = automation.spec
+        if (
+            run.state is not RunState.DONE
+            or spec.apply_mode is not ApplyMode.AUTO_LOW_RISK
+            or not checker_configured
+        ):
+            return AutoApplyOutcome()
+        now = self.clock.now()
+        cards = self.store.list_suggestions(
+            session,
+            owner_id,
+            states=(SuggestionState.PENDING,),
+            run_id=run_id,
+            bulk_eligible=True,
+            limit=MAX_CANDIDATES,
+        )
+        # The policy acts as the owner with the write scope of the effects it may apply, no more.
+        actor = Actor(
+            owner_id, frozenset(CATALOGUE[kind].write_scope for kind in spec.auto_effects)
+        )
+        today = self.store.count_auto_applied_since(
+            session, owner_id, day_start(now, self.owner_timezone)
+        )
+        applied: list[UUID] = []
+        refused: dict[AutoApplyRefusal, int] = {}
+        failed = 0
+        # Locks are taken in id order, as in every decision.
+        for listed in sorted(cards, key=lambda card: card.id):
+            card = self.store.get_suggestion(session, owner_id, listed.id, lock=True)
+            refusal = auto_apply_refusal(
+                card,
+                spec,
+                now=now,
+                approved_digest=automation.approved_digest,
+                automation_active=automation.state is AutomationState.ACTIVE,
+                checker_configured=checker_configured,
+                contact_domain_matches_sender=self._sender_match(session, card),
+                auto_applied_in_run=run.auto_applied_count + len(applied),
+                auto_applied_today=today + len(applied),
+            )
+            if refusal is not None:
+                refused[refusal] = refused.get(refusal, 0) + 1
+                continue
+            try:
+                with session.begin_nested():
+                    done = card.auto_apply(
+                        self._apply(session, actor, card, correlation_id),
+                        now=now,
+                        expected_version=card.version,
+                    )
+                    self.store.save_suggestion(session, done, now, expected_version=card.version)
+                    self._audit(session, done, "suggestion.auto_applied", correlation_id)
+                    self._count("auto_applied", done)
+            except _ApplyFailed as problem:
+                failure = card.apply_failed(problem.error, expected_version=card.version)
+                self.store.save_suggestion(session, failure, now, expected_version=card.version)
+                self._audit(session, failure, "suggestion.apply_failed", correlation_id)
+                self._count("apply_failed", failure)
+                failed += 1
+            else:
+                applied.append(card.id)
+        if applied:
+            self.store.save_run(
+                session,
+                run.with_auto_applied(len(applied), now=now),
+                expected_version=run.version,
+            )
+        return AutoApplyOutcome(tuple(applied), refused, failed)
+
+    def _sender_match(self, session: TxSession, card: Suggestion) -> bool | None:
+        """For a contact with an e-mail address: whether it is on the domain of the mail it came
+        from. None for a card with nothing to compare."""
+
+        parsed = parse_payload(card.effect, card.payload)
+        if isinstance(parsed, PayloadProblem):
+            return None
+        points = self.store.get_datapoints(session, card.owner_id, card.datapoint_ids)
+        return contact_domain_matches_sender(parsed, list(source_infos(points).values()))
 
     # --- applying and editing ----------------------------------------------------------------
 

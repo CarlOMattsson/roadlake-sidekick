@@ -18,6 +18,9 @@ REGISTRY_TOOLS = {
     "approve_automation",
     "start_automation_run",
     "record_automation_results",
+    "get_automation_report",
+    "mark_automation_report_seen",
+    "export_automation_report_html",
 }
 
 
@@ -29,9 +32,9 @@ async def test_it_is_the_only_owner_control_tool_and_it_is_read_only() -> None:
     assert tools[TOOL].annotations is not None
     assert tools[TOOL].annotations.readOnlyHint is True
     assert tools[TOOL].annotations.destructiveHint is False
-    # No policy or pause tool, and the only automation tools are the registry's four and the
-    # runner's two (ADR-013): none of them pauses or settles anything, and a run only records
-    # proposals for the owner to decide.
+    # No policy or pause tool, and the only automation tools are the registry's four, the
+    # runner's two and the report's three (ADR-013): none of them pauses or settles anything, a
+    # run only records proposals for the owner to decide, and the report only reads and marks.
     controls = {
         name
         for name in tools

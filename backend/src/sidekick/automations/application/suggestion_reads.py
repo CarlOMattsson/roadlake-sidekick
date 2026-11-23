@@ -39,6 +39,8 @@ from sidekick.shared.types import (
 
 READ_SCOPE = "automation:read"
 MAX_PAGE = 25
+MAX_AUTO_APPLIED = 50
+"""The most auto-applied cards one read returns."""
 MAX_CANDIDATES = 200
 """The most eligible cards one read looks at when it builds the groups."""
 
@@ -71,6 +73,15 @@ class SuggestionReadStore(TransactionalStore, Protocol):
         expires_after: datetime | None = None,
         limit: int = ...,
         offset: int = 0,
+    ) -> list[Suggestion]: ...
+    def list_auto_applied(
+        self,
+        session: TxSession,
+        owner_id: UUID,
+        *,
+        since: datetime | None = None,
+        automation_id: UUID | None = None,
+        limit: int = ...,
     ) -> list[Suggestion]: ...
     def list_checks(
         self, session: TxSession, owner_id: UUID, suggestion_id: UUID
@@ -148,6 +159,16 @@ class SuggestionList:
 
 
 @dataclass(frozen=True, slots=True)
+class AutoAppliedList:
+    """What the opt-in policy applied, newest first. A card that is still `applied` can be undone
+    by the owner; one that is `undone` shows that it was."""
+
+    items: tuple[SuggestionView, ...]
+    hidden: int
+    """Cards of a domain the reader may not read: counted, not shown."""
+
+
+@dataclass(frozen=True, slots=True)
 class SuggestionDetail:
     view: SuggestionView
     datapoints: tuple[Datapoint, ...]
@@ -216,6 +237,35 @@ class SuggestionReads:
                 else ()
             )
             return SuggestionList(Page(views, next_cursor), groups, len(cards) - len(shown))
+
+        return self.store.transaction(read)
+
+    def list_auto_applied(
+        self,
+        actor: Actor,
+        *,
+        since: datetime | None = None,
+        automation_id: UUID | None = None,
+        limit: int = MAX_AUTO_APPLIED,
+    ) -> AutoAppliedList:
+        """The suggestions the policy applied after `since` (all when None), newest first.
+
+        This is what a report lists as applied without the owner, each with its undo. Text of a
+        card is shown only to a reader of the domain the card wrote to.
+        """
+
+        actor.require(READ_SCOPE)
+        validate_limit(limit, maximum=MAX_AUTO_APPLIED)
+
+        def read(session: TxSession) -> AutoAppliedList:
+            cards = self.store.list_auto_applied(
+                session, actor.user_id, since=since, automation_id=automation_id, limit=limit
+            )
+            readable = readable_effects(actor)
+            shown = [card for card in cards if card.effect in readable]
+            lookup = Lookup(self.store, session, actor.user_id)
+            views = self._views(session, actor.user_id, lookup, shown)
+            return AutoAppliedList(tuple(views), len(cards) - len(shown))
 
         return self.store.transaction(read)
 

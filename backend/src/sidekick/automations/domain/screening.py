@@ -307,14 +307,30 @@ def _is_instruction_like(raw_texts: Sequence[str]) -> bool:
     return False
 
 
-def _unverified_contact(parsed: ParsedPayload, sources: Sequence[SourceInfo]) -> bool:
-    email = contact_email(parsed)
-    mail_domains = {
+def _mail_domains(sources: Sequence[SourceInfo]) -> set[str]:
+    return {
         source.sender_domain
         for source in sources
         if source.kind == "mail" and source.sender_domain is not None
     }
+
+
+def _unverified_contact(parsed: ParsedPayload, sources: Sequence[SourceInfo]) -> bool:
+    email = contact_email(parsed)
+    mail_domains = _mail_domains(sources)
     return bool(email and mail_domains and not email_matches_sender(email, mail_domains))
+
+
+def contact_domain_matches_sender(
+    parsed: ParsedPayload, sources: Sequence[SourceInfo]
+) -> bool | None:
+    """Whether a contact's e-mail is on the domain a source mail came from: strict, so no mail
+    source at all is False. None when the proposal has no e-mail address to compare."""
+
+    email = contact_email(parsed)
+    if not email:
+        return None
+    return email_matches_sender(email, _mail_domains(sources))
 
 
 def _duplicates_existing(parsed: ParsedPayload, context: ScreeningContext) -> bool:
