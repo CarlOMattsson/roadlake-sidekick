@@ -31,14 +31,14 @@ describe.each([
     name: "sv",
     locale: "sv",
     loading: "Laddar…",
-    rooms: ["Arbete", "Dagbok", "Inköp", "Mer"],
+    rooms: ["Start", "Arbete", "Dagbok", "Inköp", "Mer"],
     text: "Väntar på data från Claude. Be Claude öppna den igen.",
   },
   {
     name: "en",
     locale: "en-US",
     loading: "Loading…",
-    rooms: ["Work", "Journal", "Shopping", "More"],
+    rooms: ["Home", "Work", "Journal", "Shopping", "More"],
     text: "Still waiting for data from Claude. Ask Claude to open this again.",
   },
 ])("AwaitingResult ($name)", ({ locale, loading, rooms, text }) => {

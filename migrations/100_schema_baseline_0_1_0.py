@@ -2378,9 +2378,7 @@ def _check_schema_is_the_head(cursor: Any) -> None:
             failed.append(name)
     cursor.execute("RESET ROLE")
     if failed:
-        raise RuntimeError(
-            MISMATCH.format(head=FOLDED_CHAIN_HEAD, failed=", ".join(failed))
-        )
+        raise RuntimeError(MISMATCH.format(head=FOLDED_CHAIN_HEAD, failed=", ".join(failed)))
 
 
 def apply_baseline(connection: Any) -> None:
@@ -2396,12 +2394,8 @@ def apply_baseline(connection: Any) -> None:
         # two lists differ in length, and the database is refused.
         cursor.execute("SELECT migration_id FROM public._yoyo_migration")
         applied = sorted(row[0] for row in cursor.fetchall())
-        in_chain = [
-            migration_id for migration_id in FOLDED_CHAIN if migration_id in applied
-        ]
-        missing = (
-            _missing_folded_steps(in_chain) if len(in_chain) == len(applied) else None
-        )
+        in_chain = [migration_id for migration_id in FOLDED_CHAIN if migration_id in applied]
+        missing = _missing_folded_steps(in_chain) if len(in_chain) == len(applied) else None
         if missing is None:
             raise RuntimeError(REFUSAL.format(applied=", ".join(applied) or "none"))
         for _migration_id, sql in missing:

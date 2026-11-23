@@ -44,8 +44,8 @@ for (const width of widths) {
         replies: { get_task: getTaskFromEntry },
       });
       await expectRoomNames(app, {
-        cells: ["Arbete", "Dagbok", "Inköp", "Mer"],
-        picker: ["Arbete", "Dagbok", "Inköp", "Kontakter"],
+        cells: ["Start", "Arbete", "Dagbok", "Inköp", "Mer"],
+        picker: ["Start", "Arbete", "Dagbok", "Inköp", "Kontakter"],
       });
       // The entry is a first step above the journal's day: Back is there from the start.
       await expect(h2(app, "Lunch med Anna")).toBeVisible();

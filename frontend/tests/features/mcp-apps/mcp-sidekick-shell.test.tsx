@@ -137,7 +137,7 @@ it("shows the strip's rooms in order, marks the active one, and leaves Control o
   const names = Array.from(nav.querySelectorAll("button")).map(
     (b) => b.textContent,
   );
-  expect(names).toEqual(["Arbete", "Dagbok", "Inköp", "Mer"]);
+  expect(names).toEqual(["Start", "Arbete", "Dagbok", "Inköp", "Mer"]);
   expect(tab("Dagbok")).toHaveAttribute("aria-current", "page");
   expect(tab("Arbete")).not.toHaveAttribute("aria-current");
   expect(screen.queryByRole("button", { name: "Kontroll" })).toBeNull();
@@ -457,7 +457,7 @@ it("opens Control as a step of Arbete: the strip stays with no room chosen, and 
   // Control applies to every room, so no room is marked there: the strip stays, with no tab current (designsystem §3,
   // Rumsremsan).
   const strip = screen.getByRole("navigation", { name: "Rum" });
-  expect(within(strip).getAllByRole("button")).toHaveLength(4);
+  expect(within(strip).getAllByRole("button")).toHaveLength(5);
   for (const button of within(strip).getAllByRole("button"))
     expect(button).not.toHaveAttribute("aria-current");
   const back = screen.getByRole("button", {
@@ -670,13 +670,14 @@ it("gives way to the room picker when the four rooms do not fit, and a choice sw
   fireEvent.click(pick);
   const items = screen.getAllByRole("menuitemradio");
   expect(items.map((item) => item.textContent)).toEqual([
+    "Start",
     "Arbete",
     "Dagbok",
     "Inköp",
     "Kontakter",
   ]);
-  expect(items[1]).toHaveAttribute("aria-checked", "true");
-  fireEvent.click(items[3]!);
+  expect(items[2]).toHaveAttribute("aria-checked", "true");
+  fireEvent.click(items[4]!);
   expect(screen.queryByRole("menu")).toBeNull();
   expect(pane("contacts")).not.toHaveAttribute("hidden");
   expect(pick).toHaveTextContent("Kontakter");
@@ -702,6 +703,7 @@ it("in Kontroll the room picker says Rum and marks no room, and its first room t
   fireEvent.click(pick);
   const items = screen.getAllByRole("menuitemradio");
   expect(items.map((item) => item.textContent)).toEqual([
+    "Start",
     "Arbete",
     "Dagbok",
     "Inköp",
@@ -727,7 +729,7 @@ it("moves between strip buttons with the arrow keys", () => {
   fireEvent.keyDown(tab("Inköp"), { key: "End" });
   expect(tab("Mer")).toHaveFocus();
   fireEvent.keyDown(tab("Mer"), { key: "Home" });
-  expect(tab("Arbete")).toHaveFocus();
+  expect(tab("Start")).toHaveFocus();
 });
 
 it("keeps unsaved form text when only the language changes", () => {

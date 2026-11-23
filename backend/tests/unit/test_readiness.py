@@ -1,4 +1,4 @@
-"""Readiness: the expected revision is the newest migration file; any failure is not ready."""
+"""Readiness: every numbered migration file must be applied; any failure is not ready."""
 
 from pathlib import Path
 from types import SimpleNamespace
@@ -9,16 +9,17 @@ from sidekick.shared import readiness
 from sidekick.shared.db_timeouts import DatabaseTimeouts
 
 
-def test_expected_head_is_the_newest_numbered_migration(tmp_path: Path) -> None:
-    for name in ("001_initial", "009_nine", "010_ten", "yoyo", "notes"):
+def test_expected_migrations_are_every_numbered_file_in_number_order(tmp_path: Path) -> None:
+    for name in ("010_ten", "001_initial", "009_nine", "yoyo", "notes"):
         (tmp_path / f"{name}.py").write_text("", encoding="utf-8")
-    (tmp_path / "011_not_python.sql").write_text("", encoding="utf-8")
-    assert readiness.expected_schema_head(tmp_path) == "010_ten"
+
+    assert readiness.expected_migration_ids(tmp_path) == ["001_initial", "009_nine", "010_ten"]
 
 
-def test_the_repository_head_is_a_real_migration_file() -> None:
-    head = readiness.expected_schema_head()
-    assert (readiness.DEFAULT_MIGRATIONS_DIR / f"{head}.py").is_file()
+def test_the_repository_migrations_are_real_files_in_number_order() -> None:
+    expected = readiness.expected_migration_ids()
+    assert all((readiness.DEFAULT_MIGRATIONS_DIR / f"{name}.py").is_file() for name in expected)
+    assert expected == sorted(expected)
 
 
 def test_no_migrations_directory_is_not_ready(tmp_path: Path) -> None:

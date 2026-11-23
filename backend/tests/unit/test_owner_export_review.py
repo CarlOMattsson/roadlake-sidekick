@@ -1,5 +1,6 @@
-"""Repetition in the owner export (format 11): the three collections, the ids a restore rewrites,
-the answer keys it leaves as written, and the refusal of a card that names the wrong source."""
+"""Repetition in the owner export (from format 11): the three collections, the ids a restore
+rewrites, the answer keys it leaves as written, and the refusal of a card that names the wrong
+source."""
 
 from datetime import UTC, datetime, time
 from typing import Any
@@ -140,14 +141,14 @@ def _document(**cards: object) -> dict[str, Any]:
     )
 
 
-def test_the_export_is_format_eleven_and_carries_the_three_repetition_collections() -> None:
-    assert EXPORT_FORMAT_VERSION == 11
+def test_the_export_carries_the_three_repetition_collections_that_format_11_added() -> None:
+    assert EXPORT_FORMAT_VERSION == 12
     assert {"review_settings", "review_cards", "review_log"} == COLLECTIONS_ADDED_IN_FORMAT_11
     assert set(SOURCES_BY_NAME) >= COLLECTIONS_ADDED_IN_FORMAT_11
 
     document = _document()
 
-    assert document["format_version"] == 11
+    assert document["format_version"] == 12
     assert verify_export(document).collection_counts["review_cards"] == 1
     verify_restorable(document)
 
@@ -239,7 +240,7 @@ def test_the_formats_before_have_no_repetition_collections_and_restore_without_t
         assert build_restore_plan(older, TARGET_ID).status == "ready"
         rows = remapped_restore_rows(older, TARGET_ID)
         assert all(rows[name] == [] for name in COLLECTIONS_ADDED_IN_FORMAT_11)
-    assert EXPORT_FORMAT_VERSION == 11
+    assert EXPORT_FORMAT_VERSION == 12
 
 
 @pytest.mark.parametrize("name", sorted(COLLECTIONS_ADDED_IN_FORMAT_11))

@@ -24,7 +24,9 @@ const apps = {
 // 2026-11-20: 245 KiB to 255 KiB for the desktop layer (popover menus, room head, list beside detail; measured 253 910).
 // 2026-11-20: 255 KiB to 270 KiB for the desktop Journal and Control (month rail, reading pane, Control's table; measured 263 695).
 // 2026-11-23: 270 KiB to 275 KiB for the room strip that follows the frame (glyphs on a phone, also in the placeholder; measured 277 578).
-const GZIP_BUDGET_BYTES = 275 * 1024;
+// 2026-11-23: 275 KiB to 285 KiB for the Start room's suggestion inbox and the decision family it is the first to draw
+// (DecisionCard, ApproveGroup, TrustNote, QuoteBlock; measured 290 693 bytes, 283.9 KiB).
+const GZIP_BUDGET_BYTES = 285 * 1024;
 type AppName = keyof typeof apps;
 
 const LOCALES = ["sv", "en"] as const;
@@ -33,11 +35,15 @@ const LOCALES = ["sv", "en"] as const;
  * (sidekick-shell-labels.ts) and `awaitingSv`/`awaitingEn` in awaiting.tsx; tests/features/mcp-apps/awaiting.test.tsx checks the built document.
  */
 /** The rooms of the strip's own cells (PRIMARY_ROOM_IDS in router.ts), in the order of `rooms` below: each names its glyph. */
-const WAIT_ROOMS = ["work", "journal", "shopping"] as const;
+const WAIT_ROOMS = ["start", "work", "journal", "shopping"] as const;
 const WAIT_TEXT = {
-  sv: { rooms: ["Arbete", "Dagbok", "Inköp"], more: "Mer", loading: "Laddar…" },
+  sv: {
+    rooms: ["Start", "Arbete", "Dagbok", "Inköp"],
+    more: "Mer",
+    loading: "Laddar…",
+  },
   en: {
-    rooms: ["Work", "Journal", "Shopping"],
+    rooms: ["Home", "Work", "Journal", "Shopping"],
     more: "More",
     loading: "Loading…",
   },

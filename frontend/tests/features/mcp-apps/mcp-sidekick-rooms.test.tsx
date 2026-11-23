@@ -257,7 +257,24 @@ it("marks the domains a write may have changed and none for a read", () => {
     "journal",
     "control",
   ]);
-  expect(dirtyDomains("restore_from_trash")).toHaveLength(5);
+  expect(dirtyDomains("decide_suggestions")).toEqual([
+    "start",
+    "work",
+    "contacts",
+    "journal",
+    "control",
+  ]);
+  expect(dirtyDomains("undo_suggestion")).toContain("start");
+  expect(dirtyDomains("list_suggestions")).toEqual([]);
+  expect(dirtyDomains("get_suggestion")).toEqual([]);
+  expect(dirtyDomains("restore_from_trash")).toEqual([
+    "start",
+    "work",
+    "journal",
+    "contacts",
+    "shopping",
+    "control",
+  ]);
 });
 
 // Ändringar, Papperskorg, Aktivitet and Minne in Kontroll show what every write changes.

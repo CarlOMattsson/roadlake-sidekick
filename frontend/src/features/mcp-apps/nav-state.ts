@@ -55,6 +55,7 @@ function perRoom<T>(make: (room: RoomId) => T): Record<RoomId, T> {
 
 /** The views that show one record (a Task, a Contact, a post). They are details, never a room's overview. */
 const RECORD_VIEWS: Readonly<Record<string, readonly string[]>> = {
+  start: ["suggestion"],
   work: ["task", "project", "process"],
   contacts: ["contact", "compact"],
   journal: ["entry", "draft", "card", "source"],
@@ -172,10 +173,11 @@ export function goBack(state: NavState): NavState {
 
 /**
  * The list views a record opens beside in a wide frame (desktop spec 2.1): Work's Agenda, Status and Projekt, the
- * Contact list and the Journal's day. Control, Shopping (which splits inside its own view) and the other overviews keep
+ * Contact list, the Journal's day and Start's suggestions. Control, Shopping (which splits inside its own view) and the other overviews keep
  * one column.
  */
 const SPLIT_LISTS: Readonly<Record<string, readonly string[]>> = {
+  start: [ROOT_VIEW, "suggestions"],
   work: [ROOT_VIEW, "agenda", "board", "hierarchy"],
   contacts: [ROOT_VIEW, "list"],
   journal: [ROOT_VIEW, "day"],

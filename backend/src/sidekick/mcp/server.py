@@ -31,6 +31,7 @@ from sidekick.mcp.journal import register_journal_tools
 from sidekick.mcp.license import register_license_tools
 from sidekick.mcp.lifecycle import register_lifecycle_tools
 from sidekick.mcp.memory import register_memory_tools
+from sidekick.mcp.ready_tools import register_ready_tools
 from sidekick.mcp.references import register_reference_tools
 from sidekick.mcp.reply_scopes import WriteReplyScopes
 from sidekick.mcp.request_log import McpRequestLogging
@@ -118,6 +119,7 @@ def _register_tools(
     register_work_card_tools(mcp, ctx)
     register_brief_tools(mcp, ctx)
     register_start_tools(mcp, ctx)
+    register_ready_tools(mcp, ctx)
     register_change_tools(mcp, ctx)
     register_reschedule_tools(mcp, ctx)
     register_review_tools(mcp, ctx)

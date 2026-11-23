@@ -175,6 +175,20 @@ repetition data. The owner export carries all three as collections (format 11); 
 them and restores no repetition. `sidekick-owner-export restore --refold` folds every restored card's answers again and
 reports the cards whose stored schedule differs.
 
+## Migration 123: ready conversations
+
+`123_ready_conversations.py` is an additive (expand) migration. It adds two tables: `ready_conversations` (a standing
+prompt for the owner's Claude: a title, a kind, the owner's own instruction, up to ten ingredients from a closed set,
+a cadence, and a state of active, paused or archived) and `ready_conversation_days` (one row per conversation and
+calendar day when it was skipped, started or a skip was undone; no row means nothing happened that day). The ingredients,
+kind and state are closed by CHECK constraints, and a day row names a conversation of the same owner through a composite
+foreign key. A summary is never stored: starting a conversation reads the owner's records at that moment. The application
+role may read, insert and update the conversations (it archives and pauses, never deletes) and may read, insert, update
+and delete the day rows, which it prunes once they are 60 days old; both tables leave with the owner's account through
+the foreign keys. Rolling it back drops the two tables, which loses only the conversations and their day marks. The owner
+export carries the conversations as a collection (format 12); the day marks are transient and are not exported, so a
+restored conversation starts with every day open. An export of an earlier format has no conversations and restores none.
+
 ## Changing the schema: the checked-in fingerprint
 
 `backend/tests/fixtures/baseline-catalogue.json` is the schema fingerprint: after `yoyo apply` on an empty database,

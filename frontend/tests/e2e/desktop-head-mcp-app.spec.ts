@@ -188,7 +188,7 @@ test("Desktop head at 1440 x 900: g and a number goes to that room", async ({
   const { app, failures } = await open(page, 1440, 900);
   await app.getByRole("button", { name: "Arbete", exact: true }).focus();
   await page.keyboard.press("g");
-  await page.keyboard.press("2");
+  await page.keyboard.press("3");
   await expect(
     app.getByRole("button", { name: "Dagbok", exact: true }),
   ).toHaveAttribute("aria-current", "page");

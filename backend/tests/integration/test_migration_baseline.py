@@ -41,6 +41,7 @@ from tests.support.migration_baseline import (
     JOURNAL_ATTACHMENTS,
     MIGRATIONS_PATH,
     OLD_NAME,
+    READY,
     REVIEW,
     TAG_LINKS,
     TASK_AMBITION,
@@ -160,6 +161,8 @@ APP_PRIVILEGES = {
     "push_outbox": "SIU",
     "push_reminders": "SIU",
     "push_subscriptions": "SIU",
+    "ready_conversation_days": "SIUD",
+    "ready_conversations": "SIU",
     "review_cards": "SIUD",
     "review_log": "SI",
     "review_settings": "SIU",
@@ -210,6 +213,7 @@ def test_a_fresh_install_has_the_head_without_retired_tables_and_the_pinned_gran
         AUTOMATIONS,
         JOURNAL_ATTACHMENTS,
         REVIEW,
+        READY,
         ATTACHMENT_DETAILS,
     }
     engine = create_engine(_admin_url())
@@ -424,6 +428,7 @@ def test_a_database_on_the_folded_chain_head_is_adopted_unchanged_with_its_data(
         "ALTER TABLE sidekick.tasks DROP COLUMN last_reviewed_at; "
         "ALTER TABLE sidekick.tasks DROP COLUMN ambition_since; "
         "DROP TABLE sidekick.journal_attachments; "
+        "DROP TABLE sidekick.ready_conversation_days, sidekick.ready_conversations; "
         "DROP TABLE sidekick.review_log, sidekick.review_cards, sidekick.review_settings; "
         "DROP TABLE sidekick.webhook_tokens; "
         "DROP TABLE sidekick.automation_report_cursors, sidekick.automation_checks, "
@@ -458,6 +463,7 @@ def test_a_database_on_the_folded_chain_head_is_adopted_unchanged_with_its_data(
         AUTOMATIONS,
         JOURNAL_ATTACHMENTS,
         REVIEW,
+        READY,
         ATTACHMENT_DETAILS,
     }
     engine = create_engine(_admin_url())
@@ -489,6 +495,7 @@ def _stamp(ids: list[str]) -> None:
         AUTOMATIONS,
         JOURNAL_ATTACHMENTS,
         REVIEW,
+        READY,
         ATTACHMENT_DETAILS,
     ):
         _run("DELETE FROM public._yoyo_migration WHERE migration_id = :id", {"id": migration_id})

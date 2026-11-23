@@ -1,4 +1,4 @@
-"""An owner export as an earlier format (4 to 10) wrote it, built from a current one."""
+"""An owner export as an earlier format (4 to 11) wrote it, built from a current one."""
 
 from __future__ import annotations
 
@@ -11,12 +11,14 @@ from sidekick.owner_export.catalogue import (
     COLLECTIONS_ADDED_IN_FORMAT_9,
     COLLECTIONS_ADDED_IN_FORMAT_10,
     COLLECTIONS_ADDED_IN_FORMAT_11,
+    COLLECTIONS_ADDED_IN_FORMAT_12,
     COLUMNS_ADDED_IN_FORMAT_7,
     COLUMNS_ADDED_IN_FORMAT_8,
     FORMAT_WITH_RETIRED_COLLECTIONS,
     FORMAT_WITHOUT_AI_STEPS,
     FORMAT_WITHOUT_AUTOMATIONS,
     FORMAT_WITHOUT_PHOTOS,
+    FORMAT_WITHOUT_READY_CONVERSATIONS,
     FORMAT_WITHOUT_REVIEW,
     FORMAT_WITHOUT_TAG_LINKS,
     FORMAT_WITHOUT_TASK_REVIEW,
@@ -69,12 +71,22 @@ def _without_columns(
     }
 
 
+def _format_11_collections(document: Mapping[str, Any]) -> dict[str, Any]:
+    """The collections without what format 12 added: the ready conversations."""
+
+    return {
+        name: rows
+        for name, rows in document["collections"].items()
+        if name not in COLLECTIONS_ADDED_IN_FORMAT_12
+    }
+
+
 def _format_10_collections(document: Mapping[str, Any]) -> dict[str, Any]:
     """The collections without what format 11 added: the repetition collections."""
 
     return {
         name: rows
-        for name, rows in document["collections"].items()
+        for name, rows in _format_11_collections(document).items()
         if name not in COLLECTIONS_ADDED_IN_FORMAT_11
     }
 
@@ -124,6 +136,15 @@ def _without_tag_links(document: Mapping[str, Any]) -> dict[str, Any]:
         for name, rows in _format_6_collections(document).items()
         if name not in COLLECTIONS_ADDED_IN_FORMAT_6
     }
+
+
+def as_format_11(document: Mapping[str, Any], head: str = HEAD_124) -> dict[str, Any]:
+    """The document without the ready conversations of format 12, stamped with `head` and sealed
+    again."""
+
+    return _resealed(
+        document, FORMAT_WITHOUT_READY_CONVERSATIONS, head, _format_11_collections(document)
+    )
 
 
 def as_format_10(document: Mapping[str, Any], head: str = HEAD_124) -> dict[str, Any]:

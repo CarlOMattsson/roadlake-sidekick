@@ -144,7 +144,7 @@ def test_an_export_carries_the_settings_the_card_and_every_answer(env: Env) -> N
         "review_cards": 1,
         "review_log": 4,
     }
-    assert document["format_version"] == 11
+    assert document["format_version"] == 12
     settings = document["collections"]["review_settings"][0]
     assert (settings["push_local_time"], settings["desired_retention"]) == ("07:30:00", "0.85")
 

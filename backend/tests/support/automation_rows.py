@@ -36,6 +36,7 @@ _CASTS = {
     "auto_effects": "character varying[]",
     "screening_flags": "character varying[]",
     "reason_codes": "character varying[]",
+    "ingredients": "character varying[]",
 }
 _JSON_COLUMNS = frozenset({"cadence", "fields", "payload", "proposed_payload"})
 

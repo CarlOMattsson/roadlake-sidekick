@@ -104,7 +104,7 @@ test("the placeholder pads 16 at the sides and 8 above plus the host's safe area
     height: "40px",
   });
   const rooms = await app.locator(".sidekick-wait-room").all();
-  expect(rooms).toHaveLength(4);
+  expect(rooms).toHaveLength(5);
   for (const room of rooms) {
     const cell = await room.evaluate((element) => {
       const glyph = getComputedStyle(element, "::before");
@@ -128,9 +128,16 @@ test("the placeholder pads 16 at the sides and 8 above plus the host's safe area
     await app.locator(".sidekick-wait-room[data-current]").textContent(),
   ).toBe("Work");
   // The cells without a name share the row equally; the open room's takes what its name needs beyond that share.
-  const [open, ...others] = await Promise.all(
-    rooms.map(async (room) => (await box(room)).width),
+  const widths = await Promise.all(
+    rooms.map(async (room) => ({
+      width: (await box(room)).width,
+      current: await room.evaluate((element) =>
+        element.hasAttribute("data-current"),
+      ),
+    })),
   );
+  const open = widths.find((cell) => cell.current)!.width;
+  const others = widths.filter((cell) => !cell.current).map((c) => c.width);
   for (const width of others) {
     expect(Math.abs(width - others[0]!)).toBeLessThan(0.5);
     expect(width).toBeGreaterThanOrEqual(44);

@@ -12,6 +12,7 @@
  */
 
 export const ROOM_IDS = [
+  "start",
   "work",
   "journal",
   "contacts",
@@ -26,12 +27,13 @@ export type RoomId = (typeof ROOM_IDS)[number];
  * These stand in the strip's own cells, in order: the rooms used several times a week. The order is a design
  * decision and never follows use, so the strip does not move under the thumb. Control stays outside the strip.
  * The row holds at most four of them (`StripRow`, so a fifth does not compile): with Mer that is the five cells a
- * 360 frame has room for in both languages, and the fourth place is kept for the start view. A room that would be
+ * 360 frame has room for in both languages, and the first place is the start view. A room that would be
  * one more belongs in Mer. A daily habit that needs no room of its own (the day's review) is a block of the start
  * view and never a cell. The room of a feature the instance has not turned on is drawn in neither place
  * (enabled-rooms.ts).
  */
 export const PRIMARY_ROOM_IDS = [
+  "start",
   "work",
   "journal",
   "shopping",
@@ -45,6 +47,7 @@ export type StripRoomId = (typeof STRIP_ROOM_IDS)[number];
 
 /**
  * The view a room opens on. The names are the room's own; a room maps an unknown view to its root.
+ * start: suggestions (the suggestion inbox), suggestion (one suggestion, a record), decided (the receipt card of a decision or an undo, inline only).
  * work: agenda, board, hierarchy, task, project, process, changes (confirmation card), review (the review queue's card).
  * journal: day, entry, card (one entry as a compact card), draft, pending.
  * contacts: list, contact (with context), compact (one contact record).
@@ -53,6 +56,7 @@ export type StripRoomId = (typeof STRIP_ROOM_IDS)[number];
  */
 export type Route = { room: RoomId; view: string };
 
+const start = (view: string): Route => ({ room: "start", view });
 const work = (view: string): Route => ({ room: "work", view });
 const journal = (view: string): Route => ({ room: "journal", view });
 const contacts = (view: string): Route => ({ room: "contacts", view });
@@ -61,6 +65,11 @@ const control = (view: string): Route => ({ room: "control", view });
 
 /** Tool name to route. Contact tools belong to Contacts although their resource is the Work app. */
 export const TOOL_ROUTES: Readonly<Record<string, Route>> = {
+  // Start
+  list_suggestions: start("suggestions"),
+  get_suggestion: start("suggestion"),
+  decide_suggestions: start("decided"),
+  undo_suggestion: start("decided"),
   // Work
   get_work_agenda: work("agenda"),
   get_work_board: work("board"),
@@ -140,6 +149,10 @@ const isActivityItem = (item: unknown) =>
 /** add_shopping_items answers `items: [{ item, merged }]`; update_shopping_item answers `item`. */
 const isBatchItem = (item: unknown) => isObj(item) && isObj(item.item);
 
+/** One outcome of decide_suggestions: `{ suggestion_id, state, ... }`. */
+const isDecidedItem = (item: unknown) =>
+  hasString(item, "suggestion_id") && hasString(item, "state");
+
 /**
  * The route a result's shape implies, or undefined when the shape is not one we know. Checks run
  * from the most specific shape to the least, because several results share `items`.
@@ -147,6 +160,21 @@ const isBatchItem = (item: unknown) => isObj(item) && isObj(item.item);
 export function routeForShape(structured: unknown): Route | undefined {
   if (!isObj(structured)) return undefined;
   const data = structured;
+  if (
+    Array.isArray(data.groups) &&
+    Array.isArray(data.items) &&
+    typeof data.hidden === "number"
+  )
+    return start("suggestions");
+  if (hasString(data.suggestion, "id")) return start("suggestion");
+  if (
+    Array.isArray(data.items) &&
+    data.items.length > 0 &&
+    everyItem(data.items, isDecidedItem)
+  )
+    return start("decided");
+  if (typeof data.suggestion_id === "string" && "trashed" in data)
+    return start("decided");
   if (isObj(data.card) && data.card.kind === "work_changes")
     return work("changes");
   if (

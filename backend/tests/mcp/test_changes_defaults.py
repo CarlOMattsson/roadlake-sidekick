@@ -17,6 +17,7 @@ from fastmcp import Client
 from sidekick.api.app import create_container
 from sidekick.mcp.automation_tools import AutomationChanges
 from sidekick.mcp.contact_records import ContactChanges
+from sidekick.mcp.ready_tools import ReadyChanges
 from sidekick.mcp.server import create_mcp_server
 from sidekick.shared.auth import MCP_SCOPES
 from sidekick.shared.types import Actor
@@ -177,6 +178,19 @@ CASES = [
         {"frequency": "daily", "local_time": "07:30"},
         ("spec_digest",),
     ),
+    Case(
+        "save_ready_conversation",
+        "conversation_id",
+        "expected_version",
+        "conversation",
+        tuple(name for name in ReadyChanges.model_fields if name != "instruction"),
+        {"title": "Renamed"},
+        "title",
+        ReadyChanges,
+        "instruction",
+        "Ask one question at a time.",
+        ("instruction_written_by",),
+    ),
 ]
 BY_TOOL = {case.tool: case for case in CASES}
 
@@ -222,9 +236,20 @@ async def _seed(client: Client) -> dict[str, dict[str, Any]]:
         },
         "automation",
     )
+    conversation = await call(
+        "save_ready_conversation",
+        {
+            "changes": {
+                "title": "Evening review",
+                "cadence": {"frequency": "daily", "local_time": "18:00"},
+            }
+        },
+        "conversation",
+    )
     return {
         "photo": photo,
         "automation": automation,
+        "conversation": conversation,
         "task": task,
         "step": step,
         "action": action,

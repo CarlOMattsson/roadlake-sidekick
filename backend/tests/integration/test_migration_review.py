@@ -23,6 +23,7 @@ from tests.db import database_factory, require_test_database_url
 from tests.support.automation_rows import insert_owner
 from tests.support.migration_baseline import (
     ATTACHMENT_DETAILS,
+    READY,
     REVIEW,
     _admin_url,
     _applied_ids,
@@ -32,7 +33,7 @@ from tests.support.migration_baseline import (
     _run,
     _snapshot,
     _tables,
-    chain_through,
+    chain_through_without,
     ids_through,
     rebuilt_schema,  # noqa: F401  (a fixture, used through `usefixtures`)
 )
@@ -44,14 +45,16 @@ OWNER = "00000000-0000-4000-8000-000000000001"
 
 def _chain_before_review(tmp_path: Path) -> Path:
     """The migrations an installation has when `121_review` is the only one still to apply: the
-    chain through `124_journal_attachment_details` (which it follows) without it."""
+    chain through `124_journal_attachment_details` (which it follows) without it and without
+    `123_ready_conversations` (which follows it)."""
 
-    directory = tmp_path / "chain-before-review"
-    directory.mkdir(exist_ok=True)
-    for source in chain_through(tmp_path, ATTACHMENT_DETAILS).glob("*.py"):
-        if source.stem != REVIEW:
-            (directory / source.name).write_text(source.read_text(encoding="utf-8"))
-    return directory
+    return chain_through_without(tmp_path, ATTACHMENT_DETAILS, REVIEW, READY)
+
+
+def _chain_through_review(tmp_path: Path) -> Path:
+    """The same chain with `121_review` applied and `123_ready_conversations` still to come."""
+
+    return chain_through_without(tmp_path, ATTACHMENT_DETAILS, READY)
 
 
 def _tables_now() -> set[str]:
@@ -86,10 +89,10 @@ def test_the_tables_are_added_empty_and_every_existing_row_is_kept(tmp_path: Pat
     before = _tables_now()
     assert NEW_TABLES.isdisjoint(before)
 
-    _apply(chain_through(tmp_path, ATTACHMENT_DETAILS))
+    _apply(_chain_through_review(tmp_path))
 
     assert _tables_now() == before | NEW_TABLES
-    assert _applied_ids() == ids_through(ATTACHMENT_DETAILS)
+    assert _applied_ids() == ids_through(ATTACHMENT_DETAILS) - {READY}
     assert _users() == 1
     engine = create_engine(_admin_url())
     try:
@@ -112,7 +115,7 @@ def test_a_rollback_returns_the_schema_to_what_migration_124_built(tmp_path: Pat
     expected = _snapshot()
 
     _reset_schema()
-    through = chain_through(tmp_path, ATTACHMENT_DETAILS)
+    through = _chain_through_review(tmp_path)
     _apply(through)
     _run(
         "INSERT INTO sidekick.users (id, username, display_name, created_at) "
@@ -133,7 +136,7 @@ def test_a_rollback_returns_the_schema_to_what_migration_124_built(tmp_path: Pat
         backend.rollback_one(migration)
 
     assert _snapshot() == expected
-    assert _applied_ids() == ids_through(ATTACHMENT_DETAILS) - {REVIEW}
+    assert _applied_ids() == ids_through(ATTACHMENT_DETAILS) - {REVIEW, READY}
     assert _users() == 1
     # The migration applies again.
     _apply(through)

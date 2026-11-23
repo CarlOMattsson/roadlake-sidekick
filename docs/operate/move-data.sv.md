@@ -10,7 +10,7 @@ Flytta dina poster från en installation av 0.1.0 till en annan, till exempel ti
 
 Använd detta för att flytta till en ny server eller en ny databas. Källan måste vara en 0.1.0-installation som har en
 ägarbackup (`sidekick-backup create`, eller backupprofilen) eller kan göra en ägarexport. Importen läser bara det
-nuvarande formatet (format 11) och de sju formaten före det (format 10, skrivet innan repetition fanns, format 9, skrivet innan foton exporterades, format 8, skrivet innan automationer fanns, format 7, skrivet innan AI-steg fanns, format 6, skrivet innan uppgifter mindes när de senast gicks igenom, format 5, skrivet före taggar på kontakter och dagboksposter, och format 4, skrivet vid baslinjens huvud). Det finns inget stött sätt att
+nuvarande formatet (format 12) och de åtta formaten före det (format 11, skrivet innan klara samtal fanns, format 10, skrivet innan repetition fanns, format 9, skrivet innan foton exporterades, format 8, skrivet innan automationer fanns, format 7, skrivet innan AI-steg fanns, format 6, skrivet innan uppgifter mindes när de senast gicks igenom, format 5, skrivet före taggar på kontakter och dagboksposter, och format 4, skrivet vid baslinjens huvud). Det finns inget stött sätt att
 importera data från en installation före 0.1.0: backuper, exporter, ögonblicksbilder och SQL-dumpar från före 0.1.0
 läses inte, och `sidekick-backup import` kan inte importera dem. Behåll dem som arkiv.
 

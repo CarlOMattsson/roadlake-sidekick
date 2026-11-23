@@ -4,15 +4,18 @@ Used by `/health/ready` and, as `python -m sidekick.shared.readiness`, by the se
 healthcheck and the updater. The public surface answers 404 for `/health/*` in `github_oauth`
 mode, so the container checks itself with this command instead of over HTTP.
 
-The expected revision is the newest numbered file in the image's `migrations/` directory. The
-check passes when that id is among the applied migrations: a database that is ahead of the image
+The expected migrations are every numbered file in the image's `migrations/` directory. The check
+passes when all of them are among the applied migrations: a database that is ahead of the image
 (an expand-class rollback to the previous image) is still ready, a database that is behind is not.
+The newest number alone proves nothing, because the chain does not follow the numbers (124 comes
+before 121), so a database that has 124 but not 121 is behind.
 The answer carries no data: exit status 0 or 1 and one word on stdout.
 """
 
 from __future__ import annotations
 
 import sys
+from collections.abc import Sequence
 from pathlib import Path
 
 from sqlalchemy import text
@@ -23,8 +26,8 @@ from sqlalchemy.orm import Session, sessionmaker
 DEFAULT_MIGRATIONS_DIR = Path(__file__).resolve().parents[4] / "migrations"
 
 
-def expected_schema_head(migrations_dir: Path = DEFAULT_MIGRATIONS_DIR) -> str:
-    """The id of the newest numbered migration file, e.g. `100_schema_baseline_0_1_0`."""
+def expected_migration_ids(migrations_dir: Path = DEFAULT_MIGRATIONS_DIR) -> list[str]:
+    """The ids of every numbered migration file, in number order."""
 
     numbered: list[tuple[int, str]] = []
     for path in migrations_dir.glob("*.py"):
@@ -33,18 +36,14 @@ def expected_schema_head(migrations_dir: Path = DEFAULT_MIGRATIONS_DIR) -> str:
             numbered.append((int(number), path.stem))
     if not numbered:
         raise FileNotFoundError("no numbered migrations found")
-    return max(numbered)[1]
+    return [name for _, name in sorted(numbered)]
 
 
-def schema_is_ready(session: Session, expected_head: str) -> bool:
-    """True when the database answers and `expected_head` is among the applied migrations."""
+def schema_is_ready(session: Session, expected_ids: Sequence[str]) -> bool:
+    """True when the database answers and every id of `expected_ids` is among the applied ones."""
 
-    return bool(
-        session.scalar(
-            text("SELECT EXISTS (SELECT 1 FROM public._yoyo_migration WHERE migration_id = :head)"),
-            {"head": expected_head},
-        )
-    )
+    applied = set(session.scalars(text("SELECT migration_id FROM public._yoyo_migration")))
+    return applied.issuperset(expected_ids)
 
 
 def is_ready(
@@ -53,9 +52,9 @@ def is_ready(
     """Never raises: any failure (no database, no grant, no migrations directory) is not ready."""
 
     try:
-        head = expected_schema_head(migrations_dir)
+        expected = expected_migration_ids(migrations_dir)
         with session_factory() as session:
-            return schema_is_ready(session, head)
+            return schema_is_ready(session, expected)
     except Exception:
         return False
 

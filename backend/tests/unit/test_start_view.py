@@ -19,6 +19,7 @@ from sidekick.shared.types import Actor
 from sidekick.start.application.compose import AgendaGroupName, AgendaItem, AgendaPage
 from sidekick.start.application.start import (
     PartName,
+    ReadyFacts,
     StartSources,
     StartView,
     WaitingTask,
@@ -104,6 +105,20 @@ class FakeContacts:
         return self.total
 
 
+class FakeReady:
+    def __init__(self, rows: Sequence[ReadyFacts] = ()) -> None:
+        self.rows = list(rows)
+        self.calls = 0
+
+    def ready_now(self, actor: Actor) -> Sequence[ReadyFacts]:
+        self.calls += 1
+        return self.rows
+
+
+def _ready(title: str) -> ReadyFacts:
+    return ReadyFacts(id=uuid4(), title=title, kind="custom", local_time="18:00", version=1)
+
+
 def _waiting(days: int, contact: str | None = "Erik") -> WaitingTask:
     return WaitingTask(
         id=uuid4(),
@@ -122,6 +137,7 @@ def _compose(
     waiting: FakeWaiting | None = None,
     automations: FakeAutomations | None = None,
     contacts: FakeContacts | None = None,
+    ready: FakeReady | None = None,
     failures: list[tuple[PartName, Exception]] | None = None,
 ) -> StartView:
     sources = StartSources(
@@ -129,6 +145,7 @@ def _compose(
         waiting=waiting or FakeWaiting(),
         automations=automations or FakeAutomations(),
         contacts=contacts or FakeContacts(),
+        ready=ready or FakeReady(),
     )
     sink = failures if failures is not None else []
     return compose_start(
@@ -353,3 +370,51 @@ def test_tomorrow_is_the_owners_next_day() -> None:
 
     assert insight.code == "tomorrow_heavy"
     assert "3" in insight.text
+
+
+def test_a_ready_conversation_is_a_part_that_needs_start_read_and_nothing_else() -> None:
+    ready = FakeReady([_ready("Evening review")])
+
+    view = _compose(frozenset({"start:read"}), ready=ready)
+
+    assert [row.title for row in view.parts["ready"].items] == ["Evening review"]
+    assert (view.parts["ready"].items[0].local_time, view.parts["ready"].items[0].version) == (
+        "18:00",
+        1,
+    )
+
+
+def test_without_start_read_the_ready_source_is_not_asked() -> None:
+    ready = FakeReady([_ready("Evening review")])
+
+    view = _compose(EVERYTHING, ready=ready)
+
+    assert "ready" not in view.parts
+    assert ready.calls == 0
+
+
+def test_at_most_two_ready_conversations_are_shown() -> None:
+    view = _compose(
+        frozenset({"start:read"}), ready=FakeReady([_ready("A"), _ready("B"), _ready("C")])
+    )
+
+    assert [row.title for row in view.parts["ready"].items] == ["A", "B"]
+
+
+def test_a_failing_ready_source_is_named_and_the_other_parts_stand() -> None:
+    class Failing(FakeReady):
+        def ready_now(self, actor: Actor) -> Sequence[ReadyFacts]:
+            raise RuntimeError("secret")
+
+    failures: list[tuple[PartName, Exception]] = []
+
+    view = _compose(
+        frozenset({"start:read", "contacts:read"}),
+        ready=Failing(),
+        contacts=FakeContacts(2),
+        failures=failures,
+    )
+
+    assert [part for part, _ in failures] == ["ready"]
+    assert "ready" not in view.parts
+    assert [item.part for item in view.unavailable] == ["ready"]

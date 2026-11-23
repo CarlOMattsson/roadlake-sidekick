@@ -64,6 +64,15 @@ from sidekick.shared.persistence.stores.base import StoreBase
 from sidekick.shared.types import CursorCodec, SystemClock
 from sidekick.shopping.application.service import ShoppingService
 from sidekick.shopping.persistence.store import ShoppingStore
+from sidekick.start.application.ingredients import IngredientSources
+from sidekick.start.application.ready import ReadyConversationService
+from sidekick.start.persistence import SqlReadyStore
+from sidekick.start.sources import (
+    JournalDiaryDaySource,
+    ShoppingListsSource,
+    WaitingTasksSource,
+    WorkAgendaSource,
+)
 from sidekick.tasks.application import (
     TaskBoardService,
     TaskBulkService,
@@ -141,6 +150,8 @@ class Container:
     automation_activity: AutomationActivityService
     # What the automations did since the owner last looked, and the mark that they have looked.
     automation_report: AutomationReportService
+    # The owner's standing prompts for Claude on a schedule, composed from the other rooms on start.
+    ready_conversations: ReadyConversationService
     # The Android companion's services (ADR-005): pairing and device tokens, push endpoints, and
     # the reminders the phone fetches. The companion routes reach them only through here.
     companion_devices: CompanionDeviceService
@@ -334,6 +345,46 @@ def _create_ai_services(
     )
 
 
+def _create_shopping_service(
+    factory: SessionFactory, settings: Settings, telemetry: TelemetryPort
+) -> ShoppingService:
+    return ShoppingService(
+        ShoppingStore(factory, telemetry),
+        SystemClock(),
+        telemetry,
+        owner_timezone=settings.owner_zone,
+    )
+
+
+def _create_ready_service(
+    factory: SessionFactory,
+    settings: Settings,
+    telemetry: TelemetryPort,
+    rooms: tuple[
+        WorkListService,
+        ContactService,
+        ShoppingService,
+        JournalDayService,
+        AutomationActivityService,
+    ],
+) -> ReadyConversationService:
+    """The ready conversations: stored on their own, and composed from the other rooms on start."""
+
+    work_lists, contacts, shopping, journal_day, automation_activity = rooms
+    return ReadyConversationService(
+        SqlReadyStore(factory, telemetry),
+        SystemClock(),
+        settings.owner_zone,
+        IngredientSources(
+            agenda=WorkAgendaSource(work_lists),
+            waiting=WaitingTasksSource(work_lists, contacts),
+            automations=automation_activity,
+            shopping=ShoppingListsSource(shopping),
+            diary=JournalDiaryDaySource(journal_day),
+        ),
+    )
+
+
 def _create_suggestion_service(
     store: SqlAutomationStore,
     tasks: TaskService,
@@ -440,6 +491,11 @@ def create_container(
     automation_store = SqlAutomationStore(factory, resolved_telemetry)
     memory_store = SqlAlchemyMemoryStore(factory)
     auth_service = create_auth_service(factory, settings, memory_store)
+    journal_day = JournalDayService(
+        stores.journal, SystemClock(), cursor_codec, owner_timezone=settings.owner_zone
+    )
+    shopping = _create_shopping_service(factory, settings, resolved_telemetry)
+    automation_activity = AutomationActivityService(automation_store)
     container = Container(
         settings=settings,
         session_factory=factory,
@@ -458,19 +514,12 @@ def create_container(
         contact_relations=ContactRelationService(stores.contacts, SystemClock(), cursor_codec),
         journal=JournalService(stores.journal, SystemClock(), cursor_codec),
         journal_capture=JournalCaptureService(stores.journal, SystemClock()),
-        journal_day=JournalDayService(
-            stores.journal, SystemClock(), cursor_codec, owner_timezone=settings.owner_zone
-        ),
+        journal_day=journal_day,
         journal_relations=JournalRelationService(stores.journal),
         journal_photos=JournalPhotoService(
             stores.journal, create_photo_files(settings), SystemClock()
         ),
-        shopping=ShoppingService(
-            ShoppingStore(factory, resolved_telemetry),
-            SystemClock(),
-            resolved_telemetry,
-            owner_timezone=settings.owner_zone,
-        ),
+        shopping=shopping,
         references=ExternalReferenceService(
             ExternalReferenceStore(factory, resolved_telemetry),
             SystemClock(),
@@ -497,9 +546,15 @@ def create_container(
         automation_suggestions=_create_suggestion_service(
             automation_store, tasks, contacts, cursor_codec, factory, settings, resolved_telemetry
         ),
-        automation_activity=AutomationActivityService(automation_store),
+        automation_activity=automation_activity,
         automation_report=AutomationReportService(
             SqlReportStore(factory, resolved_telemetry), SystemClock()
+        ),
+        ready_conversations=_create_ready_service(
+            factory,
+            settings,
+            resolved_telemetry,
+            (work_lists, contacts, shopping, journal_day, automation_activity),
         ),
         companion_devices=CompanionDeviceService(CompanionDeviceStore(factory), auth_service),
         push_subscriptions=PushSubscriptionService.from_settings(

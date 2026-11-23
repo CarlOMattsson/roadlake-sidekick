@@ -106,8 +106,8 @@ for (const width of widths) {
       ).toHaveCount(0);
       // The strip still shows every room.
       await expectRoomNames(app, {
-        cells: ["Arbete", "Dagbok", "Inköp", "Mer"],
-        picker: ["Arbete", "Dagbok", "Inköp", "Kontakter"],
+        cells: ["Start", "Arbete", "Dagbok", "Inköp", "Mer"],
+        picker: ["Start", "Arbete", "Dagbok", "Inköp", "Kontakter"],
       });
       expect(failures).toEqual([]);
     });

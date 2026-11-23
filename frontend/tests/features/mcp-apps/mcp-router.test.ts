@@ -213,6 +213,55 @@ it.each(SHAPES)(
   },
 );
 
+it("routes the suggestion tools to Start, and not the app-only group approval", () => {
+  expect(routeForTool("list_suggestions")).toEqual({
+    room: "start",
+    view: "suggestions",
+  });
+  expect(routeForTool("get_suggestion")).toEqual({
+    room: "start",
+    view: "suggestion",
+  });
+  expect(routeForTool("decide_suggestions")).toEqual({
+    room: "start",
+    view: "decided",
+  });
+  expect(routeForTool("undo_suggestion")).toEqual({
+    room: "start",
+    view: "decided",
+  });
+  expect(routeForTool("approve_suggestion_group")).toBeUndefined();
+});
+
+it("reads the shapes of the suggestion results, before the shapes that share items", () => {
+  const inbox = { room: "start", view: "suggestions" };
+  expect(routeForShape({ groups: [], items: [], hidden: 0 })).toEqual(inbox);
+  expect(
+    routeForShape({ groups: [{ count: 1 }], items: [{ id: "s1" }], hidden: 2 }),
+  ).toEqual(inbox);
+  expect(routeForShape({ suggestion: { id: "s1" } })).toEqual({
+    room: "start",
+    view: "suggestion",
+  });
+  const decided = { room: "start", view: "decided" };
+  expect(
+    routeForShape({
+      items: [
+        { suggestion_id: "s1", state: "applied" },
+        { suggestion_id: "s2", state: "pending", error_code: "stale" },
+      ],
+    }),
+  ).toEqual(decided);
+  expect(
+    routeForShape({ suggestion_id: "s1", state: "undone", trashed: null }),
+  ).toEqual(decided);
+  // An empty items list or items of another kind are not a decision.
+  expect(routeForShape({ items: [{ suggestion_id: "s1" }] })).toBeUndefined();
+  expect(
+    routeForShape({ suggestion_id: "s1", state: "undone" }),
+  ).toBeUndefined();
+});
+
 it("does not mistake a work item list for pending journal or activity", () => {
   const workList = {
     items: [{ ...{ kind: "task", id: "t", title: "x", status: "todo" } }],

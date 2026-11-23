@@ -82,6 +82,7 @@ NO_REFERENCE_TOOLS: dict[str, str] = {
     "list_journal_entries": "pages the caller's own entries by date range",
     "list_pending_journal": "lists the caller's own pending sources by date range",
     "list_projects": "pages the caller's own Projects",
+    "list_ready_conversations": "lists the caller's own conversations, filtered by a state",
     "list_recent_changes": "reads the caller's own change feed",
     "list_saved_work_views": "lists the caller's own views",
     "list_shopping_lists": "pages the caller's own lists",

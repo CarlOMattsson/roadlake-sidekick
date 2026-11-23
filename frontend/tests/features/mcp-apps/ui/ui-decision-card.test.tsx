@@ -292,3 +292,25 @@ describe("DecisionCard", () => {
     ).toEqual(["Skip today", "Start"]);
   });
 });
+
+describe("a card in a list", () => {
+  it("opens its detail from the title, which stays the card's heading", () => {
+    const open = vi.fn();
+    render(
+      <DecisionCard locale="sv" {...base} actions={{ ...actions(), open }} />,
+    );
+    const heading = screen.getByRole("heading", {
+      name: "Skapa kontakt: Lena Holm",
+    });
+    fireEvent.click(within(heading).getByRole("button"));
+    expect(open).toHaveBeenCalledOnce();
+  });
+
+  it("has a plain title without `open`", () => {
+    render(<DecisionCard locale="sv" {...base} actions={actions()} />);
+    const heading = screen.getByRole("heading", {
+      name: "Skapa kontakt: Lena Holm",
+    });
+    expect(within(heading).queryByRole("button")).toBeNull();
+  });
+});

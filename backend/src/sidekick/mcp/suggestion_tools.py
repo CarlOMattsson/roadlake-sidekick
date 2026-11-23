@@ -27,6 +27,7 @@ from sidekick.mcp.idempotency import IdempotencyKey
 from sidekick.mcp.results import output_schema
 from sidekick.mcp.results import result as tool_result
 from sidekick.mcp.session import request_session_id
+from sidekick.mcp.sidekick_app import SIDEKICK_APP_URI
 from sidekick.mcp.tool_context import ToolContext
 from sidekick.mcp.work_text import cell, found_sentence, spoken_line
 from sidekick.shared.change_source import current_change_source
@@ -71,6 +72,8 @@ UNDO_DESCRIPTION = (
     "record an approved suggestion created to the trash, if unchanged; restore_from_trash "
     "returns it."
 )
+_OPENS_APP = AppConfig(resource_uri=SIDEKICK_APP_URI)
+# Approving a group is the owner's act inside the open app, so it opens no card of its own.
 _APP_ONLY = AppConfig(visibility=["app"])
 # The server also refuses a call that does not come from the app (`OwnerDecisionsFromTheApp`).
 _REQUIRES_APP = {REQUIRES_APP_META: True}
@@ -113,6 +116,7 @@ def _register_list_suggestions(mcp: FastMCP, ctx: ToolContext) -> None:
         description=LIST_DESCRIPTION,
         output_schema=output_schema(SuggestionPageOutput),
         annotations=READ,
+        app=_OPENS_APP,
     )
     @ctx.instrument("list_suggestions")
     def list_suggestions(
@@ -150,6 +154,7 @@ def _register_get_suggestion(mcp: FastMCP, ctx: ToolContext) -> None:
         description=GET_DESCRIPTION,
         output_schema=output_schema(SuggestionOutput),
         annotations=READ,
+        app=_OPENS_APP,
     )
     @ctx.instrument("get_suggestion")
     def get_suggestion(suggestion_id: UUID) -> ToolResult:
@@ -168,6 +173,7 @@ def _register_decide_suggestions(mcp: FastMCP, ctx: ToolContext) -> None:
         description=DECIDE_DESCRIPTION,
         output_schema=output_schema(DecisionsOutput),
         annotations=WRITE,
+        app=_OPENS_APP,
     )
     @ctx.instrument("decide_suggestions")
     def decide_suggestions(
@@ -215,6 +221,7 @@ def _register_undo_suggestion(mcp: FastMCP, ctx: ToolContext) -> None:
         description=UNDO_DESCRIPTION,
         output_schema=output_schema(UndoOutput),
         annotations=DESTRUCTIVE,
+        app=_OPENS_APP,
     )
     @ctx.instrument("undo_suggestion")
     def undo_suggestion(

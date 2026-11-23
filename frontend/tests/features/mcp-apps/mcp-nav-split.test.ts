@@ -57,6 +57,26 @@ describe("splitOf", () => {
     expect(splitOf(day, "journal", wide)).toEqual({ kind: "aside", list: 0 });
   });
 
+  it("splits Start's suggestions the same way: the inbox beside one suggestion", () => {
+    const inbox = createNavState({ room: "start", view: "root" });
+    expect(splitOf(inbox, "start", wide)).toEqual({ kind: "aside", list: 0 });
+    const listed = createNavState({ room: "start", view: "suggestions" });
+    expect(splitOf(listed, "start", wide)).toEqual({ kind: "aside", list: 0 });
+    const opened = pushEntry(inbox, {
+      room: "start",
+      view: "suggestion",
+      id: "s1",
+    });
+    expect(splitOf(opened, "start", wide)).toEqual({
+      kind: "split",
+      list: 0,
+      detail: 1,
+    });
+    expect(splitOf(opened, "start", { wide: false })).toEqual({
+      kind: "single",
+    });
+  });
+
   it("opens a record beside the list it came from", () => {
     expect(splitOf(pushEntry(work(), task("t1")), "work", wide)).toEqual({
       kind: "split",

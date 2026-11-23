@@ -1,0 +1,89 @@
+/* The suggestion inbox (inbox.tsx), its inline cards (inbox-card.tsx) and the detail (suggestion-detail.tsx). The cards
+   are the decision family's (ui/decision-card.css, ui/approve-group.css); this file only places them. */
+
+/* Full view: the title row, then the groups and the cards 12 apart, the receipt bar last. */
+.sidekick-start.start-inbox {
+  display: grid;
+  gap: var(--sk-s3);
+  min-width: 0;
+}
+
+/* "Förslag" and ⋯ in one 44 row: the view's title at the content edge, ⋯ at the end (on a phone, where the shell's
+   row holds no head). */
+.sidekick-start .start-inbox-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sk-s2);
+  min-height: var(--sk-tap);
+}
+.sidekick-start .start-inbox-title {
+  margin: 0;
+  font: var(--sk-type-title);
+  color: var(--sk-fg);
+}
+.sidekick-start .start-inbox-more-button {
+  margin-inline-end: calc(var(--sk-s3) * -1);
+}
+
+/* "Att granska (n)": the group heading of every room, 24 over (the grid's 12 taken back) and 4 under its cards. */
+.sidekick-start .start-inbox-review {
+  display: grid;
+  gap: var(--sk-s1);
+  margin-top: var(--sk-s3);
+}
+.sidekick-start .start-inbox-section {
+  margin: 0;
+  font: var(--sk-type-section);
+  color: var(--sk-fg);
+}
+.sidekick-start .start-inbox-cards {
+  display: grid;
+  gap: var(--sk-s3);
+  margin: var(--sk-s2) 0 0;
+  padding: 0;
+  list-style: none;
+}
+.sidekick-start .start-inbox-card {
+  min-width: 0;
+}
+/* The card open beside the list in a wide frame: the row family's chosen tone, as a list row is drawn. */
+.sidekick-start .start-inbox-card[aria-current="true"] > .sk-decision {
+  background: var(--sk-row-selected);
+}
+
+.sidekick-start .start-group {
+  display: grid;
+  gap: var(--sk-s1);
+}
+
+.sidekick-start .start-inbox-more {
+  display: grid;
+  justify-items: start;
+  gap: var(--sk-s1);
+}
+.sidekick-start .start-inbox-hidden {
+  margin: 0;
+}
+.sidekick-start .start-inbox-wait,
+.sidekick-start .start-detail-wait {
+  display: grid;
+  gap: var(--sk-s3);
+}
+
+/* Inline: one card, the receipt bar under it. A single suggestion's card has its own surface; its foot stands under it. */
+.sidekick-start.start-inline .start-card-single {
+  display: grid;
+  gap: var(--sk-s2);
+}
+.sidekick-start.start-inline .start-card-foot {
+  padding-inline: var(--sk-s4);
+}
+.sidekick-start.start-inline .start-card-done {
+  margin: 0;
+}
+
+/* The detail's own lines under the quotes: who proposed it and until when, and why it is not among the safe ones. */
+.sidekick-start .start-detail-meta {
+  margin: 0;
+}

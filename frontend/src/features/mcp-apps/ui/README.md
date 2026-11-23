@@ -229,7 +229,7 @@ the owner's clock.
   source?: { name: string; at?: string }          // `at` is display text the view formats ("07:02")
   trust?: { state: "ok" | "unsure" | "suspicious" | "off"; reason?; reasons?; confidence? }   // from decisionTrust
   edited?: boolean                                // "ändrad av dig" after the source
-  actions: { approve; dismiss; review?; edit? }   // review: a suspicious card's way to its detail
+  actions: { approve; dismiss; review?; edit?; open? }   // review: a suspicious card's way to its detail; open: the title leads to it (a list)
   answerLabels?: { approve?; dismiss? }           // "Starta", "Hoppa över idag" on a ready conversation
   density?: "inline" | "full"   frame?: boolean   // frame={false}: the detail pane beside a list
   busy?: "approve" | "dismiss"  failed?: "approve" | "dismiss"

@@ -5,6 +5,7 @@ import type { StripRoomId } from "@/features/mcp-apps/router";
 import {
   BasketIcon,
   CheckRingIcon,
+  HouseIcon,
   NotebookIcon,
   PeopleIcon,
   TilesIcon,
@@ -13,6 +14,7 @@ import {
 
 /** The glyph of every room the strip leads to (ui/icons.tsx); a room that joins the strip needs one here. */
 const ROOM_GLYPHS: Record<StripRoomId, (props: RoomIconProps) => ReactNode> = {
+  start: HouseIcon,
   work: CheckRingIcon,
   journal: NotebookIcon,
   shopping: BasketIcon,

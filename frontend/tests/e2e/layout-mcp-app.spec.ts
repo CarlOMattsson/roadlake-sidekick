@@ -300,7 +300,7 @@ test("full view: every room tab and the Back row are 48 px targets, and the tabs
   await waitForAppInitialized(page);
   await deliverToolResult(page, opening.journalEntry);
   const tabs = app.getByRole("navigation", { name: "Rum" }).getByRole("button");
-  expect(await tabs.count()).toBe(4);
+  expect(await tabs.count()).toBe(5);
   let previousRight = -Infinity;
   for (const tab of await tabs.all()) {
     const box = await boxOf(tab);

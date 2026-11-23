@@ -38,8 +38,9 @@ from sidekick.start.domain.insights import (
 
 TODAY_ROW_LIMIT = 3
 WAITING_ROW_LIMIT = 2
+READY_ROW_LIMIT = 2
 
-PartName = Literal["insight", "suggestions", "today", "waiting", "since_last", "more"]
+PartName = Literal["insight", "ready", "suggestions", "today", "waiting", "since_last", "more"]
 """The parts that can fail. `insight` is pure and is named for completeness."""
 
 
@@ -48,6 +49,21 @@ class StartInsight(ClosedRecord):
     written_by: WrittenBy
     text: str
     """One clean line. When `written_by` is `ai` a model wrote it and the page says so."""
+
+
+class StartReadyRow(ClosedRecord):
+    """A ready conversation: what the page offers to start, and the id and version to act on."""
+
+    id: UUID
+    title: str
+    kind: str
+    local_time: str
+    version: int
+
+
+class StartReady(ClosedRecord):
+    items: list[StartReadyRow]
+    """At most `READY_ROW_LIMIT` conversations that are ready now, the earliest first."""
 
 
 class StartSuggestions(ClosedRecord):
@@ -107,6 +123,7 @@ class StartParts(TypedDict, total=False):
     """The parts the actor's scopes allow; a missing key is a part left out."""
 
     insight: StartInsight
+    ready: StartReady
     suggestions: StartSuggestions
     today: StartToday
     waiting: StartWaiting
@@ -138,6 +155,21 @@ class WaitingTasks:
     capped: bool
 
 
+@dataclass(frozen=True, slots=True)
+class ReadyFacts:
+    id: UUID
+    title: str
+    kind: str
+    local_time: str
+    version: int
+
+
+class ReadySource(Protocol):
+    def ready_now(self, actor: Actor) -> Sequence[ReadyFacts]:
+        """The conversations that are ready now, at most `READY_ROW_LIMIT`, earliest first."""
+        ...
+
+
 class WaitingSource(Protocol):
     def waiting_tasks(self, actor: Actor) -> WaitingTasks:
         """Open tasks that wait on something, with the name of the contact when readable."""
@@ -162,6 +194,7 @@ class StartSources:
     waiting: WaitingSource
     automations: AutomationSource
     contacts: ContactsSource
+    ready: ReadySource
 
 
 class _Composer:
@@ -245,6 +278,22 @@ class _Composer:
                 longest_waiting_days=_whole_days(self.now - named.waiting_since),
             )
 
+    def ready(self) -> None:
+        facts = self._attempt("ready", lambda: self.sources.ready.ready_now(self.actor))
+        if facts:
+            self.parts["ready"] = StartReady(
+                items=[
+                    StartReadyRow(
+                        id=item.id,
+                        title=item.title,
+                        kind=item.kind,
+                        local_time=item.local_time,
+                        version=item.version,
+                    )
+                    for item in facts[:READY_ROW_LIMIT]
+                ]
+            )
+
     def suggestions(self) -> None:
         pending = self._attempt("suggestions", lambda: self.sources.automations.pending(self.actor))
         if pending is not None and pending.total:
@@ -318,6 +367,8 @@ def compose_start(
 
     composer = _Composer(actor, now, zone, sources, on_failure)
     scopes = actor.scopes
+    if "start:read" in scopes:
+        composer.ready()
     if "tasks:read" in scopes:
         composer.tasks()
         composer.waiting()

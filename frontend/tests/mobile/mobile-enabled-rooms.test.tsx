@@ -88,7 +88,7 @@ describe("declareEnabledRooms", () => {
     expect(doc.querySelectorAll('meta[name="sidekick-rooms"]')).toHaveLength(1);
     expect(enabledRooms(doc)).toEqual(["work"]);
     declareEnabledRooms(undefined, doc);
-    expect(enabledRooms(doc)).toHaveLength(5);
+    expect(enabledRooms(doc)).toHaveLength(6);
   });
 });
 

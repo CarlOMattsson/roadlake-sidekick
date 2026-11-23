@@ -24,7 +24,9 @@ from sidekick.start.application.compose import (
     ShoppingListRef,
     ShoppingListsPage,
 )
-from sidekick.start.application.start import WaitingTask, WaitingTasks
+from sidekick.start.application.ingredients import DiaryDay, DiaryEntryLine
+from sidekick.start.application.ready import ReadyConversationService
+from sidekick.start.application.start import ReadyFacts, WaitingTask, WaitingTasks
 from sidekick.work.application.models import WorkQuery, WorkRow
 from sidekick.work.application.work_lists import WorkListService
 
@@ -138,4 +140,45 @@ class WaitingTasksSource:
             ],
             total=len(waiting),
             capped=capped,
+        )
+
+
+class ReadyNowSource:
+    """The conversations that are ready now, as the Start view's part reads them."""
+
+    def __init__(self, ready: ReadyConversationService) -> None:
+        self._ready = ready
+
+    def ready_now(self, actor: Actor) -> list[ReadyFacts]:
+        return [
+            ReadyFacts(
+                id=view.conversation.id,
+                title=view.conversation.title,
+                kind=view.conversation.kind.value,
+                local_time=view.conversation.cadence.local_time,
+                version=view.conversation.version,
+            )
+            for view in self._ready.ready_now(actor)
+        ]
+
+
+class JournalDiaryDaySource:
+    """One diary day for the ingredients of a ready conversation: done tasks and the entries."""
+
+    def __init__(self, journal_day: JournalDayService) -> None:
+        self._journal_day = journal_day
+
+    def diary_day(self, actor: Actor, day: date) -> DiaryDay:
+        journal_day = self._journal_day.get_day(
+            actor, journal_date=day, include_archived=False, limit=PAGE_SIZE, include_done=True
+        )
+        return DiaryDay(
+            done_task_count=journal_day.done.counts.tasks,
+            done_task_titles=tuple(task.title for task in journal_day.done.tasks),
+            entry_count=len(journal_day.entries),
+            entries=tuple(
+                DiaryEntryLine(title=entry.title, summary=entry.summary)
+                for entry in journal_day.entries
+            ),
+            entries_more=journal_day.next_cursor is not None,
         )

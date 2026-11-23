@@ -217,7 +217,7 @@ for (const width of widths) {
       }));
       expect(measure.scrollWidth).toBeLessThanOrEqual(measure.viewport);
       expect(Math.abs(measure.stripHeight - 40)).toBeLessThanOrEqual(0.5);
-      expect(measure.targets).toHaveLength(4);
+      expect(measure.targets).toHaveLength(5);
       for (const target of measure.targets)
         expect(target).toBeGreaterThanOrEqual(43.5);
       expect(failures).toEqual([]);

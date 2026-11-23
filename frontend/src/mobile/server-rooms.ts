@@ -11,7 +11,7 @@
  * in Stockholm's default or the phone's own. A change of zone starts the shell again, like a change of rooms.
  *
  * Control (`control`) is never on in the phone: the companion API has no history or memory routes, so two of its three
- * views could only fail. The trash it holds has its own screen in the phone's settings (phone-trash.tsx). Every link to it disappears, and the shell sends the license entry to Inställningar instead.
+ * views could only fail. Start is left out for the same reason: the suggestion tools have no companion routes. The trash it holds has its own screen in the phone's settings (phone-trash.tsx). Every link to it disappears, and the shell sends the license entry to Inställningar instead.
  */
 import { useEffect, useState } from "react";
 
@@ -27,12 +27,20 @@ export type ServerRoomsNative = Pick<
 
 const ALL_ROOMS = "all";
 
-/** The room the companion API does not serve; the phone's settings stand in its place. */
-const PHONE_WITHOUT: (typeof ROOM_IDS)[number] = "control";
+/**
+ * The rooms the companion API does not serve: Control (the phone's settings stand in its place) and Start (the
+ * suggestion tools have no companion routes).
+ */
+const PHONE_WITHOUT: readonly (typeof ROOM_IDS)[number][] = [
+  "control",
+  "start",
+];
 
-/** The rooms the phone draws: the server's list, or every room when it did not say, without Control. */
+/** The rooms the phone draws: the server's list, or every room when it did not say, without those it cannot serve. */
 function phoneRooms(rooms: readonly string[] | undefined): string[] {
-  return (rooms ?? ROOM_IDS).filter((room) => room !== PHONE_WITHOUT);
+  return (rooms ?? ROOM_IDS).filter(
+    (room) => !(PHONE_WITHOUT as readonly string[]).includes(room),
+  );
 }
 
 /**

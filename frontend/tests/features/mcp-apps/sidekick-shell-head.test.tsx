@@ -216,7 +216,7 @@ describe("the shell's global keys", () => {
     ).toBeInTheDocument();
   });
 
-  it("changes room on g and a number, in the strip's order, and g 5 opens Mer", () => {
+  it("changes room on g and a number, in the strip's order, and g 6 opens Mer", () => {
     stubFrameWidth(1440);
     setup();
     expect(screen.getByRole("button", { name: names.work })).toHaveAttribute(
@@ -224,26 +224,33 @@ describe("the shell's global keys", () => {
       "page",
     );
     key(window, "g");
-    key(window, "2");
+    key(window, "1");
+    expect(screen.getByRole("button", { name: names.start })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+    expect(pane("start")).not.toHaveAttribute("hidden");
+    key(window, "g");
+    key(window, "3");
     expect(screen.getByRole("button", { name: names.journal })).toHaveAttribute(
       "aria-current",
       "page",
     );
     expect(pane("journal")).not.toHaveAttribute("hidden");
-    expect(pane("work")).toHaveAttribute("hidden");
-    key(window, "g");
-    key(window, "3");
-    expect(
-      screen.getByRole("button", { name: names.shopping }),
-    ).toHaveAttribute("aria-current", "page");
-    // There is no g 4: the number does nothing, and g 5 opens the Mer menu instead.
+    expect(pane("start")).toHaveAttribute("hidden");
     key(window, "g");
     key(window, "4");
     expect(
       screen.getByRole("button", { name: names.shopping }),
     ).toHaveAttribute("aria-current", "page");
+    // There is no g 5: the number does nothing, and g 6 opens the Mer menu instead.
     key(window, "g");
     key(window, "5");
+    expect(
+      screen.getByRole("button", { name: names.shopping }),
+    ).toHaveAttribute("aria-current", "page");
+    key(window, "g");
+    key(window, "6");
     expect(screen.getByRole("button", { name: "Mer" })).toHaveAttribute(
       "aria-expanded",
       "true",
@@ -254,7 +261,7 @@ describe("the shell's global keys", () => {
     stubFrameWidth(390);
     const wide = setup();
     key(window, "g");
-    key(window, "3");
+    key(window, "4");
     expect(
       screen.getByRole("button", { name: names.shopping }),
     ).toHaveAttribute("aria-current", "page");

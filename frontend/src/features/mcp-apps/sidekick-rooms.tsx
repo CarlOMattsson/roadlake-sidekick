@@ -1,6 +1,6 @@
 /**
  * The rooms of the Sidekick app as the shell draws them. The shell speaks ShellRoomProps (an entry to
- * show, `visible`, `refreshKey`, `navigate`, `markDirty`); the five rooms speak the room contract of
+ * show, `visible`, `refreshKey`, `navigate`, `markDirty`); the six rooms speak the room contract of
  * room-types.ts (a tool result as `initial`, a transport, `onNavigate`, `onDirty`). RoomAdapter is
  * the one thin translation between them, so a room knows nothing about the shell and the shell
  * nothing about a room's state. RoomId has one source, router.ts.
@@ -28,6 +28,7 @@ import { ControlRoom } from "@/features/control-app/room";
 import { JournalRoom } from "@/features/journal-app/room";
 import { ShoppingRoom } from "@/features/shopping-app/room";
 import { ContactsRoom } from "@/features/work-app/contacts/contacts-room";
+import { StartRoom } from "@/features/start-app/room";
 import { WorkRoom } from "@/features/work-app/room";
 import type {
   RoomRegistry,
@@ -75,6 +76,7 @@ function journalEntryId(data: unknown): string | undefined {
 /** The id of the record a tool result carries ({task: {id}}, {contact: {id}} ...), for a card's own entry. */
 export function idInData(entry: NavEntry): string | undefined {
   const keys: Record<string, string> = {
+    "start:suggestion": "suggestion",
     "work:task": "task",
     "work:project": "project",
     "work:process": "process",
@@ -100,6 +102,8 @@ function idOnlyResult(entry: NavEntry): unknown {
   const id = entry.id ?? idInData(entry);
   if (id === undefined) return undefined;
   switch (`${entry.room}:${entry.view}`) {
+    case "start:suggestion":
+      return { suggestion: { id } };
     case "work:task":
       return { task: { id } };
     case "work:project":
@@ -327,8 +331,9 @@ function adapt(Room: ComponentType<RoomProps>) {
   return Adapted;
 }
 
-/** The five rooms, each behind its adapter. */
+/** The six rooms, each behind its adapter. */
 export const SIDEKICK_ROOMS: RoomRegistry = {
+  start: adapt(StartRoom),
   work: adapt(WorkRoom),
   journal: adapt(JournalRoom),
   contacts: adapt(ContactsRoom),

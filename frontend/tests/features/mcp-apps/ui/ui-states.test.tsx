@@ -440,6 +440,9 @@ describe("the heading of a failed read, for every view a tool can open", () => {
   // What each room:view of the router says could not be read (the room's own heading where a view has none of its
   // own). A route added to the router fails here until its heading has been chosen.
   const expected: Record<string, string> = {
+    "start:suggestions": "Förslagen kunde inte hämtas",
+    "start:suggestion": "Förslaget kunde inte hämtas",
+    "start:decided": "Förslagen kunde inte hämtas",
     "work:agenda": "Uppgifterna kunde inte hämtas",
     "work:board": "Uppgifterna kunde inte hämtas",
     "work:changes": "Uppgifterna kunde inte hämtas",

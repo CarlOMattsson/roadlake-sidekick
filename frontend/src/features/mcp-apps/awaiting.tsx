@@ -40,6 +40,7 @@ import "./awaiting.css";
 const awaitingEn = {
   loading: "Loading…",
   loadingRoom: {
+    start: "Loading suggestions…",
     work: "Loading tasks…",
     journal: "Loading journal…",
     contacts: "Loading contacts…",
@@ -53,6 +54,7 @@ const awaitingEn = {
 const awaitingSv: typeof awaitingEn = {
   loading: "Laddar…",
   loadingRoom: {
+    start: "Laddar förslag…",
     work: "Laddar uppgifter…",
     journal: "Laddar anteckningar…",
     contacts: "Laddar kontakter…",

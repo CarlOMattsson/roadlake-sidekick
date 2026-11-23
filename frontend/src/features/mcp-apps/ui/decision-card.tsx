@@ -39,7 +39,8 @@ import "./decision-card.css";
  * untrusted text).
  *
  * The trust comes from the server's closed codes through `decisionTrust` (decision-codes.ts), never from free text.
- * `edited` adds "ändrad av dig" to the kicker when the owner changed the suggestion before deciding.
+ * `edited` adds "ändrad av dig" to the kicker when the owner changed the suggestion before deciding. `actions.open`
+ * makes the title the way to the card's detail (a list of cards), a button with › that keeps the title's type.
  *
  * `busy` marks the answer in flight (both answers wait); `failed` puts the failure's line under the buttons and the
  * card stays, with the server's `applyError` in words when it gave one. `decided` turns the card into its receipt
@@ -89,6 +90,11 @@ export type DecisionCardProps = {
     review?: () => void;
     /** Opens the target's form in suggestion mode (`full` only). */
     edit?: () => void;
+    /**
+     * Opens the card's detail from its title (a card in a list): the title is then a button with ›, and `review` is
+     * still the suspicious card's own answer. Absent: the title is plain text.
+     */
+    open?: () => void;
   };
   /** Other words for the two answers ("Starta", "Hoppa över idag" on a ready conversation). */
   answerLabels?: { approve?: string; dismiss?: string };
@@ -229,7 +235,19 @@ export function DecisionCard({
       ) : null}
       <p className="sk-eyebrow sk-decision__kicker">{kickerText}</p>
       <Heading className="sk-card__title sk-decision__title" id={titleId}>
-        {title}
+        {actions.open ? (
+          <button
+            type="button"
+            className="sk-decision__open"
+            data-sk-open=""
+            onClick={actions.open}
+          >
+            <span className="sk-decision__open-text">{title}</span>
+            <ChevronRightIcon />
+          </button>
+        ) : (
+          title
+        )}
       </Heading>
       {shownChanges.length > 0 ? (
         <ul className="sk-decision__changes">

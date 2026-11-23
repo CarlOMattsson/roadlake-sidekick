@@ -173,6 +173,7 @@ describe("stripFace()", () => {
 
 describe.each(LOCALES)("the room strip in %s", (locale, labels, navName) => {
   const names = [
+    labels.rooms.start,
     labels.rooms.work,
     labels.rooms.journal,
     labels.rooms.shopping,
@@ -300,7 +301,7 @@ describe("which source wins", () => {
     cleanup();
     setup({ navIcons: "off" });
     expect(strip()).not.toHaveAttribute("data-icons");
-    expect(roomCells()[0]).toHaveTextContent("Arbete");
+    expect(roomCells()[0]).toHaveTextContent("Start");
   });
 
   it("falls back to the meta without a prop", () => {
@@ -323,6 +324,7 @@ describe("which source wins", () => {
     setup();
     expect(strip()).not.toHaveAttribute("data-icons");
     expect(roomCells().map((cell) => cell.textContent)).toEqual([
+      "Start",
       "Arbete",
       "Dagbok",
       "Inköp",

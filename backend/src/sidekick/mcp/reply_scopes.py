@@ -90,6 +90,11 @@ WRITE_REPLY_READ_SCOPES: Final[Mapping[str, str]] = {
     ),
     # Automations: the reply carries the automation with its instruction.
     **dict.fromkeys(("save_automation", "approve_automation"), "automation:read"),
+    # Ready conversations: the reply carries the conversation with the owner's instruction.
+    **dict.fromkeys(
+        ("save_ready_conversation", "start_ready_conversation", "skip_ready_conversation"),
+        "start:read",
+    ),
     **dict.fromkeys(
         (
             "create_contact",

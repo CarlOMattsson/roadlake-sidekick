@@ -69,10 +69,13 @@ MCP_SCOPE_DESCRIPTIONS: dict[str, str] = {
         "Claude Code. It cannot read, change or approve an automation."
     ),
     "start:read": (
-        "Read what the Start view keeps of its own. No tool needs it yet: each part of the "
-        "Start view that shows another room's data needs that room's read scope."
+        "Read the Start view's own ready conversations (the owner's schedules and their days). "
+        "Each part of the Start view that shows another room's data needs that room's read scope."
     ),
-    "start:write": "Change what the Start view keeps of its own. No tool needs it yet.",
+    "start:write": (
+        "Draft, change, pause and archive ready conversations, start one for the day, and skip "
+        "a day."
+    ),
     "ai:run": (
         "Start an approved AI step and report its result, for the owner's own Claude Code. "
         "It cannot approve a plan or accept a result."

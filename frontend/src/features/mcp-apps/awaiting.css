@@ -159,6 +159,9 @@
 .sidekick-wait-room {
   --w-glyph: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='4' y='4' width='6.5' height='6.5' rx='1.5'/%3E%3Crect x='13.5' y='4' width='6.5' height='6.5' rx='1.5'/%3E%3Crect x='4' y='13.5' width='6.5' height='6.5' rx='1.5'/%3E%3Crect x='13.5' y='13.5' width='6.5' height='6.5' rx='1.5'/%3E%3C/svg%3E");
 }
+.sidekick-wait-room[data-room="start"] {
+  --w-glyph: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 10.5 12 4l8 6.5V19a1 1 0 0 1-1 1h-4.5v-5.5h-5V20H5a1 1 0 0 1-1-1z'/%3E%3C/svg%3E");
+}
 .sidekick-wait-room[data-room="work"] {
   --w-glyph: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='8.5'/%3E%3Cpath d='M8.5 12.5l2.5 2.5 4.5-5.5'/%3E%3C/svg%3E");
 }

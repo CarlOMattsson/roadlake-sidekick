@@ -18,6 +18,7 @@ from sidekick.owner_export.catalogue import (
     COLLECTIONS_ADDED_IN_FORMAT_9,
     COLLECTIONS_ADDED_IN_FORMAT_10,
     COLLECTIONS_ADDED_IN_FORMAT_11,
+    COLLECTIONS_ADDED_IN_FORMAT_12,
     COLUMNS_ADDED_IN_FORMAT_7,
     COLUMNS_ADDED_IN_FORMAT_8,
     EXCLUDED_COLLECTIONS,
@@ -27,6 +28,7 @@ from sidekick.owner_export.catalogue import (
     FORMAT_WITHOUT_AI_STEPS,
     FORMAT_WITHOUT_AUTOMATIONS,
     FORMAT_WITHOUT_PHOTOS,
+    FORMAT_WITHOUT_READY_CONVERSATIONS,
     FORMAT_WITHOUT_REVIEW,
     FORMAT_WITHOUT_TAG_LINKS,
     FORMAT_WITHOUT_TASK_REVIEW,
@@ -218,6 +220,8 @@ def _collections_not_yet(format_version: int) -> frozenset[str]:
         missing |= COLLECTIONS_ADDED_IN_FORMAT_10
     if format_version <= FORMAT_WITHOUT_REVIEW:
         missing |= COLLECTIONS_ADDED_IN_FORMAT_11
+    if format_version <= FORMAT_WITHOUT_READY_CONVERSATIONS:
+        missing |= COLLECTIONS_ADDED_IN_FORMAT_12
     return frozenset(missing)
 
 

@@ -58,6 +58,7 @@ NAME_KIND: dict[str, str] = {
     "draft_id": "draft",
     "run_id": "run",
     "automation_id": "automation",
+    "conversation_id": "conversation",
     "suggestion_id": "suggestion",
     "suggestion_ids": "suggestion",
     "list_id": "list",
@@ -90,6 +91,7 @@ VERSIONED = frozenset(
         "draft",
         "run",
         "automation",
+        "conversation",
         "suggestion",
         "list",
         "item",
@@ -390,6 +392,20 @@ async def seed_owner(container: Container, name: str, marker: str) -> OwnerSeed:
             )
         )["automation"]
         seed.records["automation"] = Record(automation["id"], automation["version"])
+        # A ready conversation, drafted by the owner's Claude.
+        conversation = (
+            await call(
+                "save_ready_conversation",
+                {
+                    "changes": {
+                        "title": label("ready conversation"),
+                        "instruction": label("ready instruction"),
+                        "cadence": {"frequency": "daily", "local_time": "18:00"},
+                    }
+                },
+            )
+        )["conversation"]
+        seed.records["conversation"] = Record(conversation["id"], conversation["version"])
         # A suggestion: an approved automation, one run of it and one card the run proposed.
         runnable = (
             await call(

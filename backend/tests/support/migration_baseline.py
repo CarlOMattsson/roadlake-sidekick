@@ -40,6 +40,7 @@ CONTACT_SLACK = "115_contact_slack_profile"
 AUTOMATIONS = "116_automations"
 JOURNAL_ATTACHMENTS = "117_journal_attachments"
 REVIEW = "121_review"
+READY = "123_ready_conversations"
 ATTACHMENT_DETAILS = "124_journal_attachment_details"
 
 
@@ -131,6 +132,21 @@ def chain_through(tmp_path: Path, last: str) -> Path:
         (directory / f"{name}.py").write_text(
             (MIGRATIONS_PATH / f"{name}.py").read_text(encoding="utf-8"), encoding="utf-8"
         )
+    return directory
+
+
+def chain_through_without(tmp_path: Path, last: str, *skipped: str) -> Path:
+    """`chain_through(tmp_path, last)` without the migrations in `skipped`.
+
+    For a test of a migration that sits in the middle of the sorted chain: the migrations after it
+    that depend on it are left out too, so what is applied is exactly what its installation had.
+    """
+
+    directory = tmp_path / f"chain-through-{last}-without-{'-'.join(skipped)}"
+    directory.mkdir(exist_ok=True)
+    for source in chain_through(tmp_path, last).glob("*.py"):
+        if source.stem not in skipped:
+            (directory / source.name).write_text(source.read_text(encoding="utf-8"))
     return directory
 
 

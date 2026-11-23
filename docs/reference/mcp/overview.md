@@ -22,9 +22,9 @@ Use this when the user opens Start or asks what needs attention now.
 
 Access: read
 
-Scopes: requires no single scope; the answer holds only the parts whose read scope the session has (`automation:read`, `contacts:read`, `projects:read`, `tasks:read`).
+Scopes: requires no single scope; the answer holds only the parts whose read scope the session has (`automation:read`, `contacts:read`, `projects:read`, `start:read`, `tasks:read`).
 
-Returns: `StartOutput` with `day` (date), `insight` (StartInsight or null), `more` (StartMore or null), `since_last` (StartSinceLast or null), `suggestions` (StartSuggestions or null), `today` (StartToday or null), `unavailable` (array of PartUnavailable or null), `waiting` (StartWaiting or null).
+Returns: `StartOutput` with `day` (date), `insight` (StartInsight or null), `more` (StartMore or null), `ready` (StartReady or null), `since_last` (StartSinceLast or null), `suggestions` (StartSuggestions or null), `today` (StartToday or null), `unavailable` (array of PartUnavailable or null), `waiting` (StartWaiting or null).
 
 No parameters.
 

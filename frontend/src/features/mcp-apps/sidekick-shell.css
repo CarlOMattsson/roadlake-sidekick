@@ -61,6 +61,14 @@
 .sk-rooms__bar:not(:has(> .sk-back-header)) {
   z-index: 3;
 }
+/* The narrowest phones (a 320 frame): the cells stand edge to edge. Only the open room has a pill, so the 4 between
+   cells draws nothing there, and the five cells (Start, three rooms, Mer) keep one row in English too instead of
+   giving way to the picker. Each cell keeps its 44. */
+@container sk-frame (max-width: 21rem) {
+  .sk-rooms__tabs {
+    gap: 0;
+  }
+}
 /* The rooms do not fit (sidekick-shell.tsx): hidden at the same width, and the picker stands in their place. */
 .sk-rooms__tabs[data-narrow] {
   position: absolute;

@@ -82,7 +82,13 @@ CHARS_PER_TOKEN = 3.5
 # 2026-11-23: raised to 27 600 when `get_automation_report` (about 150 tokens; its two siblings are
 # app-only) met the suggestion tools and `get_start` in one tree: the sides were measured apart at
 # 26 699 and 27 357; measured 27 503 for the 92 model-visible tools, rounded up.
-TOKEN_BUDGET = 27_600
+# 2026-11-23: raised to 28 850 when the four model-visible ready conversation tools
+# (`list_ready_conversations`, `save_ready_conversation`, `start_ready_conversation`,
+# `skip_ready_conversation`), about 1 330 tokens of which `save_ready_conversation`'s `changes`
+# (title, kind, instruction, ingredients, cadence) is about 700, met the suggestion tools, the
+# automation report and `get_start` in one tree: the sides were measured apart at 27 883 and
+# 27 503; measured 28 834 for the 96 model-visible tools, rounded up.
+TOKEN_BUDGET = 28_850
 # 2026-11-23: raised to 26 600 for `get_start`, the Start view (a 522-character description and no
 # input, about 150 tokens); measured 26 552 for the 87 model-visible tools, rounded up.
 LARGEST_LISTED = 5
@@ -120,7 +126,12 @@ GUIDE_TOOL_DESCRIPTION_CHAR_CAP = 1000
 # 2026-11-23: raised to 257 900 when the output of `get_automation_report` (5 340 characters) met
 # the suggestion tools and `get_start` in one tree: the sides were measured apart at 246 128 and
 # 252 502; measured 257 842, rounded up.
-OUTPUT_SCHEMA_CHAR_CAP = 257_900
+# 2026-11-23: raised to 274 600 for the output of the four model-visible ready conversation tools
+# (the conversation with who wrote its instruction, its day state and the composed blocks of a
+# start) and the `ready` part of `get_start`, which met the suggestion tools, the automation report
+# and `get_start` in one tree: the sides were measured apart at 254 446 (before the instruction's
+# provenance fields) and 257 842; measured 274 575 for the 96 model-visible tools, rounded up.
+OUTPUT_SCHEMA_CHAR_CAP = 274_600
 # 2026-11-23: raised to 240 800 for the output of `get_start` (the insight, the suggestion, task,
 # waiting and since-last parts and the menu counts, 4 840 characters); measured 240 788 for the 87
 # model-visible tools, rounded up.

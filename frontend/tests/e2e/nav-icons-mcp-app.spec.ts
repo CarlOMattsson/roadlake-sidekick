@@ -111,8 +111,8 @@ function measure(app: FrameLocator) {
 type Strip = Awaited<ReturnType<typeof measure>>;
 
 const NAMES: Record<AppLocale, string[]> = {
-  sv: ["Arbete", "Dagbok", "Inköp", "Mer"],
-  en: ["Work", "Journal", "Shopping", "More"],
+  sv: ["Start", "Arbete", "Dagbok", "Inköp", "Mer"],
+  en: ["Home", "Work", "Journal", "Shopping", "More"],
 };
 
 /**
@@ -155,7 +155,7 @@ for (const locale of ["sv", "en"] as const) {
       }
       // No room glyph: only the Mer cell's ⌄.
       expect(strip.cells.map((cell) => cell.glyphs.length)).toEqual([
-        0, 0, 0, 1,
+        0, 0, 0, 0, 1,
       ]);
     });
 
@@ -239,9 +239,9 @@ test("the default: a room of Mer that is open is named in the Mer cell", async (
   const strip = await measure(app);
   expect(strip.height).toBe(40);
   expect(strip.picker).toBe(false);
-  // The three rooms that are not open are named by their tooltips.
-  expect(strip.cells.slice(0, 3).map((cell) => cell.title)).toEqual(
-    NAMES.sv.slice(0, 3),
+  // The four rooms that are not open are named by their tooltips.
+  expect(strip.cells.slice(0, 4).map((cell) => cell.title)).toEqual(
+    NAMES.sv.slice(0, 4),
   );
 });
 
@@ -258,8 +258,8 @@ for (const locale of ["sv", "en"] as const) {
           return { x, y, width: w, height };
         });
       const before = await box();
-      // Dagbok or Journal, then Inköp or Shopping: each one opens in turn.
-      for (const index of [1, 2]) {
+      // Dagbok or Journal, then Inköp or Shopping: each one opens in turn (Work is open at first).
+      for (const index of [2, 3]) {
         await strip
           .getByRole("button", { name: NAMES[locale][index], exact: true })
           .click();
@@ -270,7 +270,7 @@ for (const locale of ["sv", "en"] as const) {
         expect(measured.overflow).toBeLessThanOrEqual(0);
         expect(measured.height).toBe(40);
         expect(measured.cells.map((cell) => cell.current)).toEqual(
-          [0, 1, 2, 3].map((i) => i === index),
+          [0, 1, 2, 3, 4].map((i) => i === index),
         );
         expect(measured.cells[index]?.nameShown).toBe(true);
         expect(measured.cells[index]?.text).toBe(NAMES[locale][index]);
@@ -309,7 +309,7 @@ test("a wide frame: glyphs alone are cells of 48, and a glyph before the name ke
     await open(page, { mode: "only", width: 1280, height: 800, locale: "en" }),
   );
   expect(alone.height).toBe(40);
-  expect(alone.cells.map((cell) => cell.width)).toEqual([48, 48, 48, 48]);
+  expect(alone.cells.map((cell) => cell.width)).toEqual([48, 48, 48, 48, 48]);
 
   const named = await measure(
     await open(page, { mode: "label", width: 1280, height: 800, locale: "en" }),
@@ -360,7 +360,7 @@ test("a wide frame: the default draws the names alone, cell for cell as names al
     off.cells.map((cell) => cell.width),
   );
   // Only Mer's ⌄ is drawn, and no cell is named by a label or a tooltip.
-  expect(auto.cells.map((cell) => cell.glyphs.length)).toEqual([0, 0, 0, 1]);
+  expect(auto.cells.map((cell) => cell.glyphs.length)).toEqual([0, 0, 0, 0, 1]);
   for (const cell of auto.cells) {
     expect(cell.glyphShown).toBe(false);
     expect(cell.label).toBeNull();
@@ -388,48 +388,32 @@ test("a wide frame: opening another room moves no cell of a strip with glyphs an
   expect(after.cells.map((cell) => cell.current)).toEqual([
     false,
     false,
+    false,
     true,
     false,
   ]);
   expect(after.cells.map((cell) => cell.width)).toEqual(before);
 });
 
-const HOME: Record<AppLocale, string> = { sv: "Start", en: "Home" };
-
 /**
- * Puts a fifth room cell in front of the row, a copy of a room that is not open, named as the home room. The row must
- * still hold at 360 px, with every cell at least a touch target wide.
+ * The strip at its capacity: four rooms of their own and Mer make a row of five. The row must hold at 360 px, with
+ * every cell at least a touch target wide and no name wider than its cell.
  */
-async function expectRowOfFive(app: FrameLocator, locale: AppLocale) {
-  const row = await app.locator(".sk-rooms__tabs").evaluate((tabs, home) => {
-    const source = Array.from(
+async function expectRowOfFive(app: FrameLocator) {
+  const row = await app.locator(".sk-rooms__tabs").evaluate((tabs) => ({
+    overflow: tabs.scrollWidth - tabs.clientWidth,
+    widths: Array.from(
       tabs.querySelectorAll<HTMLElement>(".sk-rooms__tab"),
-    ).find(
-      (cell) =>
-        cell.getAttribute("aria-current") !== "page" &&
-        !cell.classList.contains("sk-rooms__more"),
-    )!;
-    const extra = source.cloneNode(true) as HTMLElement;
-    const shown = extra.querySelector<HTMLElement>(".sk-rooms__name");
-    if (shown) shown.textContent = home;
-    extra.setAttribute("aria-label", home);
-    extra.setAttribute("title", home);
-    tabs.prepend(extra);
-    return {
-      overflow: tabs.scrollWidth - tabs.clientWidth,
-      widths: Array.from(
-        tabs.querySelectorAll<HTMLElement>(".sk-rooms__tab"),
-        (cell) => cell.getBoundingClientRect().width,
-      ),
-      names: Array.from(
-        tabs.querySelectorAll<HTMLElement>(".sk-rooms__name"),
-        (name) => ({
-          name: name.getBoundingClientRect().width,
-          cell: name.closest(".sk-rooms__tab")!.getBoundingClientRect().width,
-        }),
-      ),
-    };
-  }, HOME[locale]);
+      (cell) => cell.getBoundingClientRect().width,
+    ),
+    names: Array.from(
+      tabs.querySelectorAll<HTMLElement>(".sk-rooms__name"),
+      (name) => ({
+        name: name.getBoundingClientRect().width,
+        cell: name.closest(".sk-rooms__tab")!.getBoundingClientRect().width,
+      }),
+    ),
+  }));
   expect(row.widths).toHaveLength(5);
   expect(row.overflow).toBeLessThanOrEqual(0);
   for (const width of row.widths) {
@@ -443,7 +427,7 @@ async function expectRowOfFive(app: FrameLocator, locale: AppLocale) {
 for (const locale of ["sv", "en"] as const) {
   test(`a row of five holds at 360 px in ${locale}`, async ({ page }) => {
     const app = await open(page, { mode: "auto", width: 360, locale });
-    await expectRowOfFive(app, locale);
+    await expectRowOfFive(app);
   });
 
   test(`a row of five holds at 360 px in ${locale} with the widest room open`, async ({
@@ -453,10 +437,10 @@ for (const locale of ["sv", "en"] as const) {
     // Inköp or Shopping, the room whose name is the widest of the four.
     await app
       .locator("nav.sk-rooms")
-      .getByRole("button", { name: NAMES[locale][2], exact: true })
+      .getByRole("button", { name: NAMES[locale][3], exact: true })
       .click();
     await settled(app);
-    await expectRowOfFive(app, locale);
+    await expectRowOfFive(app);
   });
 }
 

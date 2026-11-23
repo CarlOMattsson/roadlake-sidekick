@@ -10,7 +10,7 @@ Move your records from one 0.1.0 installation to another, for example to a new s
 
 Use this to move to a new server or a fresh database. The source must be a 0.1.0 installation that has an owner backup
 (`sidekick-backup create`, or the backup profile) or can make an owner export. The importer reads only the current
-format (format 11) and the seven formats before it (format 10, written before repetition existed, format 9, written before photos were exported, format 8, written before automations existed, format 7, written before AI steps existed, format 6, written before Tasks remembered when they were last reviewed, format 5, written before the tags of Contacts and Journal entries, and format 4, written at the baseline head). There is no supported way to import data from an
+format (format 12) and the eight formats before it (format 11, written before ready conversations existed, format 10, written before repetition existed, format 9, written before photos were exported, format 8, written before automations existed, format 7, written before AI steps existed, format 6, written before Tasks remembered when they were last reviewed, format 5, written before the tags of Contacts and Journal entries, and format 4, written at the baseline head). There is no supported way to import data from an
 installation before 0.1.0: backups, exports, snapshots and SQL dumps from before 0.1.0 are not read, and
 `sidekick-backup import` cannot import them. Keep them as an archive.
 

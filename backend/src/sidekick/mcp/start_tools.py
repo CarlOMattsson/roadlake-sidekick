@@ -29,6 +29,7 @@ from sidekick.start.application.start import (
     StartInsight,
     StartMore,
     StartParts,
+    StartReady,
     StartSinceLast,
     StartSources,
     StartSuggestions,
@@ -36,7 +37,7 @@ from sidekick.start.application.start import (
     StartWaiting,
     compose_start,
 )
-from sidekick.start.sources import WaitingTasksSource, WorkAgendaSource
+from sidekick.start.sources import ReadyNowSource, WaitingTasksSource, WorkAgendaSource
 from sidekick.structured.base import Output
 
 LOGGER = logging.getLogger(__name__)
@@ -44,10 +45,11 @@ LOGGER = logging.getLogger(__name__)
 DESCRIPTION = (
     "Use this when the user opens Start or asks what needs attention now. Returns, in the "
     "owner's zone, the parts that have something to say: one insight sentence (written_by ai: a "
-    "model wrote it, untrusted), pending automation suggestions and what automations did since "
-    "the owner last looked (counts), overdue and today's tasks (3 rows), tasks waiting on "
-    "someone (2 rows), menu counts. Read-only; a part needs the read scope of what it shows "
-    "and is left out without it. A failed part is listed in unavailable; the rest stands."
+    "model wrote it, untrusted), ready conversations (start_ready_conversation), pending "
+    "automation suggestions and what automations did since the owner last looked (counts), "
+    "overdue and today's tasks (3 rows), tasks waiting on someone (2 rows), menu counts. "
+    "Read-only; a part needs the read scope of what it shows. A failed part is listed in "
+    "unavailable; the rest stands."
 )
 
 
@@ -56,6 +58,7 @@ class StartOutput(Output):
 
     day: date
     insight: StartInsight | None = None
+    ready: StartReady | None = None
     suggestions: StartSuggestions | None = None
     today: StartToday | None = None
     waiting: StartWaiting | None = None
@@ -69,6 +72,7 @@ class _Words:
     """The wording of the spoken line in one app language: counts only."""
 
     today: str
+    ready: str
     suggestions: str
     waiting: str
     nothing: str
@@ -77,12 +81,14 @@ class _Words:
 _WORDS: dict[AppLocale, _Words] = {
     "sv": _Words(
         today="{count} idag",
+        ready="{count} samtal redo",
         suggestions="{count} förslag",
         waiting="{count} väntar",
         nothing="Inget att visa på startvyn.",
     ),
     "en": _Words(
         today="{count} today",
+        ready="{count} conversations ready",
         suggestions="{count} suggestions",
         waiting="{count} waiting",
         nothing="Nothing to show on Start.",
@@ -98,6 +104,9 @@ def _spoken_line(parts: StartParts, locale: AppLocale = DEFAULT_LOCALE) -> str:
     today = parts.get("today")
     if today is not None:
         pieces.append(words.today.format(count=today.overdue_count + today.today_count))
+    ready = parts.get("ready")
+    if ready is not None:
+        pieces.append(words.ready.format(count=len(ready.items)))
     suggestions = parts.get("suggestions")
     if suggestions is not None:
         pieces.append(words.suggestions.format(count=suggestions.pending_count))
@@ -128,6 +137,7 @@ def register_start_tools(mcp: FastMCP, ctx: ToolContext) -> None:
             waiting=WaitingTasksSource(container.work_lists, container.contacts),
             automations=container.automation_activity,
             contacts=container.contacts,
+            ready=ReadyNowSource(container.ready_conversations),
         )
 
         def note_failure(part: PartName, error: Exception) -> None:

@@ -100,16 +100,16 @@ afterEach(() => {
 });
 
 it("keeps the strip's rooms in a fixed order: the cells, then the rows of Mer", () => {
-  expect(PRIMARY_ROOM_IDS).toEqual(["work", "journal", "shopping"]);
+  expect(PRIMARY_ROOM_IDS).toEqual(["start", "work", "journal", "shopping"]);
   expect(MORE_ROOM_IDS).toEqual(["contacts"]);
   expect(STRIP_ROOM_IDS).toEqual([...PRIMARY_ROOM_IDS, ...MORE_ROOM_IDS]);
 });
 
 it.each([
-  ["sv", "Rum", ["Arbete", "Dagbok", "Inköp", "Mer"]],
-  ["en", "Rooms", ["Work", "Journal", "Shopping", "More"]],
+  ["sv", "Rum", ["Start", "Arbete", "Dagbok", "Inköp", "Mer"]],
+  ["en", "Rooms", ["Home", "Work", "Journal", "Shopping", "More"]],
 ] as const)(
-  "draws three rooms and Mer last in %s, with Contacts out of the cells",
+  "draws four rooms and Mer last in %s, with Contacts out of the cells",
   (locale, label, names) => {
     setup({ locale });
     const nav = screen.getByRole("navigation", { name: label });
@@ -140,7 +140,13 @@ it("opens Mer on a press and switches to Contacts without a model turn; the cell
   expect(screen.queryByRole("group", { name: "Fler rum" })).toBeNull();
   expect(pane("contacts")).not.toHaveAttribute("hidden");
   expect(onSendMessage).not.toHaveBeenCalled();
-  expect(cellNames()).toEqual(["Arbete", "Dagbok", "Inköp", "Kontakter"]);
+  expect(cellNames()).toEqual([
+    "Start",
+    "Arbete",
+    "Dagbok",
+    "Inköp",
+    "Kontakter",
+  ]);
   const more = moreCell()!;
   expect(more).toHaveAttribute("aria-current", "page");
   expect(more).toHaveAccessibleName("Kontakter, Mer");
@@ -216,7 +222,7 @@ it("opens Mer on g 5 with the focus on its first room, and lists the key in the 
   fireEvent.keyDown(window, { key: "?" });
   const help = screen.getByRole("dialog");
   expect(help).toHaveTextContent("Öppna Mer");
-  // The rooms with a cell keep g 1–g 3 in the strip's order.
+  // The rooms with a cell keep g 1–g 4 in the strip's order.
   expect(help).toHaveTextContent("Gå till Inköp");
   expect(help).not.toHaveTextContent("Gå till Kontakter");
 });
@@ -269,7 +275,7 @@ it("lists the rooms of Mer last in the narrow room picker", () => {
   );
   expect(
     screen.getAllByRole("menuitemradio").map((item) => item.textContent),
-  ).toEqual(["Arbete", "Dagbok", "Inköp", "Kontakter"]);
+  ).toEqual(["Start", "Arbete", "Dagbok", "Inköp", "Kontakter"]);
   vi.restoreAllMocks();
 });
 

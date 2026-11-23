@@ -117,8 +117,14 @@ ROOM_TOOLS: Final[Mapping[Room, tuple[str, ...]]] = {
         "restore_from_trash",
     ),
     # Start reads across the other rooms and always stays on; a part of a room that is off is left
-    # out through the narrowed scopes.
-    "start": ("get_start",),
+    # out through the narrowed scopes. The ready conversations are Start's own.
+    "start": (
+        "get_start",
+        "list_ready_conversations",
+        "save_ready_conversation",
+        "start_ready_conversation",
+        "skip_ready_conversation",
+    ),
     "journal": (
         "list_journal_entries",
         "get_journal_entry",

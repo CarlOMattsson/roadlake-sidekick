@@ -23,8 +23,11 @@ export function dirtyDomains(toolName: string): RoomId[] {
 /** The domains of a write other than Control, which every write marks (see dirtyDomains). */
 function domainsOfWrite(toolName: string): RoomId[] {
   if (EVERYWHERE.test(toolName))
-    return ["work", "journal", "contacts", "shopping"];
+    return ["start", "work", "journal", "contacts", "shopping"];
   if (toolName.includes("shopping")) return ["shopping"];
+  // An approved suggestion creates Tasks and Contacts, and may write a journal entry.
+  if (toolName.includes("suggestion"))
+    return ["start", "work", "contacts", "journal"];
   // A draft that is finalized may create Tasks and link Contacts; an entry edit may link Contacts.
   if (toolName === "finalize_journal_draft")
     return ["journal", "work", "contacts"];

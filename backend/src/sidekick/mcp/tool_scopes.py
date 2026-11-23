@@ -240,8 +240,17 @@ _OWN_SCOPES: Final[Mapping[str, ToolScopes]] = {
     # Start: each part needs the read scope of the room it shows; no part needs a scope of its own
     # yet, so the whole answer is optional parts.
     "get_start": ToolScopes(
-        optional=("automation:read", "contacts:read", "projects:read", "tasks:read")
+        optional=("automation:read", "contacts:read", "projects:read", "start:read", "tasks:read")
     ),
+    # Ready conversations are Start's own. Starting one reads each ingredient with the scope of
+    # the room it comes from and leaves out the ones the session cannot read.
+    "list_ready_conversations": ToolScopes(("start:read",)),
+    "save_ready_conversation": ToolScopes(("start:write",)),
+    "start_ready_conversation": ToolScopes(
+        ("start:write",),
+        optional=("automation:read", "journal:read", "shopping:read", "tasks:read"),
+    ),
+    "skip_ready_conversation": ToolScopes(("start:write",)),
     "list_recent_changes": ToolScopes(optional=_sorted(CHANGE_SCOPES)),
     "search": ToolScopes(any_of=_sorted(SEARCH_SCOPE.values())),
     "recall_memory": ToolScopes(any_of=_sorted(MEMORY_READ_SCOPE.values())),

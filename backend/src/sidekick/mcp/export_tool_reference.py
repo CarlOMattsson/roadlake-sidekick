@@ -240,6 +240,19 @@ AREAS: tuple[Area, ...] = (
         ),
     ),
     Area(
+        "Ready conversations",
+        "ready-conversations",
+        (
+            "list_ready_conversations",
+            "save_ready_conversation",
+            "start_ready_conversation",
+            "skip_ready_conversation",
+        ),
+        "A ready conversation is the owner's standing prompt for Claude on a schedule. Starting "
+        "one "
+        "composes its summary from the owner's records at that moment and stores nothing of it.",
+    ),
+    Area(
         "Search and memory",
         "search-and-memory",
         (

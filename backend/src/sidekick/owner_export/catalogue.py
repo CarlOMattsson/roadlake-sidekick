@@ -51,6 +51,7 @@ from sidekick.shared.persistence.models import (
     ProjectContactRow,
     ProjectRow,
     ProjectTagRow,
+    ReadyConversationRow,
     ReviewCardRow,
     ReviewLogRow,
     ReviewSettingsRow,
@@ -65,7 +66,12 @@ from sidekick.shared.persistence.models import (
 from sidekick.shopping.persistence.rows import ShoppingItemRow, ShoppingListRow, ShoppingStatusRow
 
 EXPORT_FORMAT = "sidekick.owner-export"
-EXPORT_FORMAT_VERSION = 11
+EXPORT_FORMAT_VERSION = 12
+# Format 11 (written at migrations 121 and 124) has no `ready_conversations` collection, which
+# migration 123 added. Such an export is still read: the collection is simply absent and restores
+# as empty. The day marks (`ready_conversation_days`) are transient and never exported.
+FORMAT_WITHOUT_READY_CONVERSATIONS = 11
+COLLECTIONS_ADDED_IN_FORMAT_12: frozenset[str] = frozenset({"ready_conversations"})
 # Formats up to 10 have none of the three collections that migration 121 added: the repetition
 # settings, cards and answers. Such an export is still read: those collections are simply absent
 # and restore as empty. (Format 10 is the one the owner export of photos takes.)
@@ -162,6 +168,8 @@ SCHEMA_CHAIN: tuple[tuple[str, bool], ...] = (
     ("117_journal_attachments", True),
     # Adds the repetition tables, which are exported (format 11).
     ("121_review", False),
+    # Adds the ready conversations, which are exported (format 12); their day marks are not.
+    ("123_ready_conversations", False),
     # Fields beside a photo (place, camera, orientation): columns of that collection.
     ("124_journal_attachment_details", True),
 )
@@ -198,10 +206,12 @@ def accepted_schema_heads(chain: tuple[tuple[str, bool], ...]) -> frozenset[str]
 # migration 115, 116, 117 or 124 (112 and 115 added exported columns before format 8 was first
 # released; the build that wrote 116 and 117 before format 9 existed wrote format 8), a format 9
 # export at migration 116, 117 or 124 (the photo collection came with format 10), a format 10
-# export at migration 124 (the build that first wrote photos) and a format 11 export at migration
-# 121 or 124 (the heads from the last format-changing migration on).
+# export at migration 124 (the build that first wrote photos), a format 11 export at migration
+# 121 or 124 (the repetition collections came with it) and a format 12 export at migration 123 or
+# 124 (the heads from the last format-changing migration on).
 ACCEPTED_SCHEMA_HEADS_BY_FORMAT: dict[int, frozenset[str]] = {
     EXPORT_FORMAT_VERSION: accepted_schema_heads(SCHEMA_CHAIN),
+    FORMAT_WITHOUT_READY_CONVERSATIONS: frozenset({"121_review", "124_journal_attachment_details"}),
     FORMAT_WITHOUT_REVIEW: frozenset({"124_journal_attachment_details"}),
     FORMAT_WITHOUT_PHOTOS: frozenset(
         {"116_automations", "117_journal_attachments", "124_journal_attachment_details"}
@@ -290,6 +300,7 @@ EXPORT_SOURCES: tuple[ExportSource, ...] = (
     ExportSource("review_settings", ReviewSettingsRow),
     ExportSource("review_cards", ReviewCardRow),
     ExportSource("review_log", ReviewLogRow),
+    ExportSource("ready_conversations", ReadyConversationRow),
     # The forgotten-statement salt is not exported yet, and neither are the statements it keys
     # (`memory_forgotten_facts`). An export written now therefore restores without them.
     ExportSource("memory_settings", MemorySettingsRow, redacted_fields=frozenset({"forget_salt"})),

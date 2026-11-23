@@ -435,6 +435,15 @@ export type ToolResults = {
       automations_failed_today: number | null;
       contacts: number | null;
     } | null;
+    ready: {
+      items: Array<{
+        id: string;
+        kind: string;
+        local_time: string;
+        title: string;
+        version: number;
+      }>;
+    } | null;
     since_last: {
       failed_runs: number;
       runs: number;
@@ -463,7 +472,13 @@ export type ToolResults = {
     unavailable: Array<{
       error: "unavailable";
       part:
-        "insight" | "suggestions" | "today" | "waiting" | "since_last" | "more";
+        | "insight"
+        | "ready"
+        | "suggestions"
+        | "today"
+        | "waiting"
+        | "since_last"
+        | "more";
     }> | null;
     waiting: {
       capped: boolean;
@@ -802,6 +817,9 @@ export type ToolResults = {
       version: number;
     }>;
   };
+  list_ready_conversations: {
+    items: Array<ReadyConversationRecord>;
+  };
   list_recent_changes: {
     changes: Array<{
       action:
@@ -1057,6 +1075,10 @@ export type ToolResults = {
     automation: AutomationRecord;
     ignored_nulls: Array<string>;
   };
+  save_ready_conversation: {
+    conversation: ReadyConversationRecord;
+    ignored_nulls: Array<string>;
+  };
   search: {
     contacts?: {
       hits: Array<{
@@ -1141,6 +1163,9 @@ export type ToolResults = {
       truncated: boolean;
     };
   };
+  skip_ready_conversation: {
+    conversation: ReadyConversationRecord;
+  };
   start_ai_step: {
     brief: string;
     budget_usd: number;
@@ -1163,6 +1188,42 @@ export type ToolResults = {
     reason: "no_cadence" | "not_due" | "already_done" | "checking" | null;
     run: RunRecord | null;
     status: "started" | "nothing_due";
+  };
+  start_ready_conversation: {
+    blocks: Array<{
+      count: number;
+      details: {
+        [key: string]: number;
+      } | null;
+      ingredient:
+        | "tasks_done_today"
+        | "tasks_due_today"
+        | "tasks_due_tomorrow"
+        | "overdue"
+        | "waiting"
+        | "suggestions"
+        | "journal_today"
+        | "review"
+        | "automation_report"
+        | "shopping_open";
+      lines: Array<string>;
+      truncated: boolean;
+    }>;
+    conversation: ReadyConversationRecord;
+    instruction_notice: string | null;
+    truncated: boolean;
+    unavailable: Array<
+      | "tasks_done_today"
+      | "tasks_due_today"
+      | "tasks_due_tomorrow"
+      | "overdue"
+      | "waiting"
+      | "suggestions"
+      | "journal_today"
+      | "review"
+      | "automation_report"
+      | "shopping_open"
+    > | null;
   };
   trash_journal_photo: JournalPhotoTrashResult;
   undo_suggestion: {
@@ -1761,6 +1822,9 @@ export type ToolInputs = {
     limit?: number;
     status?: "active" | "paused" | "completed" | null;
   };
+  list_ready_conversations: {
+    state?: "active" | "paused" | "archived" | null;
+  };
   list_recent_changes: {
     limit?: number;
   };
@@ -2073,6 +2137,41 @@ export type ToolInputs = {
     expected_version?: number | null;
     idempotency_key: string;
   };
+  save_ready_conversation: {
+    changes: {
+      archived?: boolean | null;
+      cadence?: {
+        day_of_month?: number | null;
+        frequency: string;
+        interval?: number;
+        last_weekday?: boolean;
+        local_time: string;
+        until?: string | null;
+        weekdays?: Array<number>;
+      } | null;
+      ingredients?: Array<
+        | "tasks_done_today"
+        | "tasks_due_today"
+        | "tasks_due_tomorrow"
+        | "overdue"
+        | "waiting"
+        | "suggestions"
+        | "journal_today"
+        | "review"
+        | "automation_report"
+        | "shopping_open"
+      > | null;
+      instruction?: string | null;
+      kind?:
+        "evening_review" | "morning_plan" | "weekly_review" | "custom" | null;
+      paused?: boolean | null;
+      title?: string | null;
+    };
+    clear?: Array<"instruction"> | null;
+    conversation_id?: string | null;
+    expected_version?: number | null;
+    idempotency_key: string;
+  };
   search: {
     cursor?: string | null;
     kinds?: Array<"task" | "project" | "contact" | "journal"> | null;
@@ -2153,6 +2252,12 @@ export type ToolInputs = {
       kind: "domain" | "project" | "task" | "step";
     }>;
   };
+  skip_ready_conversation: {
+    conversation_id: string;
+    day?: string | null;
+    idempotency_key: string;
+    undo?: boolean;
+  };
   start_ai_step: {
     idempotency_key: string;
     step_id: string;
@@ -2162,6 +2267,10 @@ export type ToolInputs = {
     idempotency_key: string;
     occurrence?: "scheduled" | "manual";
     runner: "claude" | "claude_code";
+  };
+  start_ready_conversation: {
+    conversation_id: string;
+    idempotency_key: string;
   };
   trash_journal_photo: {
     expected_version: number;
@@ -3062,6 +3171,36 @@ export type ProjectRecord = {
   status: string;
   tags: Array<string>;
   target_date: string | null;
+  title: string;
+  updated_at: string;
+  version: number;
+};
+
+export type ReadyConversationRecord = {
+  cadence: Cadence;
+  created_at: string;
+  day: string;
+  day_state: "skipped" | "started" | "open" | null;
+  id: string;
+  ingredients: Array<
+    | "tasks_done_today"
+    | "tasks_due_today"
+    | "tasks_due_tomorrow"
+    | "overdue"
+    | "waiting"
+    | "suggestions"
+    | "journal_today"
+    | "review"
+    | "automation_report"
+    | "shopping_open"
+  >;
+  instruction: string | null;
+  instruction_edited_by_model: boolean;
+  instruction_verified: boolean;
+  instruction_written_by: "you" | "claude" | null;
+  kind: "evening_review" | "morning_plan" | "weekly_review" | "custom";
+  ready: boolean;
+  state: "active" | "paused" | "archived";
   title: string;
   updated_at: string;
   version: number;

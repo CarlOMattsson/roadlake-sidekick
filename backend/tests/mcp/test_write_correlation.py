@@ -19,7 +19,7 @@ import asyncio
 import base64
 import os
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, timedelta
 from types import SimpleNamespace
 from typing import Any
 from uuid import UUID
@@ -992,6 +992,35 @@ async def _run_scenario(monkeypatch: pytest.MonkeyPatch) -> Scenario:
                 "expected_version": approved["version"],
                 "idempotency_key": key + "autochange",
                 "changes": {"model_tier": "strong"},
+            },
+        )
+
+        # Ready conversations: a draft, a skipped day, and a start on another day.
+        conversation = (
+            await call(
+                "save_ready_conversation",
+                {
+                    "idempotency_key": key + "readysave",
+                    "changes": {
+                        "title": "Evening review",
+                        "cadence": {"frequency": "daily", "local_time": "18:00"},
+                    },
+                },
+            )
+        )["conversation"]
+        await call(
+            "skip_ready_conversation",
+            {
+                "conversation_id": conversation["id"],
+                "day": (date.today() + timedelta(days=2)).isoformat(),
+                "idempotency_key": key + "readyskip",
+            },
+        )
+        await call(
+            "start_ready_conversation",
+            {
+                "conversation_id": conversation["id"],
+                "idempotency_key": key + "readystart",
             },
         )
 

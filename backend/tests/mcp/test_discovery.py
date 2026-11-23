@@ -152,6 +152,10 @@ EXPECTED_TOOLS = {
     "create_tasks",
     "get_today_brief",
     "get_start",
+    "list_ready_conversations",
+    "save_ready_conversation",
+    "start_ready_conversation",
+    "skip_ready_conversation",
 }
 
 # D-057: owner commands and app-side writes that an open app calls through tools/call. They carry
@@ -390,6 +394,19 @@ async def test_journal_app_tools_open_the_sidekick_app() -> None:
         "finalize_journal_draft",
     ):
         assert "resourceUri" not in (tools[name].meta or {}).get("ui", {}), name
+
+
+@pytest.mark.asyncio
+async def test_suggestion_tools_open_the_sidekick_app() -> None:
+    server = create_mcp_server(create_container(make_settings()), enable_auth=False)
+    tools = {tool.name: tool for tool in await server.list_tools()}
+    for name in ("list_suggestions", "get_suggestion", "decide_suggestions", "undo_suggestion"):
+        assert tools[name].meta["ui"]["resourceUri"] == SIDEKICK_APP_URI, name
+    # Approving a group is the owner's act inside the open app: it stays hidden from the model
+    # and opens no card.
+    group = tools["approve_suggestion_group"].meta["ui"]
+    assert group["visibility"] == ["app"]
+    assert "resourceUri" not in group
 
 
 @pytest.mark.asyncio

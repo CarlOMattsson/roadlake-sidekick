@@ -42,9 +42,14 @@ export function quoteText(text: string): string {
 }
 
 function domainOf(address: string): string | null {
-  const withScheme = /^www\./i.test(address) ? `https://${address}` : address;
+  // A bare www. address has no scheme to parse: its host is the text up to the first path, query, fragment or port
+  // separator. This avoids building a URL string just to parse it.
+  if (/^www\./i.test(address)) {
+    const host = /^www\.([^/?#:\s]+)/i.exec(address)?.[1];
+    return host ? host.toLowerCase() : null;
+  }
   try {
-    const url = new URL(withScheme);
+    const url = new URL(address);
     if (url.protocol !== "http:" && url.protocol !== "https:") return null;
     return url.hostname.replace(/^www\./i, "") || null;
   } catch {

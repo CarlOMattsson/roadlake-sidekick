@@ -176,6 +176,21 @@ repetitionsdata. Ägarexporten bär alla tre som samlingar (format 11); en expor
 och återställer ingen repetition. `sidekick-owner-export restore --refold` viker varje återställt korts svar igen och
 rapporterar de kort vars lagrade schema skiljer sig.
 
+## Migrering 123: klara samtal
+
+`123_ready_conversations.py` är en additiv (expand) migrering. Den lägger till två tabeller: `ready_conversations` (en
+stående uppmaning till ägarens Claude: en titel, en sort, ägarens egen instruktion, upp till tio ingredienser ur en
+sluten mängd, en kadens och ett tillstånd som aktiv, pausad eller arkiverad) och `ready_conversation_days` (en rad per
+samtal och kalenderdag när det hoppades över, startades eller ett överhoppande ångrades; ingen rad betyder att inget hände
+den dagen). Ingredienser, sort och tillstånd är stängda av CHECK-villkor, och en dagrad pekar ut ett samtal hos samma ägare
+med en sammansatt främmande nyckel. Ett sammandrag lagras aldrig: att starta ett samtal läser ägarens poster just då.
+Programrollen får läsa, lägga till och ändra samtalen (den arkiverar och pausar, men raderar aldrig) och får läsa, lägga
+till, ändra och radera dagraderna, som den rensar när de blivit 60 dagar gamla; båda tabellerna försvinner med ägarens
+konto genom de främmande nycklarna. En återställning av migreringen tar bort de två tabellerna, vilket bara förlorar
+samtalen och deras dagmarkeringar. Ägarexporten bär samtalen som en samling (format 12); dagmarkeringarna är tillfälliga
+och exporteras inte, så ett återställt samtal börjar med varje dag öppen. En export av ett tidigare format har inga samtal
+och återställer inga.
+
 ## Ändra schemat: det incheckade fingeravtrycket
 
 `backend/tests/fixtures/baseline-catalogue.json` är schemats fingeravtryck: efter `yoyo apply` på en tom databas de

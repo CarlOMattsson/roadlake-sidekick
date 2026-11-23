@@ -76,9 +76,9 @@ export const back = (app: FrameLocator) =>
 export const h2 = (app: FrameLocator, name: string) =>
   app.getByRole("heading", { level: 2, name });
 
-// When the four labels do not fit one row (measured, not by breakpoint) the strip shows the picker
+// When the labels of the primary rooms do not fit one row (measured, not by breakpoint) the strip shows the picker
 // "Arbete ⌄" instead of its tabs (ui/view-picker.tsx). The tabs then carry data-narrow and are hidden; the picker
-// is the strip's only button and its menu holds the four rooms as menuitemradio.
+// is the strip's only button and its menu holds every room as menuitemradio.
 export const narrowTabs = (app: FrameLocator) =>
   strip(app).locator(".sk-rooms__tabs[data-narrow]");
 export const picker = (app: FrameLocator) => strip(app).locator(".sk-pick");
