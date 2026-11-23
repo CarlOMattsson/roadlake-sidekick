@@ -6,7 +6,7 @@ from pydantic import Field, SecretStr, model_validator
 
 from sidekick.shared.config.ai_prices import require_prices_together
 from sidekick.shared.config.environment import EnvironmentSettings
-from sidekick.shared.private_endpoint import validate_model_base_url
+from sidekick.shared.private_endpoint import is_hosted_model_url, validate_model_base_url
 
 
 class AiCheckSettings(EnvironmentSettings):
@@ -15,6 +15,12 @@ class AiCheckSettings(EnvironmentSettings):
         description="The model that checks proposals: off, anthropic (the AI worker's Anthropic "
         "key), or openai_compat (OpenRouter with your own key, or a local OpenAI-compatible "
         "server such as Ollama or LM Studio).",
+    )
+    ai_check_mode: Literal["chat", "decisions"] = Field(
+        default="chat",
+        description="How the check model is asked: chat (a structured JSON answer, for Anthropic "
+        "or a chat model) or decisions (typed yes/no questions answered with probabilities, "
+        "for a decision model such as typesafe/jev-1.14 through OpenRouter).",
     )
     ai_check_model: str = Field(
         default="",
@@ -32,6 +38,27 @@ class AiCheckSettings(EnvironmentSettings):
         description="Key for an OpenAI-compatible server (required for OpenRouter, optional for a "
         "local one). Only the AI worker may hold it; the API and the other workers refuse to "
         "start in production when they see it.",
+    )
+    ai_check_uncertain_threshold: float = Field(
+        default=0.10,
+        gt=0,
+        lt=1,
+        description="Decisions mode: a proposal whose highest risk probability is at or above "
+        "this is called uncertain and leaves the high-confidence group.",
+    )
+    ai_check_suspicious_threshold: float = Field(
+        default=0.30,
+        gt=0,
+        lt=1,
+        description="Decisions mode: a proposal whose highest risk probability is at or above "
+        "this is called suspicious; it needs a second tap and no model may decide it.",
+    )
+    ai_check_release_after_minutes: int = Field(
+        default=60,
+        ge=5,
+        le=1_440,
+        description="A run that has waited this long for its check without any worker taking it "
+        "is ended and its proposals are shown as not checked, so that they can be decided.",
     )
     ai_check_allow_loopback: bool = Field(
         default=False,
@@ -84,6 +111,11 @@ class AiCheckSettings(EnvironmentSettings):
                 label="AI check model",
                 allow_loopback=self.ai_check_allow_loopback,
             )
+        if self.ai_check_uncertain_threshold > self.ai_check_suspicious_threshold:
+            raise ValueError(
+                "SIDEKICK_AI_CHECK_UNCERTAIN_THRESHOLD cannot be above "
+                "SIDEKICK_AI_CHECK_SUSPICIOUS_THRESHOLD"
+            )
         if self.ai_check_provider == "off":
             return self
         if not self.ai_check_model.strip():
@@ -91,5 +123,19 @@ class AiCheckSettings(EnvironmentSettings):
         if self.ai_check_provider == "openai_compat" and not self.ai_check_base_url:
             raise ValueError(
                 "SIDEKICK_AI_CHECK_BASE_URL is required when the AI check uses openai_compat"
+            )
+        return self
+
+    @model_validator(mode="after")
+    def validate_ai_check_mode(self) -> Self:
+        """Decisions mode exists on the hosted origin only, with the owner's own key."""
+
+        if self.ai_check_provider == "off" or self.ai_check_mode == "chat":
+            return self
+        if self.ai_check_provider != "openai_compat":
+            raise ValueError("SIDEKICK_AI_CHECK_MODE=decisions needs the openai_compat provider")
+        if not is_hosted_model_url(self.ai_check_base_url):
+            raise ValueError(
+                "SIDEKICK_AI_CHECK_MODE=decisions is answered by the hosted origin only"
             )
         return self

@@ -55,7 +55,7 @@ def register_sidekick_app_resource(
     license_view: Callable[[], LicenseView],
     owner_timezone: str = DEFAULT_OWNER_TIMEZONE,
     show_ai_usage: bool = False,
-    nav_icons: NavIcons = "off",
+    nav_icons: NavIcons = "auto",
 ) -> None:
     @mcp.resource(SIDEKICK_APP_URI, name="Sidekick", app=APP_RESOURCE)
     def sidekick_app() -> str:

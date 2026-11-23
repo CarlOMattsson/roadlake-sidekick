@@ -16,7 +16,7 @@ from sidekick.automations.domain.automation import Automation, SuggestionCheck
 from sidekick.automations.domain.spec import AutomationState, parse_spec, spec_digest
 from sidekick.automations.domain.suggestion import DecidedBy, DecisionChannel, SuggestionState
 from sidekick.automations.persistence import AutomationStore
-from sidekick.owner_export.catalogue import COLLECTIONS_ADDED_IN_FORMAT_9
+from sidekick.owner_export.catalogue import COLLECTIONS_ADDED_IN_FORMAT_9, EXPORT_FORMAT_VERSION
 from sidekick.owner_export.export import OwnerExportService
 from sidekick.owner_export.restore import OwnerRestoreService
 from sidekick.owner_export.restore_plan import build_restore_plan, verify_restorable
@@ -189,7 +189,7 @@ def test_an_export_carries_every_automation_collection(
         "automation_checks": 1,
         "automation_report_cursors": 1,
     }
-    assert document["format_version"] == 9
+    assert document["format_version"] == EXPORT_FORMAT_VERSION
     verify_restorable(document)
 
 

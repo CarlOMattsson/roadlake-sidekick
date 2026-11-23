@@ -64,6 +64,11 @@ MCP_SCOPE_DESCRIPTIONS: dict[str, str] = {
         "Claim and report a run of an approved automation, for the owner's own Claude or "
         "Claude Code. It cannot read, change or approve an automation."
     ),
+    "start:read": (
+        "Read what the Start view keeps of its own. No tool needs it yet: each part of the "
+        "Start view that shows another room's data needs that room's read scope."
+    ),
+    "start:write": "Change what the Start view keeps of its own. No tool needs it yet.",
     "ai:run": (
         "Start an approved AI step and report its result, for the owner's own Claude Code. "
         "It cannot approve a plan or accept a result."

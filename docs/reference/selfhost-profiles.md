@@ -16,7 +16,7 @@ The base stack needs no profile. Add profiles to the same `docker compose --env-
 | `vps` | `caddy` | TLS on ports 80 and 443 with an automatic certificate. Leave it out on a home machine behind a tunnel. |
 | `tailscale` | `tailscale` | Public HTTPS for a home machine through Tailscale Funnel, with no router or firewall change. Needs an auth key file; see [First start on a server](../start/self-hosted-server.md#first-start). Do not combine it with `vps`. |
 | `memory` | `hindsight`, `memory-worker` | Derived memory. Needs `hindsight.env` and the `SIDEKICK_MEMORY_*` settings; see [Turn on memory](../operate/memory.md). |
-| `backup` | `backup` | Encrypted backups. Needs `SIDEKICK_BACKUP_ENCRYPTION_KEY` in `selfhost.env`; see [Backup and restore](../operate/backup-and-restore.md). |
+| `backup` | `backup` | Encrypted backups, with the journal photo files. Needs `SIDEKICK_BACKUP_ENCRYPTION_KEY` in `selfhost.env`; see [Backup and restore](../operate/backup-and-restore.md). |
 | `push` | `push`, `ntfy` | Reminders to the Android app. Needs `SIDEKICK_PUSH_ENABLED=true`. The own ntfy server is published through Caddy, so it needs the `vps` profile; `up -d push` alone starts just the worker, which then delivers through ntfy.sh. See [Reminders through ntfy](../operate/push-reminders.md). |
 | `ai` | `ai-worker` | Runs approved AI steps on the server with your own Anthropic API key. Needs the key as a file (`ai_anthropic_api_key`) and `SIDEKICK_AI_RUNNER_ENABLED=true`; see [Run AI steps](../operate/ai-steps.md#run-ai-steps-on-your-server). |
 
@@ -36,7 +36,7 @@ The base stack needs no profile. Add profiles to the same `docker compose --env-
 | `secrets-to-files.sh` | Moves the secrets of `selfhost.env` into files in `secrets/` and prints no value. See [Secrets as files](../operate/limits-and-secrets.md#secrets-as-files). |
 | `postgres-init.sh` | Creates the database roles on the first start of an empty volume. |
 | `update.sh` | Updates to a signed, digest-pinned image, with an encrypted snapshot first. See [Update](../operate/update.md). Its free-space check and snapshot pruning run from `tools/workctl` in the same checkout (`python3`). |
-| `restore.sh` | Restores one owner from an encrypted backup or a plain export. See [Backup and restore](../operate/backup-and-restore.md). |
+| `restore.sh` | Restores one owner, with the photo files, from an encrypted backup or a plain export. See [Backup and restore](../operate/backup-and-restore.md). |
 | `restore-ownership.sql` | Gives each object back its owner after a plain SQL dump has been restored. |
 | `snapshot_crypto.py` | Encrypts and decrypts the database snapshots that `update.sh` takes. |
 | `update_policy.py` | The decisions of `update.sh` (versions, migration class, rollback, recovery). Needs the host's `python3` (3.9 or newer, standard library only). |

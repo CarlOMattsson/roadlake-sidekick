@@ -107,6 +107,14 @@ class ContactService:
             )
         )
 
+    def count(self, actor: Actor) -> int:
+        """How many live, unarchived Contacts the owner has."""
+
+        actor.require("contacts:read")
+        return self.store.transaction(
+            lambda session: self.store.count_contacts(session, actor.user_id)
+        )
+
     def get(self, actor: Actor, contact_id: UUID) -> Contact:
         actor.require("contacts:read")
         return self.store.transaction(

@@ -69,6 +69,7 @@ NO_REFERENCE_TOOLS: dict[str, str] = {
     "get_daily_journal_summary": "addressed by a date inside the caller's own journal",
     "get_journal_day": "addressed by a date inside the caller's own journal",
     "get_memory_status": "reads the caller's own memory settings and counts",
+    "get_start": "assembled from the caller's own parts, no input",
     "get_today_brief": "assembled from the caller's own parts, no input",
     "get_review_queue": "pages the caller's own open Tasks (the cursor is owner-bound)",
     "get_work_agenda": "filters are text and enums; reads the caller's own work",

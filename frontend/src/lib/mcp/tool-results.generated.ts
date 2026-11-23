@@ -370,6 +370,66 @@ export type ToolResults = {
     shopping_list: ListRecord;
     store: string | null;
   };
+  get_start: {
+    day: string;
+    insight: {
+      code:
+        | "automation_failed"
+        | "overdue_backlog"
+        | "waiting_long"
+        | "tomorrow_heavy"
+        | "automation_summary";
+      text: string;
+      written_by: "system" | "ai";
+    } | null;
+    more: {
+      automations_failed_today: number | null;
+      contacts: number | null;
+    } | null;
+    since_last: {
+      failed_runs: number;
+      runs: number;
+      since: string;
+      suggestions_created: number;
+      suggestions_decided: number;
+    } | null;
+    suggestions: {
+      automation_count: number;
+      pending_count: number;
+    } | null;
+    today: {
+      items: Array<{
+        agenda_group: "overdue" | "today";
+        due_at: string | null;
+        id: string;
+        kind: string;
+        project_title: string | null;
+        title: string;
+        version: number;
+      }>;
+      overdue_count: number;
+      today_count: number;
+      truncated: boolean;
+    } | null;
+    unavailable: Array<{
+      error: "unavailable";
+      part:
+        "insight" | "suggestions" | "today" | "waiting" | "since_last" | "more";
+    }> | null;
+    waiting: {
+      capped: boolean;
+      items: Array<{
+        contact_id: string | null;
+        contact_name: string | null;
+        days: number;
+        id: string;
+        title: string;
+        version: number;
+        waiting_since: string;
+      }>;
+      total: number;
+    } | null;
+  };
   get_task: {
     task: {
       ai_possible: boolean;
@@ -1354,6 +1414,7 @@ export type ToolInputs = {
     on_date?: string | null;
     store?: string | null;
   };
+  get_start: Record<string, unknown>;
   get_task: {
     task_id: string;
   };

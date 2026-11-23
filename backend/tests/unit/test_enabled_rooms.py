@@ -34,14 +34,25 @@ def test_every_room_is_on_by_default() -> None:
 
 
 def test_a_comma_list_names_the_rooms_that_are_on() -> None:
-    assert parse_enabled_rooms("work") == {"work"}
-    assert parse_enabled_rooms(" Work , contacts,control ") == {"work", "contacts", "control"}
-    assert parse_enabled_rooms("work,work,journal") == {"work", "journal"}
+    assert parse_enabled_rooms("work") == {"work", "start"}
+    assert parse_enabled_rooms(" Work , contacts,control ") == {
+        "work",
+        "start",
+        "contacts",
+        "control",
+    }
+    assert parse_enabled_rooms("work,work,journal") == {"work", "start", "journal"}
+
+
+def test_start_is_on_whether_or_not_the_list_names_it() -> None:
+    """An instance configured before the room existed still has its Start view."""
+    assert "start" in parse_enabled_rooms("work")
+    assert parse_enabled_rooms("work,start") == parse_enabled_rooms("work")
 
 
 def test_the_setting_is_read_from_its_environment_variable(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("SIDEKICK_ENABLED_ROOMS", "work,shopping")
-    assert Settings().enabled_room_set == {"work", "shopping"}
+    assert Settings().enabled_room_set == {"work", "start", "shopping"}
 
 
 def test_an_unknown_room_is_refused_and_named(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -63,13 +74,20 @@ def test_the_work_room_cannot_be_switched_off(monkeypatch: pytest.MonkeyPatch) -
 def test_a_room_that_is_off_loses_exactly_its_own_scopes() -> None:
     assert disabled_scopes(ROOMS) == frozenset()
     assert disabled_scopes({"work", "journal", "shopping", "contacts", "control"}) == frozenset()
-    assert disabled_scopes({"work"}) == frozenset().union(*ROOM_SCOPES.values())
+    assert disabled_scopes({"work"}) == frozenset().union(
+        *(scopes for room, scopes in ROOM_SCOPES.items() if room != "start")
+    )
     assert disabled_scopes({"work", "journal"}) == {
         "shopping:read",
         "shopping:write",
         "contacts:read",
         "contacts:write",
     }
+
+
+def test_the_start_scopes_are_never_taken_off_an_actor() -> None:
+    """Start is always on, so its scopes stay even when a list of enabled rooms leaves it out."""
+    assert not disabled_scopes({"work"}) & ROOM_SCOPES["start"]
 
 
 def test_the_actor_of_a_narrowed_server_holds_no_scope_of_an_off_room() -> None:

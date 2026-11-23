@@ -28,6 +28,8 @@ PRICES: dict[str, ModelPrice] = {
     # From https://platform.claude.com/docs/en/about-claude/pricing, read 2026-11-16.
     "claude-opus-5-5": ModelPrice(Decimal("4"), Decimal("20"), Decimal("5"), Decimal("0.20")),
     "claude-sonnet-5-5": ModelPrice(Decimal("2"), Decimal("10"), Decimal("2.50"), Decimal("0.10")),
+    # The decision model that checks proposals, through OpenRouter: input is priced, output is free.
+    "typesafe/jev-1.14": ModelPrice(Decimal("0.042"), Decimal(0), Decimal(0), Decimal(0)),
 }
 
 

@@ -10,7 +10,7 @@ Move your records from one 0.1.0 installation to another, for example to a new s
 
 Use this to move to a new server or a fresh database. The source must be a 0.1.0 installation that has an owner backup
 (`sidekick-backup create`, or the backup profile) or can make an owner export. The importer reads only the current
-format (format 9) and the five formats before it (format 8, written before automations existed, format 7, written before AI steps existed, format 6, written before Tasks remembered when they were last reviewed, format 5, written before the tags of Contacts and Journal entries, and format 4, written at the baseline head). There is no supported way to import data from an
+format (format 11) and the seven formats before it (format 10, written before repetition existed, format 9, written before photos were exported, format 8, written before automations existed, format 7, written before AI steps existed, format 6, written before Tasks remembered when they were last reviewed, format 5, written before the tags of Contacts and Journal entries, and format 4, written at the baseline head). There is no supported way to import data from an
 installation before 0.1.0: backups, exports, snapshots and SQL dumps from before 0.1.0 are not read, and
 `sidekick-backup import` cannot import them. Keep them as an archive.
 
@@ -30,6 +30,11 @@ the memory worker from the imported records.
 
 AI steps come with the backup, but an approved AI plan does not: approve it again on the new installation. A run that
 was queued or running is restored as cancelled.
+
+Repetition comes with the backup (the settings, the cards with their schedules, and every answer with its key). Each
+card follows its contact to the new ids and keeps its schedule. Add `--refold` to `sidekick-owner-export restore` to fold
+every restored card's answers again and see how many cards have a stored schedule that the answers do not give (a cut or
+changed file); the rows are kept either way, and the command exits with 3 when any differ.
 
 Automations come with the backup (the definitions, their runs, the facts they read, the suggestions and the checks of
 them), but an approval does not: approve each automation again on the new installation, so that two installations never

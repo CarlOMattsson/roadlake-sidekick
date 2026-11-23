@@ -16,7 +16,7 @@ Bastacken behöver ingen profil. Lägg profilerna på samma kommandorad som `doc
 | `vps` | `caddy` | TLS på portarna 80 och 443 med automatiskt certifikat. Lämna den utanför på en hemdator bakom en tunnel. |
 | `tailscale` | `tailscale` | Publik HTTPS för en hemdator genom Tailscale Funnel, utan ändring av router eller brandvägg. Kräver en fil med autentiseringsnyckel; se [Första starten på en server](../start/self-hosted-server.sv.md#första-start). Kombinera den inte med `vps`. |
 | `memory` | `hindsight`, `memory-worker` | Härlett minne. Kräver `hindsight.env` och inställningarna `SIDEKICK_MEMORY_*`; se [Slå på minnet](../operate/memory.sv.md). |
-| `backup` | `backup` | Krypterade backuper. Kräver `SIDEKICK_BACKUP_ENCRYPTION_KEY` i `selfhost.env`; se [Backup och återställning](../operate/backup-and-restore.sv.md). |
+| `backup` | `backup` | Krypterade backuper, med dagbokens fotofiler. Kräver `SIDEKICK_BACKUP_ENCRYPTION_KEY` i `selfhost.env`; se [Backup och återställning](../operate/backup-and-restore.sv.md). |
 | `push` | `push`, `ntfy` | Påminnelser till Android-appen. Kräver `SIDEKICK_PUSH_ENABLED=true`. Den egna ntfy-servern publiceras genom Caddy, så den kräver profilen `vps`; `up -d push` ensam startar bara workern, som då levererar genom ntfy.sh. Se [Påminnelser via ntfy](../operate/push-reminders.sv.md). |
 | `ai` | `ai-worker` | Kör godkända AI-steg på servern med din egen Anthropic-nyckel. Kräver nyckeln som fil (`ai_anthropic_api_key`) och `SIDEKICK_AI_RUNNER_ENABLED=true`; se [Kör AI-steg](../operate/ai-steps.sv.md#kör-ai-steg-på-din-server). |
 
@@ -36,7 +36,7 @@ Bastacken behöver ingen profil. Lägg profilerna på samma kommandorad som `doc
 | `secrets-to-files.sh` | Flyttar hemligheterna i `selfhost.env` till filer i `secrets/` och skriver inte ut något värde. Se [Hemligheter som filer](../operate/limits-and-secrets.sv.md#hemligheter-som-filer). |
 | `postgres-init.sh` | Skapar databasrollerna vid första starten av en tom volym. |
 | `update.sh` | Uppdaterar till en signerad, digest-låst image, med en krypterad ögonblicksbild först. Se [Uppdatera](../operate/update.sv.md). Kontrollen av ledigt utrymme och rensningen av ögonblicksbilder körs från `tools/workctl` i samma utcheckning (`python3`). |
-| `restore.sh` | Återställer en ägare från en krypterad backup eller en vanlig export. Se [Backup och återställning](../operate/backup-and-restore.sv.md). |
+| `restore.sh` | Återställer en ägare, med fotofilerna, från en krypterad backup eller en vanlig export. Se [Backup och återställning](../operate/backup-and-restore.sv.md). |
 | `restore-ownership.sql` | Ger varje objekt tillbaka sin ägare efter att en vanlig SQL-dump har återställts. |
 | `snapshot_crypto.py` | Krypterar och dekrypterar de databasögonblicksbilder som `update.sh` tar. |
 | `update_policy.py` | Besluten i `update.sh` (versioner, migreringsklass, återställning, återupptagning). Kräver värdens `python3` (3.9 eller nyare, bara standardbiblioteket). |

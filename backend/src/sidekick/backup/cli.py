@@ -13,16 +13,28 @@ from uuid import UUID
 from cryptography.fernet import Fernet
 from pydantic import ValidationError
 
+from sidekick import composition
 from sidekick.backup.bundle import (
     MAX_BACKUP_FILE_BYTES,
     OwnerBackupService,
     decrypt_backup_envelope,
+    open_media_store,
     prune_backup_files,
     read_backup_file_bytes,
+    recorded_missing_files,
 )
-from sidekick.backup.importer import apply_import, load_export_document, plan_import
+from sidekick.backup.export_folder import write_export_folder
+from sidekick.backup.importer import LoadedExport, apply_import, load_export, plan_import
+from sidekick.backup.media import MediaReference, check_media
 from sidekick.owner_export.catalogue import ExportRefused
 from sidekick.owner_export.document import canonical_json, verify_export
+from sidekick.owner_export.media import (
+    EXPORT_DOCUMENT_NAME,
+    EXPORT_MEDIA_FOLDER,
+    ExportMediaFolder,
+    MediaSource,
+    media_files,
+)
 from sidekick.shared.cli_errors import (
     EXIT_FAILED,
     EXIT_UNEXPECTED,
@@ -42,12 +54,15 @@ def _settings_key(settings: Any) -> str:
     return key.get_secret_value()
 
 
-def _verify(path: Path) -> dict[str, Any]:
+def _verify(path: Path, media_directory: Path | None = None) -> dict[str, Any]:
+    """Counts of a backup; with `media_directory`, also whether every photo file it lists is there
+    and readable (each is decrypted and hashed once)."""
+
     settings = get_settings()
     envelope = json.loads(read_backup_file_bytes(path).decode("utf-8"))
     bundle = decrypt_backup_envelope(envelope, _settings_key(settings))
     exports = bundle["exports"]
-    return {
+    result: dict[str, Any] = {
         "format": envelope["format"],
         "created_at": envelope["created_at"],
         "ciphertext_sha256": envelope["sha256"],
@@ -60,6 +75,23 @@ def _verify(path: Path) -> dict[str, Any]:
             for export in exports
         ],
     }
+    if media_directory is not None:
+        check = check_media(
+            open_media_store(media_directory, _settings_key(settings)),
+            [
+                MediaReference(UUID(str(export["owner_id"])), file)
+                for export in exports
+                for file in media_files(export)
+            ],
+            recorded_missing_files(bundle),
+        )
+        result["media"] = {
+            "files": check.listed,
+            "readable": check.readable,
+            "recorded_missing": check.recorded_missing,
+            "unreadable": check.unreadable,
+        }
+    return result
 
 
 def _extract_export(path: Path, output: Path) -> dict[str, Any]:
@@ -98,6 +130,33 @@ def _extract_export(path: Path, output: Path) -> dict[str, Any]:
     }
 
 
+def _extract_export_folder(
+    path: Path, output: Path, media_directory: Path | None
+) -> dict[str, Any]:
+    """Write the single owner export of an encrypted backup, and its photo files, to a new folder.
+
+    The folder holds `export.json` and `media/<digest>.<type>`; the encrypted files are read from
+    `media_directory` (default: the `media` folder beside the backup file).
+    """
+
+    settings = get_settings()
+    loaded: Any = json.loads(read_backup_file_bytes(path).decode("utf-8"))
+    if not isinstance(loaded, dict):
+        raise ExportRefused("backup envelope must be an object")
+    bundle = decrypt_backup_envelope(cast("dict[str, Any]", loaded), _settings_key(settings))
+    exports = bundle["exports"]
+    if len(exports) != 1:
+        raise ExportRefused("backup must contain exactly one owner export")
+    folder = media_directory or path.parent / EXPORT_MEDIA_FOLDER
+    written = write_export_folder(
+        output,
+        exports[0],
+        open_media_store(folder, _settings_key(settings)),
+        recorded_missing_files(bundle),
+    )
+    return {"owner_id": str(verify_export(exports[0]).owner_id), **written}
+
+
 def _import_key(key_file: Path | None) -> str | None:
     """The key from a private key file, else from the environment; None when neither is set."""
 
@@ -125,31 +184,73 @@ def _import_store() -> StoreBase:
     )
 
 
-def _import(args: argparse.Namespace) -> dict[str, Any]:
-    """Plan (default) or apply the import of one owner. FILE `-` reads standard input."""
+def _read_capped(path: Path) -> bytes:
+    """A file read with the input ceiling, so oversize input never fills memory before the check."""
 
-    # Both sources are read with a cap, so oversize input never fills memory before the check.
+    with path.open("rb") as handle:
+        return handle.read(MAX_BACKUP_FILE_BYTES + 1)
+
+
+def _media_source(loaded: LoadedExport, folder: Path | None, key: str | None) -> MediaSource | None:
+    """The photo files of the input: encrypted next to a backup, plain beside an export."""
+
+    if folder is None:
+        return None
+    if not loaded.encrypted:
+        return ExportMediaFolder(folder)
+    if key is None:
+        raise ExportRefused("an encryption key is required to read the photo files of a backup")
+    return open_media_store(folder, key)
+
+
+def _import(args: argparse.Namespace) -> dict[str, Any]:
+    """Plan (default) or apply the import of one owner. FILE `-` reads standard input.
+
+    FILE may also be an export folder (`export.json` and `media/`), which then supplies its photo
+    files unless `--media-directory` names others.
+    """
+
+    media_folder: Path | None = args.media_directory
     if str(args.file) == "-":
         raw = sys.stdin.buffer.read(MAX_BACKUP_FILE_BYTES + 1)
+    elif args.file.is_dir():
+        raw = _read_capped(args.file / EXPORT_DOCUMENT_NAME)
+        media_folder = media_folder or args.file / EXPORT_MEDIA_FOLDER
     else:
-        with args.file.open("rb") as handle:
-            raw = handle.read(MAX_BACKUP_FILE_BYTES + 1)
-    document = load_export_document(
-        raw, key=_import_key(args.key_file), source_owner=args.source_owner
-    )
+        raw = _read_capped(args.file)
+    key = _import_key(args.key_file)
+    loaded = load_export(raw, key=key, source_owner=args.source_owner)
+    media = _media_source(loaded, media_folder, key)
     store = _import_store()
     if not args.apply:
-        return plan_import(store, document, args.target_owner)
-    return apply_import(store, document, args.target_owner, plan_checksum=args.plan_checksum)
+        return plan_import(
+            store,
+            loaded.document,
+            args.target_owner,
+            media=media,
+            recorded_missing=loaded.media_missing,
+        )
+    return apply_import(
+        store,
+        loaded.document,
+        args.target_owner,
+        plan_checksum=args.plan_checksum,
+        media=media,
+        photo_files=(
+            composition.create_photo_files(get_settings()) if media_files(loaded.document) else None
+        ),
+        recorded_missing=loaded.media_missing,
+    )
 
 
 # The path arguments of the commands: the attribute, how the message names it, and whether the
 # file name may be shown. A key file's name is withheld: it points at where the secret lives.
 _PATH_ARGUMENTS = (
     ("path", "backup file", True),
-    ("output", "output file", True),
+    ("output", "output file or folder", True),
     ("file", "import file", True),
     ("directory", "backup directory", True),
+    ("media_directory", "--media-directory", False),
     ("key_file", "--key-file", False),
 )
 
@@ -182,12 +283,29 @@ def build_parser() -> argparse.ArgumentParser:
     create.add_argument("--directory", type=Path, help="override configured backup directory")
     verify = commands.add_parser("verify", help="verify and inspect an encrypted backup")
     verify.add_argument("path", type=Path, help="the encrypted backup file")
+    verify.add_argument(
+        "--media-directory",
+        type=Path,
+        help="also read every photo file the backup lists from this folder (its media/ folder)",
+    )
     extract = commands.add_parser(
         "extract-export",
         help="write the verified owner export of an encrypted backup to a new JSON file",
     )
     extract.add_argument("path", type=Path, help="the encrypted backup file")
     extract.add_argument("output", type=Path, help="the new JSON file to write; never overwritten")
+    folder = commands.add_parser(
+        "extract-export-folder",
+        help="write the verified owner export of an encrypted backup, with its photo files, "
+        "to a new folder (export.json and media/)",
+    )
+    folder.add_argument("path", type=Path, help="the encrypted backup file")
+    folder.add_argument("output", type=Path, help="the new folder to write; never overwritten")
+    folder.add_argument(
+        "--media-directory",
+        type=Path,
+        help="the backup's photo files (default: the media/ folder next to the backup file)",
+    )
     import_ = commands.add_parser(
         "import",
         help="plan, or with --apply write, the import of one owner into an existing empty owner",
@@ -195,7 +313,8 @@ def build_parser() -> argparse.ArgumentParser:
     import_.add_argument(
         "file",
         type=Path,
-        help="an encrypted backup (.skbackup), a plain owner export .json, or - for stdin",
+        help="an encrypted backup (.skbackup), a plain owner export .json, an export folder, "
+        "or - for stdin",
     )
     import_.add_argument(
         "--target-owner", type=UUID, required=True, help="the existing empty owner to import into"
@@ -207,6 +326,12 @@ def build_parser() -> argparse.ArgumentParser:
         "--key-file",
         type=Path,
         help="Fernet key file (mode 600); default is SIDEKICK_BACKUP_ENCRYPTION_KEY",
+    )
+    import_.add_argument(
+        "--media-directory",
+        type=Path,
+        help="the photo files of the input: the backup's media/ folder, or an export's media/ "
+        "folder (an export folder supplies its own)",
     )
     import_.add_argument(
         "--apply", action="store_true", help="write the plan given by --plan-checksum"
@@ -224,7 +349,9 @@ def _dispatch(args: argparse.Namespace) -> int:
         return 0
     if args.command == "create":
         settings = get_settings()
-        service = OwnerBackupService(_import_store())
+        service = OwnerBackupService(
+            _import_store(), photo_files=composition.create_photo_files(settings)
+        )
         result = service.create(
             directory=args.directory or settings.backup_directory,
             key=_settings_key(settings),
@@ -240,13 +367,27 @@ def _dispatch(args: argparse.Namespace) -> int:
                     "owner_count": result.owner_count,
                     "ciphertext_sha256": result.ciphertext_sha256,
                     "pruned_count": result.pruned_count,
+                    "media_stored": result.media_stored,
+                    "media_missing": result.media_missing,
                 },
                 sort_keys=True,
             )
         )
         return 0
     if args.command == "verify":
-        print(json.dumps(_verify(args.path), sort_keys=True))
+        verified = _verify(args.path, args.media_directory)
+        print(json.dumps(verified, sort_keys=True))
+        if verified.get("media", {}).get("unreadable"):
+            print("backup verification failed: photo files are missing or damaged", file=sys.stderr)
+            return 1
+        return 0
+    if args.command == "extract-export-folder":
+        print(
+            json.dumps(
+                _extract_export_folder(args.path, args.output, args.media_directory),
+                sort_keys=True,
+            )
+        )
         return 0
     if args.command == "extract-export":
         print(json.dumps(_extract_export(args.path, args.output), sort_keys=True))

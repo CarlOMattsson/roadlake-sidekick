@@ -1,5 +1,5 @@
 import type { AppLocale } from "@/features/mcp-apps/app-locale";
-import type { NavIcons } from "@/features/mcp-apps/nav-icons";
+import type { AppNavIcons } from "./app-nav-icons";
 import type { TestPushOutcome } from "./sidekick-native";
 
 /**
@@ -14,9 +14,9 @@ export type SettingsLabels = {
   notificationsHeading: string;
   /** The heading over Svenska | English. */
   languageHeading: string;
-  /** The heading over the choice of what the room strip draws, and its three options (nav-icons.ts). */
+  /** The heading over the choice of what the room strip draws, and its three options (app-nav-icons.ts). */
   stripHeading: string;
-  strip: Record<NavIcons, string>;
+  strip: Record<AppNavIcons, string>;
   /** By the state `pushStatus` reads. */
   push: {
     on: string;

@@ -8,7 +8,7 @@ from pydantic import Field, ValidationInfo, field_validator
 from sidekick.shared.config.base import SettingsGroup
 from sidekick.shared.locale import AppLocale
 
-NavIcons = Literal["off", "label", "only"]
+NavIcons = Literal["auto", "off", "label", "only"]
 
 
 class McpServerSettings(SettingsGroup):
@@ -20,9 +20,10 @@ class McpServerSettings(SettingsGroup):
         default="sv", description="Language of the Sidekick MCP Apps: sv (default) or en."
     )
     mcp_app_nav_icons: NavIcons = Field(
-        default="off",
+        default="auto",
         description=(
-            "What the room strip draws: off (names, the default), label (an icon before each "
+            "What the room strip draws: auto (the default: names where the frame is wide, an icon "
+            "over each name on a phone), off (names at every width), label (an icon with each "
             "name) or only (icons alone)."
         ),
     )

@@ -26,15 +26,17 @@ class FakeService:
     calls = 0
     last_kwargs: ClassVar[dict[str, Any]] = {}
 
-    def __init__(self, _store: object) -> None:
-        pass
+    photo_files: ClassVar[object] = None
+
+    def __init__(self, _store: object, photo_files: object = None) -> None:
+        type(self).photo_files = photo_files
 
     def create(self, **kwargs: Any) -> SimpleNamespace:
         type(self).calls += 1
         type(self).last_kwargs = kwargs
         if type(self).fail:
             raise OSError("disk full")
-        return SimpleNamespace(owner_count=1, pruned_count=0)
+        return SimpleNamespace(owner_count=1, pruned_count=0, media_stored=0, media_missing=0)
 
 
 @pytest.fixture(name="settings")
@@ -52,6 +54,8 @@ def _settings(tmp_path: Path) -> SimpleNamespace:
         database_url="postgresql+psycopg://unused",
         environment="test",
         database_timeouts=DatabaseTimeouts(),
+        media_directory=tmp_path / "media",
+        token_pepper="pepper-for-the-media-key",
     )
 
 
@@ -74,6 +78,8 @@ def test_once_exits_zero_when_the_backup_succeeds(worker: type[FakeService]) -> 
     # The retention floor and the free-space margin from the settings reach the service.
     assert worker.last_kwargs["min_keep"] == 4
     assert worker.last_kwargs["space_margin_percent"] == 175
+    # The photo files of the instance reach the service, so the backup can copy them.
+    assert worker.photo_files is not None
 
 
 def test_once_exits_nonzero_when_the_backup_fails(worker: type[FakeService]) -> None:
@@ -128,6 +134,7 @@ def test_a_run_logs_a_random_run_id_and_counters_and_nothing_else(
         1,
         0,
     )
+    assert (record.backup_media_stored, record.backup_media_missing) == (0, 0)
     rendered = json.loads(AllowlistJsonFormatter("%(message)s").format(record))
     assert rendered["backup_run_id"] == record.backup_run_id
     assert "dropped_field_count" not in rendered

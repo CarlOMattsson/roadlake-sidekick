@@ -14,10 +14,11 @@ never written to a log, a metric or an audit event: those hold ids and closed co
 import logging
 from collections.abc import Collection, Mapping, Sequence
 from dataclasses import asdict, dataclass
-from datetime import date, datetime, tzinfo
+from datetime import date, datetime, timedelta, tzinfo
 from typing import Any, Protocol, cast
 from uuid import UUID, uuid4
 
+from sidekick.automations.application.check_release import release_stale_checks
 from sidekick.automations.domain.automation import Automation
 from sidekick.automations.domain.brief import BriefSource, effect_schemas, render_brief
 from sidekick.automations.domain.datapoints import (
@@ -42,6 +43,8 @@ from sidekick.automations.domain.fingerprints import (
     keyed_hash,
 )
 from sidekick.automations.domain.runs import (
+    DEFAULT_CHECK_LEASE,
+    DEFAULT_CHECK_RELEASE_AFTER,
     MAX_SUGGESTIONS_PER_CALL,
     SUGGESTION_LIFETIME,
     AutomationRun,
@@ -52,6 +55,7 @@ from sidekick.automations.domain.runs import (
     RunRunner,
     RunState,
     StartAction,
+    check_lease,
     manual_key,
     plan_start,
     scheduled_key,
@@ -110,6 +114,9 @@ class AutomationRunStore(TransactionalStore, IdempotentStore, AuditingStore, Pro
     def get_run(
         self, session: TxSession, owner_id: UUID, run_id: UUID, *, lock: bool = False
     ) -> AutomationRun: ...
+    def list_unattended_runs(
+        self, session: TxSession, owner_id: UUID, now: datetime, *, idle_since: datetime | None
+    ) -> list[AutomationRun]: ...
     def list_occurrence_runs(
         self, session: TxSession, owner_id: UUID, automation_id: UUID, occurrence_key: str
     ) -> list[AutomationRun]: ...
@@ -180,6 +187,10 @@ class AutomationRunLimits:
     local_models_exempt: bool
     checker_enabled: bool
     """A check of every proposal is configured: the run then waits for it before it is done."""
+    check_lease: timedelta = DEFAULT_CHECK_LEASE
+    """How long a worker may be silent while it checks a run before another takes it over."""
+    check_release_after: timedelta = DEFAULT_CHECK_RELEASE_AFTER
+    """How long a run may wait for its check, untaken, before its cards are shown as not checked."""
 
     @classmethod
     def from_settings(cls, settings: Settings) -> "AutomationRunLimits":
@@ -191,6 +202,8 @@ class AutomationRunLimits:
             monthly_cap_microusd=round(settings.ai_monthly_cap_usd * MICROUSD_PER_USD),
             local_models_exempt=settings.ai_local_models_exempt_from_cap,
             checker_enabled=settings.ai_check_provider != "off",
+            check_lease=check_lease(settings.ai_request_timeout_seconds),
+            check_release_after=timedelta(minutes=settings.ai_check_release_after_minutes),
         )
 
     def counted_sources(self) -> list[CostSource]:
@@ -387,6 +400,7 @@ class AutomationRunService:
         zone = self.owner_timezone
         today = now.astimezone(zone).date()
         key = scheduled_key(today) if scheduled else manual_key(new_uuid7().hex)
+        self._release_stale_checks(session, owner_id, now)
         attempts = (
             self.store.list_occurrence_runs(session, owner_id, automation_id, key)
             if scheduled
@@ -436,6 +450,24 @@ class AutomationRunService:
             extra=safe_log_fields({"automation_run_id": str(run.id), "outcome": "started"}),
         )
         return run
+
+    def release_stale_checks(self, owner_id: UUID) -> int:
+        """End the wait of the owner's runs for a check that nobody does, so that their proposals
+        can be decided. Called wherever the owner meets proposals and when a run is started."""
+
+        return self.store.transaction(
+            lambda session: self._release_stale_checks(session, owner_id, self.clock.now())
+        )
+
+    def _release_stale_checks(self, session: TxSession, owner_id: UUID, now: datetime) -> int:
+        return release_stale_checks(
+            self.store,
+            session,
+            owner_id,
+            now=now,
+            checker_enabled=self.limits.checker_enabled,
+            release_after=self.limits.check_release_after,
+        )
 
     def _require_room(self, session: TxSession, owner_id: UUID, now: datetime) -> None:
         """Refuse a new run past the day's run cap, or when the month's spending is used up."""

@@ -8,11 +8,27 @@ the photo it is named after. Nothing here logs.
 
 import hashlib
 from collections.abc import Iterable
+from dataclasses import dataclass
 from pathlib import Path
 from uuid import UUID
 
 from sidekick.journal.domain.photo import owner_media_key
 from sidekick.journal.infrastructure.media_store import MediaNotFoundError, MediaStore
+
+
+@dataclass(frozen=True, slots=True)
+class PhotoFileAudit:
+    """What a look at the photo files found against the rows that name them; counts only."""
+
+    referenced: int
+    ok: int
+    missing: int
+    corrupt: int
+    orphaned: int
+
+    @property
+    def sound(self) -> bool:
+        return self.missing == 0 and self.corrupt == 0
 
 
 class OwnerPhotoFiles:
@@ -47,3 +63,22 @@ class OwnerPhotoFiles:
 
         key = self.key_of(owner_id)
         return sum(1 for digest in set(digests) if self._store.remove(key, digest))
+
+    def audit(self, references: Iterable[tuple[UUID, str]]) -> PhotoFileAudit:
+        """Hash every file a row names, and count the files no row names.
+
+        A file that is missing or whose bytes no longer match its name is a loss; a file nothing
+        names is only waste (the sweep removes it). Nothing is changed and nothing is named.
+        """
+
+        wanted = {(self.key_of(owner), digest) for owner, digest in references}
+        ok = missing = corrupt = 0
+        for owner_key, digest in sorted(wanted):
+            if not self._store.exists(owner_key, digest):
+                missing += 1
+            elif self._store.verify(owner_key, digest):
+                ok += 1
+            else:
+                corrupt += 1
+        orphaned = sum(1 for blob in self._store.blobs() if blob not in wanted)
+        return PhotoFileAudit(len(wanted), ok, missing, corrupt, orphaned)

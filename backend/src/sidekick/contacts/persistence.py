@@ -147,6 +147,23 @@ class ContactStore:
         return {row[0]: (row[1], bool(row[2])) for row in rows}
 
     @staticmethod
+    def count_contacts(session: Session, owner_id: UUID) -> int:
+        """How many live, unarchived Contacts the owner has."""
+
+        return (
+            session.scalar(
+                select(func.count())
+                .select_from(ContactRow)
+                .where(
+                    ContactRow.owner_id == owner_id,
+                    ContactRow.trashed_at.is_(None),
+                    ContactRow.archived.is_(False),
+                )
+            )
+            or 0
+        )
+
+    @staticmethod
     def get_contact(
         session: Session,
         owner_id: UUID,

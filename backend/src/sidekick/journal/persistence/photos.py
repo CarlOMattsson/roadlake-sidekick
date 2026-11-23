@@ -259,6 +259,17 @@ class JournalPhotoStore:
         return PhotoSummary(count=len(ids), ids=ids)
 
     @staticmethod
+    def file_references(session: Session) -> list[tuple[UUID, str]]:
+        """Every file any owner's photo rows name, as (owner, digest); trashed photos included.
+
+        For the operator's check of the media volume, which looks at all owners at once.
+        """
+
+        photos = select(JournalAttachmentRow.owner_id, JournalAttachmentRow.content_digest)
+        thumbs = select(JournalAttachmentRow.owner_id, JournalAttachmentRow.thumb_digest)
+        return [(owner, digest) for owner, digest in session.execute(photos.union(thumbs))]
+
+    @staticmethod
     def digests_in_use(session: Session, owner_id: UUID, digests: Collection[str]) -> set[str]:
         """Which of `digests` the owner's rows still name, as a photo file or as a thumbnail."""
 

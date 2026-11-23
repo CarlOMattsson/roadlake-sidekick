@@ -5,6 +5,7 @@ import {
   AwaitingResult,
   awaitingLabelsFor,
 } from "@/features/mcp-apps/awaiting";
+import { PRIMARY_ROOM_IDS } from "@/features/mcp-apps/router";
 import { sidekickShellLabelsFor } from "@/features/mcp-apps/sidekick-shell-labels";
 
 import { readRepoFile } from "@tests/helpers/source-files";
@@ -63,6 +64,12 @@ describe.each([
       ),
     ).toEqual(rooms);
     expect(strip?.querySelector('[data-current="true"]')).toBeNull();
+    // Each cell names its room for its glyph; Mer at rest names none (its glyph is the four tiles).
+    expect(
+      Array.from(strip?.querySelectorAll(".sidekick-wait-room") ?? [], (room) =>
+        room.getAttribute("data-room"),
+      ),
+    ).toEqual([...PRIMARY_ROOM_IDS, null]);
     expect(container.querySelector(".sidekick-wait-tabs")).toBeNull();
     expect(container.querySelector(".sidekick-wait-create")).toBeNull();
     expect(container.querySelector(".sidekick-wait-chips")).toBeNull();
@@ -118,6 +125,16 @@ describe.each([
 });
 
 describe("AwaitingResult with the room the tool belongs to", () => {
+  it("gives the Mer cell the room of Mer that is open, for its name and its glyph", () => {
+    const { container } = render(
+      <AwaitingResult locale="sv" room="contacts" view="list" />,
+    );
+    const more = container.querySelector(".sidekick-wait-room[data-more]");
+    expect(more).toHaveTextContent("Kontakter");
+    expect(more).toHaveAttribute("data-current", "true");
+    expect(more).toHaveAttribute("data-room", "contacts");
+  });
+
   it("marks the room in the strip and draws Arbete's real tab row and section heading, inert and hidden from assistive tech", () => {
     const { container } = render(
       <AwaitingResult locale="sv" room="work" view="board" />,
@@ -253,10 +270,12 @@ describe("the static placeholder in the built document", () => {
     "carries the %s room names and loading line of the app, hidden for the other language",
     (locale) => {
       const { rooms, more } = sidekickShellLabelsFor(locale);
+      // Each cell names its room, which is how the placeholder's styles find its glyph.
       const names =
-        [rooms.work, rooms.journal, rooms.shopping]
-          .map((name) => `<span class="sidekick-wait-room">${name}</span>`)
-          .join("") +
+        PRIMARY_ROOM_IDS.map(
+          (room) =>
+            `<span class="sidekick-wait-room" data-room="${room}">${rooms[room]}</span>`,
+        ).join("") +
         `<span class="sidekick-wait-room" data-more="">${more}</span>`;
       expect(built).toContain(
         `<div aria-hidden="true" class="sidekick-wait-strip" data-wait-locale="${locale}">${names}</div>`,

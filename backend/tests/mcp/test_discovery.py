@@ -138,6 +138,7 @@ EXPECTED_TOOLS = {
     "review_tasks",
     "create_tasks",
     "get_today_brief",
+    "get_start",
 }
 
 # D-057: owner commands and app-side writes that an open app calls through tools/call. They carry

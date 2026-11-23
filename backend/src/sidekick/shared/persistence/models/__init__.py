@@ -72,6 +72,7 @@ from .memory import (
     MemorySourceRow,
     MemoryUsageDailyRow,
 )
+from .review import ReviewCardRow, ReviewLogRow, ReviewSettingsRow
 from .tasks import (
     ActionRow,
     AiErasedRunCostRow,
@@ -168,6 +169,9 @@ __all__ = [
     "PushOutboxRow",
     "PushReminderRow",
     "PushSubscriptionRow",
+    "ReviewCardRow",
+    "ReviewLogRow",
+    "ReviewSettingsRow",
     "SavedViewRow",
     "SmallInteger",
     "StepRow",

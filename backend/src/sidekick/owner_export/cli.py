@@ -19,6 +19,13 @@ from sidekick.owner_export.formats import (
     contacts_to_vcard,
     journal_to_markdown,
 )
+from sidekick.owner_export.media import (
+    EXPORT_DOCUMENT_NAME,
+    EXPORT_MEDIA_FOLDER,
+    ExportMediaFolder,
+    can_read,
+    media_files,
+)
 from sidekick.owner_export.restore import OwnerRestoreService
 from sidekick.owner_export.restore_plan import build_restore_plan
 from sidekick.shared.cli_errors import run_guarded
@@ -128,7 +135,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="sidekick-owner-export")
     commands = parser.add_subparsers(dest="command", required=True)
     verify = commands.add_parser("verify", help="verify an owner export manifest")
-    verify.add_argument("path", type=Path, help="the owner export JSON file")
+    verify.add_argument(
+        "path",
+        type=Path,
+        help="the owner export JSON file, or an export folder (export.json and media/)",
+    )
     plan = commands.add_parser("plan-restore", help="prepare a write-free restore plan")
     plan.add_argument("path", type=Path, help="the owner export JSON file")
     plan.add_argument(
@@ -147,6 +158,11 @@ def build_parser() -> argparse.ArgumentParser:
         "--target-owner-id", type=UUID, required=True, help="the owner to restore into"
     )
     restore.add_argument("--plan-checksum", required=True, help="checksum printed by plan-restore")
+    restore.add_argument(
+        "--refold",
+        action="store_true",
+        help="fold every repetition card's answers again and report the cards that differ",
+    )
     vcard = commands.add_parser(
         "vcard", help="write the contacts of a verified export as one vCard 4.0 file"
     )
@@ -180,16 +196,27 @@ def _refuse(message: str, error: Exception) -> int:
 
 def _command_verify(args: argparse.Namespace) -> int:
     try:
-        result = verify_export(_read_document(args.path))
+        folder = args.path.is_dir()
+        document = _read_document(args.path / EXPORT_DOCUMENT_NAME if folder else args.path)
+        result = verify_export(document)
+        files = media_files(document)
+        unreadable = 0
+        if folder:
+            source = ExportMediaFolder(args.path / EXPORT_MEDIA_FOLDER)
+            unreadable = sum(1 for file in files if not can_read(source, result.owner_id, file))
     except _EXPECTED_ERRORS as error:
         return _refuse("invalid owner export", error)
-    _print_json(
-        {
-            "owner_id": str(result.owner_id),
-            "sha256": result.checksum,
-            "collection_counts": result.collection_counts,
-        }
-    )
+    payload: dict[str, Any] = {
+        "owner_id": str(result.owner_id),
+        "sha256": result.checksum,
+        "collection_counts": result.collection_counts,
+    }
+    if folder:
+        payload["media"] = {"files": len(files), "unreadable": unreadable}
+    _print_json(payload)
+    if unreadable:
+        print("invalid owner export: photo files are missing or damaged", file=sys.stderr)
+        return 1
     return 0
 
 
@@ -246,6 +273,12 @@ def _command_markdown(args: argparse.Namespace) -> int:
 def _command_restore(args: argparse.Namespace) -> int:
     try:
         document = _read_document(args.path)
+        verify_export(document)
+        if media_files(document):
+            raise ExportRefused(
+                "this export lists photo files, which this command does not restore; "
+                "use sidekick-backup import with --media-directory"
+            )
         settings = get_settings()
         store = StoreBase(
             create_session_factory(
@@ -257,18 +290,24 @@ def _command_restore(args: argparse.Namespace) -> int:
             document,
             target_owner_id=args.target_owner_id,
             expected_plan_checksum=args.plan_checksum,
+            refold=args.refold,
         )
     except _EXPECTED_ERRORS as error:
         return _refuse("restore refused", error)
-    _print_json(
-        {
-            "source_checksum": result.source_checksum,
-            "plan_checksum": result.plan_checksum,
-            "target_owner_id": str(result.target_owner_id),
-            "imported_rows": result.imported_rows,
+    summary: dict[str, Any] = {
+        "source_checksum": result.source_checksum,
+        "plan_checksum": result.plan_checksum,
+        "target_owner_id": str(result.target_owner_id),
+        "imported_rows": result.imported_rows,
+    }
+    if result.refold is not None:
+        summary["refold"] = {
+            "checked": result.refold.checked,
+            "mismatched": result.refold.mismatched,
+            "stale": result.refold.stale,
         }
-    )
-    return 0
+    _print_json(summary)
+    return 0 if result.refold is None or result.refold.consistent else 3
 
 
 _COMMANDS: dict[str, Callable[[argparse.Namespace], int]] = {

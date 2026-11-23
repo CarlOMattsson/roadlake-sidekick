@@ -6,7 +6,7 @@ import hashlib
 import json
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
-from datetime import date, datetime
+from datetime import date, datetime, time
 from decimal import Decimal
 from typing import Any, cast
 from uuid import UUID
@@ -16,6 +16,8 @@ from sidekick.owner_export.catalogue import (
     COLLECTIONS_ADDED_IN_FORMAT_6,
     COLLECTIONS_ADDED_IN_FORMAT_8,
     COLLECTIONS_ADDED_IN_FORMAT_9,
+    COLLECTIONS_ADDED_IN_FORMAT_10,
+    COLLECTIONS_ADDED_IN_FORMAT_11,
     COLUMNS_ADDED_IN_FORMAT_7,
     COLUMNS_ADDED_IN_FORMAT_8,
     EXCLUDED_COLLECTIONS,
@@ -24,6 +26,8 @@ from sidekick.owner_export.catalogue import (
     FORMAT_WITH_RETIRED_COLLECTIONS,
     FORMAT_WITHOUT_AI_STEPS,
     FORMAT_WITHOUT_AUTOMATIONS,
+    FORMAT_WITHOUT_PHOTOS,
+    FORMAT_WITHOUT_REVIEW,
     FORMAT_WITHOUT_TAG_LINKS,
     FORMAT_WITHOUT_TASK_REVIEW,
     RETIRED_COLLECTIONS,
@@ -37,7 +41,7 @@ from sidekick.work.domain.context import DOMAIN_ACCENTS
 
 
 def json_safe(value: Any) -> Any:
-    if isinstance(value, (UUID, datetime, date)):
+    if isinstance(value, (UUID, datetime, date, time)):
         return str(value) if isinstance(value, UUID) else value.isoformat()
     if isinstance(value, Decimal):
         return str(value)
@@ -210,6 +214,10 @@ def _collections_not_yet(format_version: int) -> frozenset[str]:
         missing |= COLLECTIONS_ADDED_IN_FORMAT_8
     if format_version <= FORMAT_WITHOUT_AUTOMATIONS:
         missing |= COLLECTIONS_ADDED_IN_FORMAT_9
+    if format_version <= FORMAT_WITHOUT_PHOTOS:
+        missing |= COLLECTIONS_ADDED_IN_FORMAT_10
+    if format_version <= FORMAT_WITHOUT_REVIEW:
+        missing |= COLLECTIONS_ADDED_IN_FORMAT_11
     return frozenset(missing)
 
 

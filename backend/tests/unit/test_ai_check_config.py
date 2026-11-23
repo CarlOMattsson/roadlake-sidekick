@@ -2,12 +2,15 @@
 worker and the factory that turns the settings into a model with its price and cost source."""
 
 import os
+from datetime import timedelta
 from pathlib import Path
 from typing import Any
 
 import pytest
 from pydantic import SecretStr, ValidationError
 
+from sidekick.automations.application.runs import AutomationRunLimits
+from sidekick.automations.domain.runs import CHECK_RETRY_WAIT_SECONDS, check_lease
 from sidekick.shared.config import Settings, refuse_ai_key_outside_ai_worker
 from sidekick.shared.errors import RefusedError
 from sidekick.work.domain.ai_runs import CostSource
@@ -117,6 +120,46 @@ def test_openai_compat_needs_its_base_url() -> None:
         settings(ai_check_provider="openai_compat", ai_check_model="m")
 
 
+def test_the_check_asks_a_chat_model_by_default_with_provisional_thresholds() -> None:
+    config = settings()
+
+    assert config.ai_check_mode == "chat"
+    assert config.ai_check_uncertain_threshold == 0.10
+    assert config.ai_check_suspicious_threshold == 0.30
+
+
+def test_decisions_mode_is_accepted_on_the_hosted_origin() -> None:
+    config = settings(**HOSTED, ai_check_mode="decisions")
+
+    assert config.ai_check_mode == "decisions"
+
+
+def test_decisions_mode_needs_the_openai_compat_provider() -> None:
+    with pytest.raises(ValidationError, match="openai_compat"):
+        settings(ai_check_provider="anthropic", ai_check_model="m", ai_check_mode="decisions")
+
+
+def test_decisions_mode_is_never_sent_to_a_private_server() -> None:
+    with pytest.raises(ValidationError, match="hosted origin"):
+        settings(**LOCAL, ai_check_mode="decisions")
+
+
+def test_an_unknown_mode_is_refused() -> None:
+    with pytest.raises(ValidationError):
+        settings(ai_check_mode="tools")
+
+
+def test_the_uncertain_threshold_cannot_be_above_the_suspicious_one() -> None:
+    with pytest.raises(ValidationError, match="UNCERTAIN_THRESHOLD"):
+        settings(ai_check_uncertain_threshold=0.5, ai_check_suspicious_threshold=0.2)
+
+
+@pytest.mark.parametrize("value", [0.0, 1.0, -0.1, 1.5])
+def test_a_threshold_is_a_probability_strictly_between_zero_and_one(value: float) -> None:
+    with pytest.raises(ValidationError):
+        settings(ai_check_suspicious_threshold=value)
+
+
 @pytest.mark.parametrize("given", list(PRICES))
 def test_a_price_given_alone_is_refused(given: str) -> None:
     with pytest.raises(ValidationError, match="all four together"):
@@ -217,3 +260,22 @@ def test_an_unpriced_anthropic_model_is_refused() -> None:
 
     with pytest.raises(RefusedError, match="no built-in price"):
         build_check_model(settings(**config, ai_anthropic_api_key="sk-ant-test"))
+
+
+def test_the_lease_follows_the_request_timeout_and_the_release_limit_is_configurable() -> None:
+    limits = AutomationRunLimits.from_settings(
+        settings(ai_request_timeout_seconds=100, ai_check_release_after_minutes=30)
+    )
+
+    assert limits.check_lease == check_lease(100)
+    assert limits.check_lease > timedelta(seconds=100 + CHECK_RETRY_WAIT_SECONDS)
+    assert limits.check_release_after == timedelta(minutes=30)
+    default = AutomationRunLimits.from_settings(settings())
+    assert default.check_release_after == timedelta(hours=1)
+    assert default.check_lease > timedelta(seconds=300 + CHECK_RETRY_WAIT_SECONDS)
+
+
+@pytest.mark.parametrize("minutes", [4, 1_441])
+def test_a_release_limit_outside_its_range_is_refused(minutes: int) -> None:
+    with pytest.raises(ValidationError):
+        settings(ai_check_release_after_minutes=minutes)

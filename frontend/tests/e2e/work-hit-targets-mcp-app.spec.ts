@@ -87,7 +87,7 @@ for (const scale of [1, 2]) {
   });
 }
 
-test("Room strip: each room's target is 48 high; Kontakter's + stands beside the search field and keeps a 48 wide target", async ({
+test("Room strip: each room's target is 56 high in a phone's frame; Kontakter's + stands beside the search field and keeps a 48 wide target", async ({
   page,
 }) => {
   const { app, failures } = await openSidekick(page, {
@@ -99,7 +99,8 @@ test("Room strip: each room's target is 48 high; Kontakter's + stands beside the
   await settled(app);
   const tab = room(app, "Dagbok");
   await expect(tab).toBeVisible();
-  expect((await effectiveTargetSize(tab))?.height).toBe(TARGET_PX);
+  // The strip's own 48 (a glyph over each name) and the 8 of the bar above it.
+  expect((await effectiveTargetSize(tab))?.height).toBe(56);
   await goRoom(app, "Kontakter");
   const search = app.locator(".work-contacts-search");
   const add = app.locator(".work-contacts-add");

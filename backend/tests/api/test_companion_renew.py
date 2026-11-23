@@ -94,6 +94,7 @@ def test_renewing_too_early_is_a_409_that_says_when(clock: PinnedClock) -> None:
         # The renewal keeps the app's copy of the instance's rooms current too.
         assert renewed.json()["enabled_rooms"] == [
             "work",
+            "start",
             "journal",
             "shopping",
             "contacts",

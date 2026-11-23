@@ -3,13 +3,12 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { CompanionRoomTransport } from "@/mobile/companion-transport";
-import { APP_NAV_ICONS_KEY } from "@/mobile/app-nav-icons";
+import { APP_NAV_ICONS_KEY, type AppNavIcons } from "@/mobile/app-nav-icons";
 import { MobileApp } from "@/mobile/mobile-app";
 import { PairingGate } from "@/mobile/pairing-gate";
 import type { MobilePlatform } from "@/mobile/platform";
 import { SettingsPanel } from "@/mobile/settings-panel";
 import { settingsLabelsEn, settingsLabelsSv } from "@/mobile/settings-labels";
-import type { NavIcons } from "@/features/mcp-apps/nav-icons";
 import { fakeNative, ok, type FakeNative } from "@tests/helpers/fake-native";
 import type { NativeRequest } from "@/mobile/sidekick-native";
 
@@ -58,7 +57,10 @@ describe("the room bar choice in Inställningar", () => {
 
   function panel(
     locale: "sv" | "en",
-    navIcons?: { value: NavIcons; onChange: (next: NavIcons) => void },
+    navIcons?: {
+      value: AppNavIcons;
+      onChange: (next: AppNavIcons) => void;
+    },
   ) {
     render(
       <SettingsPanel
@@ -225,6 +227,16 @@ describe("the room bar choice in the mobile app", () => {
 
   it("starts with names alone when the kept value is none of the three", async () => {
     localStorage.setItem(APP_NAV_ICONS_KEY, "sparkles");
+    app();
+    await ready();
+    expect(strip()).not.toHaveAttribute("data-icons");
+    for (const cell of roomCells()) {
+      expect(cell.querySelector("svg")).toBeNull();
+    }
+  });
+
+  it("ignores a kept auto, which a phone's choice does not offer, and starts with names alone", async () => {
+    localStorage.setItem(APP_NAV_ICONS_KEY, "auto");
     app();
     await ready();
     expect(strip()).not.toHaveAttribute("data-icons");

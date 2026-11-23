@@ -209,11 +209,11 @@ test("Phone head at 390 px: the head stands in the room, not in the bar, and the
     "room",
   );
   const agenda = await toolMiddles(app);
-  // As measured in the simulated host: search, + and ⋯ at 270, 318 and 366, 74 from the top.
+  // As measured in the simulated host: search, + and ⋯ at 270, 318 and 366, 82 from the top (under the 48 strip).
   expect(agenda.search.x).toBeCloseTo(270, 0);
   expect(agenda.add.x).toBeCloseTo(318, 0);
   expect(agenda.more.x).toBeCloseTo(366, 0);
-  expect(agenda.add.y).toBeCloseTo(74, 0);
+  expect(agenda.add.y).toBeCloseTo(82, 0);
 
   await goRoom(app, "Dagbok");
   await settled(app);

@@ -28,6 +28,7 @@ from tests.support.automation_run_world import (
     refusal,
     run_row,
     scalar,
+    set_column,
     start,
     started,
     task_suggestion,
@@ -553,6 +554,106 @@ async def test_with_a_check_configured_the_run_waits_for_it() -> None:
     assert again.structured_content["status"] == "nothing_due"
     assert again.structured_content["reason"] == "checking"
     assert [row["state"] for row in suggestion_rows(world)] == ["checking"]
+
+
+def _cards(world: World) -> list[dict[str, Any]]:
+    store: Any = world.container.session_factory
+    with store.begin() as session:
+        rows = session.execute(
+            text(
+                "SELECT state, check_state FROM sidekick.automation_suggestions "
+                "ORDER BY created_at, id"
+            )
+        ).mappings()
+        return [dict(row) for row in rows]
+
+
+async def test_with_the_check_switched_off_a_waiting_run_is_released_on_the_next_start() -> None:
+    world = make_world()
+    with_limits(world, checker_enabled=True)
+    run = await open_run(world)
+    await recorded(world, run, datapoints=[person()], suggestions=[task_suggestion()])
+    await recorded(world, run, final=True, outcome="ok")
+    assert [row["state"] for row in _cards(world)] == ["checking"]
+    with_limits(world, checker_enabled=False)
+
+    again = await start(world, {"id": run["automation_id"]})
+
+    assert again.structured_content is not None
+    assert again.structured_content["reason"] == "already_done"
+    assert _cards(world) == [{"state": "pending", "check_state": "failed"}]
+
+
+async def test_a_run_that_waited_longer_than_the_limit_for_its_check_is_released() -> None:
+    world = make_world()
+    with_limits(world, checker_enabled=True, check_release_after=timedelta(hours=1))
+    run = await open_run(world)
+    await recorded(world, run, datapoints=[person()], suggestions=[task_suggestion()])
+    await recorded(world, run, final=True, outcome="ok")
+
+    world.clock.advance(timedelta(minutes=59))
+    early = await start(world, {"id": run["automation_id"]})
+    still_waiting = _cards(world)
+    world.clock.advance(timedelta(minutes=2))
+    late = await start(world, {"id": run["automation_id"]})
+
+    assert early.structured_content is not None
+    assert early.structured_content["reason"] == "checking"
+    assert [row["state"] for row in still_waiting] == ["checking"]
+    assert late.structured_content is not None
+    assert late.structured_content["reason"] == "already_done"
+    assert _cards(world) == [{"state": "pending", "check_state": "failed"}]
+
+
+async def _manual_run_waiting_for_its_check(world: World) -> dict[str, Any]:
+    with_limits(world, checker_enabled=True)
+    automation = await approved_automation(world)
+    run = await started(world, automation, occurrence="manual")
+    await recorded(world, run, datapoints=[person()], suggestions=[task_suggestion()])
+    await recorded(world, run, final=True, outcome="ok")
+    assert [row["state"] for row in _cards(world)] == ["checking"]
+    return {**run, "automation_id": automation["id"]}
+
+
+async def test_a_manual_run_waiting_for_a_check_that_is_off_is_released_where_the_owner_reads() -> (
+    None
+):
+    world = make_world()
+    run = await _manual_run_waiting_for_its_check(world)
+    with_limits(world, checker_enabled=False)
+
+    released = world.container.automation_runs.release_stale_checks(world.claude.user_id)
+
+    assert released == 1
+    assert run_row(world, run["id"])["state"] == "done"
+    assert _cards(world) == [{"state": "pending", "check_state": "failed"}]
+    assert world.container.automation_runs.release_stale_checks(world.claude.user_id) == 0
+
+
+async def test_the_next_start_releases_a_manual_run_waiting_for_a_check_that_is_off() -> None:
+    world = make_world()
+    run = await _manual_run_waiting_for_its_check(world)
+    with_limits(world, checker_enabled=False)
+
+    await started(world, {"id": run["automation_id"]}, occurrence="manual")
+
+    assert run_row(world, run["id"])["state"] == "done"
+    assert _cards(world) == [{"state": "pending", "check_state": "failed"}]
+
+
+async def test_a_run_a_worker_still_holds_is_not_released_when_the_owner_reads() -> None:
+    world = make_world()
+    run = await _manual_run_waiting_for_its_check(world)
+    held_until = world.clock.current + timedelta(minutes=5)
+    set_column(world, "automation_runs", run["id"], "lease_until", held_until)
+    set_column(world, "automation_runs", run["id"], "worker_id", "host:1:worker")
+    with_limits(world, checker_enabled=False)
+
+    released = world.container.automation_runs.release_stale_checks(world.claude.user_id)
+
+    assert released == 0
+    assert run_row(world, run["id"])["state"] == "checking"
+    assert [row["state"] for row in _cards(world)] == ["checking"]
 
 
 async def test_with_a_check_configured_a_run_with_nothing_to_check_is_done() -> None:

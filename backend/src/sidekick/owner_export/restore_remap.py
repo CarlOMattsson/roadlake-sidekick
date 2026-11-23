@@ -230,7 +230,8 @@ def _remap_restore_value(
             # The same id a live record of that kind gets, so references stay consistent.
             return restore_id(old_value, target_owner_id, historical_source)
     if not targets:
-        return old_value
+        # Not a reference (a client's idempotency key may look like an id): kept exactly as written.
+        return value
     for target in targets:
         mapped = identity_map.get((target, old_value))
         if mapped is not None:

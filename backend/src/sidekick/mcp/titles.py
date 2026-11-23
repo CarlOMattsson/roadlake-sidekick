@@ -104,6 +104,7 @@ TOOL_TITLES: dict[str, LocalizedText] = {
     "set_license_key": {"sv": "Ange licensnyckel", "en": "Enter license key"},
     "show_work_changes": {"sv": "Visa ändringar i arbetet", "en": "View work changes"},
     "get_today_brief": {"sv": "Dagens läge", "en": "Today\u2019s brief"},
+    "get_start": {"sv": "Startvy", "en": "Start"},
     "list_recent_changes": {"sv": "Senaste ändringar", "en": "Recent changes"},
     "reschedule_tasks": {"sv": "Flytta uppgifter", "en": "Reschedule tasks"},
     "get_review_queue": {"sv": "Visa uppgifter att gå igenom", "en": "View tasks to review"},

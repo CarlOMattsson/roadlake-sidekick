@@ -21,10 +21,22 @@ export const ROOM_IDS = [
 export type RoomId = (typeof ROOM_IDS)[number];
 
 /**
- * Rooms that stand in the strip's own cells, in order: the ones used several times a week. The order is a design
+ * Where a room stands follows how often it is used, never what it holds, and the most used comes first.
+ *
+ * These stand in the strip's own cells, in order: the rooms used several times a week. The order is a design
  * decision and never follows use, so the strip does not move under the thumb. Control stays outside the strip.
+ * The row holds at most four of them (`StripRow`, so a fifth does not compile): with Mer that is the five cells a
+ * 360 frame has room for in both languages, and the fourth place is kept for the start view. A room that would be
+ * one more belongs in Mer. A daily habit that needs no room of its own (the day's review) is a block of the start
+ * view and never a cell. The room of a feature the instance has not turned on is drawn in neither place
+ * (enabled-rooms.ts).
  */
-export const PRIMARY_ROOM_IDS = ["work", "journal", "shopping"] as const;
+export const PRIMARY_ROOM_IDS = [
+  "work",
+  "journal",
+  "shopping",
+] as const satisfies StripRow;
+type StripRow = readonly RoomId[] & { readonly length: 1 | 2 | 3 | 4 };
 /** Rooms used about once a week or less: rows of the strip's last cell, "Mer ⌄", in order. */
 export const MORE_ROOM_IDS = ["contacts"] as const;
 /** Every room the strip leads to: its cells, then the rows of Mer (the narrow room picker lists them in this order). */

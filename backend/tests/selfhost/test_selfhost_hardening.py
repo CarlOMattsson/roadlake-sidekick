@@ -45,3 +45,35 @@ def test_caddy_and_hindsight_write_only_to_volumes_and_tmp(services: dict[str, d
     # A read-only root filesystem refuses the hub's refs file, so the image's models run offline.
     assert hindsight["environment"]["HF_HUB_OFFLINE"] == "1"
     assert hindsight["environment"]["TRANSFORMERS_OFFLINE"] == "1"
+
+
+MEDIA_PATH = "/var/lib/sidekick/media"
+
+
+def test_the_photo_files_have_a_volume_of_their_own_that_backup_only_reads(
+    services: dict[str, dict],
+) -> None:
+    """Photos are written by the api and the worker into one volume, and never into the read-only
+    root; the backup service mounts the same volume read-only and reads from the same path."""
+
+    document = yaml.safe_load(COMPOSE.read_text(encoding="utf-8"))
+    assert "media" in document["volumes"]
+    for name, mount in (
+        ("api", f"media:{MEDIA_PATH}"),
+        ("automation-worker", f"media:{MEDIA_PATH}"),
+        ("backup", f"media:{MEDIA_PATH}:ro"),
+    ):
+        assert mount in services[name]["volumes"], name
+        assert services[name]["environment"]["SIDEKICK_MEDIA_DIRECTORY"] == MEDIA_PATH, name
+    mounting = {
+        name for name, service in services.items() if "media" in str(service.get("volumes"))
+    }
+    assert mounting == {"api", "automation-worker", "backup"}
+
+
+def test_the_image_makes_the_media_directory_for_the_service_user() -> None:
+    """A named volume starts with the owner and mode of the image's directory at its path."""
+
+    dockerfile = (REPO_ROOT / "backend" / "Dockerfile").read_text(encoding="utf-8")
+
+    assert f"-m 0700 /var/lib/sidekick {MEDIA_PATH}" in dockerfile

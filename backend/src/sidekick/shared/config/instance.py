@@ -30,7 +30,8 @@ class InstanceSettings(SettingsGroup):
     )
     enabled_rooms: str = Field(
         default=DEFAULT_ENABLED_ROOMS,
-        description="Comma-separated rooms shown: work, journal, shopping, contacts, control.",
+        description="Comma-separated rooms shown: work, start, journal, shopping, contacts, "
+        "control. Work and Start are always on.",
     )
     webhooks_enabled: bool = Field(
         default=False,

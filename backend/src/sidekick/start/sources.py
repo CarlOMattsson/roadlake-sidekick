@@ -1,4 +1,4 @@
-"""Adapters from the Work, journal and Shopping services to the ports of the day composition.
+"""Adapters from the Work, journal, Shopping and Contacts services to the ports of the composition.
 
 The services answer in their own records; the composition in `start.application.compose` asks
 for the few facts it needs. Each adapter only maps, and holds no selection rule.
@@ -10,10 +10,13 @@ from dataclasses import replace
 from datetime import date, datetime
 from uuid import UUID
 
+from sidekick.contacts.application.service import ContactService
 from sidekick.journal.application.day import JournalDayService
 from sidekick.shared.types import Actor
 from sidekick.shopping.application.service import ShoppingService
 from sidekick.start.application.compose import (
+    MAX_PAGES,
+    PAGE_SIZE,
     AgendaItem,
     AgendaPage,
     DayFacts,
@@ -21,7 +24,8 @@ from sidekick.start.application.compose import (
     ShoppingListRef,
     ShoppingListsPage,
 )
-from sidekick.work.application.models import WorkQuery
+from sidekick.start.application.start import WaitingTask, WaitingTasks
+from sidekick.work.application.models import WorkQuery, WorkRow
 from sidekick.work.application.work_lists import WorkListService
 
 
@@ -86,4 +90,52 @@ class ShoppingListsSource:
         return OpenItemsPage(
             open_count=sum(1 for item in detail.items if not item.purchased),
             next_offset=detail.next_offset,
+        )
+
+
+class WaitingTasksSource:
+    """Open tasks that wait on something, longest first; the contact name needs contacts:read."""
+
+    def __init__(self, work_lists: WorkListService, contacts: ContactService) -> None:
+        self._work_lists = work_lists
+        self._contacts = contacts
+
+    def waiting_tasks(self, actor: Actor) -> WaitingTasks:
+        rows: list[WorkRow] = []
+        cursor: str | None = None
+        capped = True
+        for _ in range(MAX_PAGES):
+            query = WorkQuery(
+                kind="task", waiting="waiting", sort="updated_desc", limit=PAGE_SIZE, cursor=cursor
+            )
+            page = self._work_lists.work_list_page(actor, query)
+            rows.extend(page.items)
+            if page.next_cursor is None:
+                capped = False
+                break
+            cursor = page.next_cursor
+        waiting = [(row.waiting_since, row) for row in rows if row.waiting_since is not None]
+        waiting.sort(key=lambda pair: (pair[0], pair[1].id))
+        wanted = [row.waiting_on_contact_id for _, row in waiting if row.waiting_on_contact_id]
+        names = (
+            self._contacts.waiting_contact_names(actor, wanted)
+            if wanted and "contacts:read" in actor.scopes
+            else {}
+        )
+        return WaitingTasks(
+            items=[
+                WaitingTask(
+                    id=row.id,
+                    title=row.title,
+                    version=row.version,
+                    waiting_since=since,
+                    contact_id=row.waiting_on_contact_id,
+                    contact_name=names.get(row.waiting_on_contact_id)
+                    if row.waiting_on_contact_id
+                    else None,
+                )
+                for since, row in waiting
+            ],
+            total=len(waiting),
+            capped=capped,
         )

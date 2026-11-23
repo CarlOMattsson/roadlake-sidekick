@@ -96,6 +96,13 @@ def build_parser() -> argparse.ArgumentParser:
         choices=range(0, MAX_TRASH_AGE_DAYS + 1),
         help="only records that have been in the trash for at least this many days",
     )
+    media = subparsers.add_parser("media", help="check the journal photo files")
+    media_commands = media.add_subparsers(dest="media_command", required=True)
+    media_commands.add_parser(
+        "verify",
+        help="hash every photo file the database names and count missing, damaged and unused "
+        "files (counts only; exit status 1 if a file is missing or damaged)",
+    )
     return parser
 
 
@@ -116,6 +123,10 @@ def _run_command(parser: argparse.ArgumentParser, args: argparse.Namespace) -> N
     settings = get_admin_settings()
     if args.command == "empty-trash":
         run_empty_trash(settings, remove=args.yes, older_than_days=args.older_than)
+        return
+    if args.command == "media":
+        if not run_media_verify(settings):
+            raise SystemExit(1)
         return
     service = composition.create_auth_service(
         create_session_factory(settings.database_url, timeouts=settings.database_timeouts),
@@ -193,6 +204,28 @@ def run_empty_trash(settings: Settings, *, remove: bool, older_than_days: int | 
                 "(still has descendants or links, or is a shopping item):"
             )
             print_counts(result.kept)
+
+
+def run_media_verify(settings: Settings) -> bool:
+    """Print how the photo files compare with the rows, as JSON counts; True when none is lost.
+
+    No file name, digest, owner or photo is printed.
+    """
+
+    audit = composition.audit_photo_files(settings)
+    print(
+        json.dumps(
+            {
+                "referenced": audit.referenced,
+                "ok": audit.ok,
+                "missing": audit.missing,
+                "corrupt": audit.corrupt,
+                "unused": audit.orphaned,
+            },
+            sort_keys=True,
+        )
+    )
+    return audit.sound
 
 
 def print_counts(counts: Mapping[Any, int]) -> None:

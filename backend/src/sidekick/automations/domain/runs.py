@@ -19,12 +19,34 @@ from uuid import UUID
 from sidekick.automations.domain.spec import Cadence
 from sidekick.automations.domain.text import normalise_line
 from sidekick.shared.errors import ConflictError, ValidationError
-from sidekick.work.domain.ai_runs import AiUsage
+from sidekick.work.domain.ai_runs import AiUsage, CostSource
 
 MAX_ATTEMPTS_PER_OCCURRENCE = 3
 MAX_SUGGESTIONS_PER_CALL = 25
 RUN_LEASE = timedelta(minutes=30)
 """How long a runner may be silent before another start takes the occurrence over."""
+CHECK_RETRY_WAIT_SECONDS = 60.0
+"""The longest a worker waits before asking a busy checker again."""
+CHECK_LEASE_MARGIN = timedelta(seconds=120)
+DEFAULT_CHECK_RELEASE_AFTER = timedelta(hours=1)
+"""How long a run may wait for its check, untaken, before its cards are shown as not checked."""
+
+
+def check_lease(request_timeout_seconds: float) -> timedelta:
+    """How long a worker may be silent while it checks a run before another takes it over.
+
+    The lease is renewed when a call is reserved, so it must outlast one whole call and the wait
+    before the next: the provider's timeout, the longest retry wait and a margin. A shorter lease
+    lets a second worker take the run while the first still has a call in flight.
+    """
+
+    return (
+        timedelta(seconds=request_timeout_seconds + CHECK_RETRY_WAIT_SECONDS) + CHECK_LEASE_MARGIN
+    )
+
+
+DEFAULT_CHECK_LEASE = check_lease(300)
+MAX_CHECKER_MODEL_CHARS = 120
 MAX_SUMMARY_CHARS = 300
 SUGGESTION_LIFETIME = timedelta(days=14)
 """A pending suggestion that nobody decided expires after this."""
@@ -228,6 +250,136 @@ class AutomationRun:
             lease_until=None,
             finished_at=None if checking else now,
         )
+
+    # --- the independent check ------------------------------------------------------------------
+
+    def _require_checking(self) -> None:
+        if self.state is not RunState.CHECKING:
+            raise ConflictError("the run is not being checked", reason="run_not_open")
+
+    def claim_check(
+        self, worker_id: str, checker_model: str, *, lease: timedelta, now: datetime
+    ) -> "AutomationRun":
+        """A worker takes a run that waits for its check and whose last worker has gone silent."""
+
+        self._require_checking()
+        if self.lease_until is not None and self.lease_until > now:
+            raise ConflictError("another worker is checking the run", reason="run_not_open")
+        return self._next(
+            now,
+            worker_id=worker_id,
+            stage="check",
+            lease_until=now + lease,
+            checker_model=checker_model[:MAX_CHECKER_MODEL_CHARS],
+        )
+
+    def holds_check(self, worker_id: str, now: datetime) -> bool:
+        """This worker still holds the run's check: it took it and its lease has not run out."""
+
+        return (
+            self.state is RunState.CHECKING
+            and self.worker_id == worker_id
+            and self.lease_until is not None
+            and self.lease_until > now
+        )
+
+    def holds_lapsed_check_reservation(self, now: datetime) -> bool:
+        """The worker went silent with a model call reserved, which may have been billed."""
+
+        return (
+            self.state is RunState.CHECKING
+            and self.usage.reserved_microusd > 0
+            and self.lease_until is not None
+            and self.lease_until <= now
+        )
+
+    def abandon_check_reservation(self, *, now: datetime) -> "AutomationRun":
+        """Book a reservation whose call never reported back as its cost, and free the run."""
+
+        if not self.holds_lapsed_check_reservation(now):
+            raise ConflictError("the run has no lapsed reservation", reason="run_not_open")
+        usage = replace(
+            self.usage,
+            reserved_microusd=0,
+            cost_microusd=self.usage.cost_microusd + self.usage.reserved_microusd,
+        )
+        return self._next(now, usage=usage, worker_id=None, lease_until=None)
+
+    def reserve_check(
+        self,
+        microusd: int,
+        source: CostSource,
+        *,
+        worker_id: str,
+        lease: timedelta,
+        now: datetime,
+    ) -> "AutomationRun":
+        """Set aside the most the next call of the check can cost; one call at a time holds it."""
+
+        if not self.holds_check(worker_id, now) or self.usage.reserved_microusd:
+            raise ConflictError("the run is not held for a check call", reason="run_not_open")
+        base = usage_for_check(self.usage, source)
+        return self._next(
+            now,
+            lease_until=now + lease,
+            usage=replace(base, reserved_microusd=microusd),
+        )
+
+    def settle_check(self, call: AiUsage, *, worker_id: str, now: datetime) -> "AutomationRun":
+        """Book what a call cost, whoever holds the run: a call that ended after the lease ran out
+        is still billed. The reservation is replaced only when `worker_id` is the worker that holds
+        it; when another worker took the run over, its reservation stays and the cost is added."""
+
+        self._require_checking()
+        base = usage_for_check(self.usage, call.cost_source)
+        counted = replace(call, cost_source=base.cost_source, model=None)
+        booked = base.plus(counted)
+        if self.worker_id != worker_id:
+            booked = replace(booked, reserved_microusd=base.reserved_microusd)
+        return self._next(now, usage=booked)
+
+    def releasable(self, now: datetime, *, checker_enabled: bool, release_after: timedelta) -> bool:
+        """The run waits for a check that nobody is doing: no worker holds it, and the check is
+        off or the run has waited longer than `release_after` since it last changed."""
+
+        if self.state is not RunState.CHECKING:
+            return False
+        if self.lease_until is not None and self.lease_until > now:
+            return False
+        return not checker_enabled or now - self.updated_at >= release_after
+
+    def release_unchecked(self, *, now: datetime) -> "AutomationRun":
+        """End the wait for a check that did not happen. A reservation whose worker went silent
+        is booked as cost first. The caller shows the run's waiting cards as not checked."""
+
+        run = self
+        if self.holds_lapsed_check_reservation(now):
+            run = self.abandon_check_reservation(now=now)
+        return run.checked(now=now)
+
+    def checked(self, *, now: datetime) -> "AutomationRun":
+        """Every card of the run has its check, or was shown as not checked: the run is done."""
+
+        self._require_checking()
+        if self.usage.reserved_microusd:
+            raise ConflictError("a check call is still reserved", reason="run_not_open")
+        return self._next(
+            now, state=RunState.DONE, stage=None, worker_id=None, lease_until=None, finished_at=now
+        )
+
+
+def usage_for_check(usage: AiUsage, source: CostSource) -> AiUsage:
+    """The run's usage, ready to take the cost of a check booked under `source`.
+
+    A client's own estimate never counts toward a cap, so a check that does cost something cannot
+    be added to it: the estimate gives way to the check's usage. A run that already carries a cost
+    the caps count keeps its source; any other takes the check's."""
+
+    if usage.cost_source is CostSource.CLIENT_ESTIMATE:
+        return AiUsage(model=usage.model, cost_source=source)
+    if usage.cost_source in (CostSource.PROVIDER, CostSource.PRICE_TABLE):
+        return usage
+    return replace(usage, cost_source=source)
 
 
 def clean_summary(value: str | None) -> str | None:

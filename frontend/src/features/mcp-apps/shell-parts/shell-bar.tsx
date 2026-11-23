@@ -19,9 +19,9 @@ export type ShellAsk = {
  * The bar above the rooms: the room strip (its rooms and the Mer cell, or the narrow room picker), in a wide frame the room's head beside it on
  * the same row, the Back row with `collapse`, and the question about unsaved edits. Nothing here navigates by itself; every press goes to the shell.
  *
- * `roomStrip.icons` is what the cells draw (strip-cell.tsx). With glyphs a cell's face is one row in
- * `.sk-rooms__cell`, and the strip says so in `data-icons`, which the styles read; with names alone the markup is the
- * name and nothing more.
+ * `roomStrip.icons` is what the cells draw (strip-cell.tsx). With glyphs a cell's face is a glyph and a name in
+ * `.sk-rooms__cell`, and the strip says which mode in `data-icons`; the styles decide by the frame's width whether
+ * the glyph is drawn and where the name stands. With names alone (`off`) the markup is the name and nothing more.
  */
 export function ShellBar({
   labels,

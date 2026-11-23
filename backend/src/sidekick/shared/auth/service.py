@@ -28,7 +28,7 @@ UserProvisionedHook = Callable[[Session, UUID, datetime], None]
 # A personal token's `last_used_at` is rewritten at most this often.
 LAST_USED_WRITE_INTERVAL = timedelta(minutes=1)
 
-# The fifteen scopes the public MCP surface can ever carry, in their advertised order. This is the
+# The seventeen scopes the public MCP surface can ever carry, in their advertised order. This is the
 # ceiling for every MCP credential: a personal token holds a subset the operator chose, and an
 # OAuth session holds a subset the server policy chose. Neither can hold more than this.
 MCP_SCOPES: tuple[str, ...] = (
@@ -47,6 +47,8 @@ MCP_SCOPES: tuple[str, ...] = (
     "automation:write",
     "ai:run",
     "automation:run",
+    "start:read",
+    "start:write",
 )
 
 ALL_SCOPES: frozenset[str] = frozenset(MCP_SCOPES)

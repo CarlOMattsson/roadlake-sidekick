@@ -29,13 +29,13 @@ MAX_PAGES = 10
 AgendaGroupName = Literal["overdue", "today", "upcoming", "scheduled_later"]
 
 
-class _ClosedRecord(BaseModel):
+class ClosedRecord(BaseModel):
     """A record with no unknown fields, as the reviewed tool output is."""
 
     model_config = ConfigDict(extra="forbid")
 
 
-class BriefTaskRecord(_ClosedRecord):
+class BriefTaskRecord(ClosedRecord):
     """One overdue or due-today Work record, with the id and version a follow-up call needs."""
 
     id: UUID
@@ -47,7 +47,7 @@ class BriefTaskRecord(_ClosedRecord):
     project_title: str | None
 
 
-class BriefTasks(_ClosedRecord):
+class BriefTasks(ClosedRecord):
     overdue_count: int
     today_count: int
     upcoming_7d_count: int
@@ -58,20 +58,20 @@ class BriefTasks(_ClosedRecord):
     """True when the window held more records than the bounded reads can count."""
 
 
-class BriefDiary(_ClosedRecord):
+class BriefDiary(ClosedRecord):
     entry_count: int
     has_summary: bool
     truncated: bool
 
 
-class BriefShoppingList(_ClosedRecord):
+class BriefShoppingList(ClosedRecord):
     id: UUID
     name: str
     version: int
     open_item_count: int
 
 
-class BriefShopping(_ClosedRecord):
+class BriefShopping(ClosedRecord):
     open_list_count: int
     open_item_count: int
     lists: list[BriefShoppingList]
@@ -172,18 +172,34 @@ def compose_brief(
     return parts
 
 
-def tasks_part(source: AgendaSource, actor: Actor, now: datetime) -> BriefTasks:
+def read_agenda(source: AgendaSource, actor: Actor, now: datetime) -> tuple[list[AgendaItem], bool]:
+    """The agenda up to the end of the upcoming window, and whether the bounded read cut it off."""
+
     window_end = now + timedelta(days=UPCOMING_DAYS)
     items: list[AgendaItem] = []
     cursor: str | None = None
-    capped = True
     for _ in range(MAX_PAGES):
         page = source.agenda_page(actor, due_to=window_end, limit=PAGE_SIZE, cursor=cursor)
         items.extend(page.items)
         if page.next_cursor is None:
-            capped = False
-            break
+            return items, False
         cursor = page.next_cursor
+    return items, True
+
+
+def tasks_part(source: AgendaSource, actor: Actor, now: datetime) -> BriefTasks:
+    items, capped = read_agenda(source, actor, now)
+    return tasks_from_agenda(items, capped, show_project="projects:read" in actor.scopes)
+
+
+def tasks_from_agenda(
+    items: Sequence[AgendaItem], capped: bool, *, show_project: bool
+) -> BriefTasks:
+    """The overdue and due-today rows (at most `TASK_ROW_LIMIT`) and the counts of a read agenda.
+
+    A Project's title is Project data: it is shown only to a caller who may read Projects.
+    """
+
     rows: list[BriefTaskRecord] = []
     listed = 0
     for item in items:
@@ -200,7 +216,7 @@ def tasks_part(source: AgendaSource, actor: Actor, now: datetime) -> BriefTasks:
                     version=item.version,
                     agenda_group=group,
                     due_at=item.due_at,
-                    project_title=item.project_title,
+                    project_title=item.project_title if show_project else None,
                 )
             )
     return BriefTasks(

@@ -54,12 +54,16 @@ def test_the_ai_usage_row_is_declared_only_when_switched_on() -> None:
     assert shown.count('<meta name="sidekick-ai-usage" content="on">') == 1
 
 
-def test_the_room_strip_icons_are_declared_only_when_chosen() -> None:
+def test_the_room_strip_icons_default_to_auto_and_declare_nothing() -> None:
     html = "<html><head></head><body></body></html>"
-    assert Settings.model_fields["mcp_app_nav_icons"].default == "off"
+    assert Settings.model_fields["mcp_app_nav_icons"].default == "auto"
     assert "sidekick-nav-icons" not in with_app_context(html, "sv", [], None)
-    assert "sidekick-nav-icons" not in with_app_context(html, "sv", [], None, nav_icons="off")
-    for choice in ("label", "only"):
+    assert "sidekick-nav-icons" not in with_app_context(html, "sv", [], None, nav_icons="auto")
+
+
+def test_the_room_strip_icons_are_declared_for_every_choice_but_auto() -> None:
+    html = "<html><head></head><body></body></html>"
+    for choice in ("off", "label", "only"):
         declared = with_app_context(html, "sv", [], None, nav_icons=choice)
         assert declared.count(f'<meta name="sidekick-nav-icons" content="{choice}">') == 1
 

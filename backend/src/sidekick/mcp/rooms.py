@@ -12,9 +12,10 @@ surface a switched-off room means two things, both applied by `create_mcp_server
 curated contract to be listed here, so a new tool cannot be added without choosing its room.
 
 Tools that read across rooms stay with `work` (`search`, `get_today_brief`, `recall_memory`) and
-narrow themselves by scope. The trash tools stay with `work` so that an instance with Work only
-can delete and undo; the Trash view itself is Control's. The change list, the memory
-settings and the assistant activity are what Control shows, so they belong to `control`.
+narrow themselves by scope. The Start view (`get_start`) is the room `start`, which is always on.
+The trash tools stay with `work` so that an instance with Work only can delete and undo; the Trash
+view itself is Control's. The change list, the memory settings and the assistant activity are what
+Control shows, so they belong to `control`.
 """
 
 from collections.abc import Callable, Collection, Mapping
@@ -22,7 +23,7 @@ from typing import Final
 
 from fastmcp import FastMCP
 
-from sidekick.shared.rooms import Room, disabled_scopes
+from sidekick.shared.rooms import ALWAYS_ON, Room, disabled_scopes
 from sidekick.shared.types import Actor
 
 ROOM_TOOLS: Final[Mapping[Room, tuple[str, ...]]] = {
@@ -107,6 +108,9 @@ ROOM_TOOLS: Final[Mapping[Room, tuple[str, ...]]] = {
         "move_to_trash",
         "restore_from_trash",
     ),
+    # Start reads across the other rooms and always stays on; a part of a room that is off is left
+    # out through the narrowed scopes.
+    "start": ("get_start",),
     "journal": (
         "list_journal_entries",
         "get_journal_entry",
@@ -175,7 +179,7 @@ def remove_disabled_room_tools(mcp: FastMCP, enabled: Collection[str]) -> None:
     """Unregister the tools of every room that is switched off. Nothing to do with all rooms on."""
 
     for room, tools in ROOM_TOOLS.items():
-        if room not in enabled:
+        if room not in enabled and room not in ALWAYS_ON:
             for tool in tools:
                 mcp.local_provider.remove_tool(tool)
 

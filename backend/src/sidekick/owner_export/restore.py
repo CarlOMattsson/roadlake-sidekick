@@ -20,6 +20,8 @@ from sidekick.owner_export.restore_remap import (
     restore_lock_id,
     restore_source_order,
 )
+from sidekick.owner_export.restore_review import refold_report
+from sidekick.review.domain.cards import FoldReport
 from sidekick.shared.observability import NoopTelemetryAdapter, TelemetryPort
 from sidekick.shared.persistence.models import MemorySettingsRow
 from sidekick.shared.types import TxSession
@@ -48,6 +50,8 @@ class RestoreResult:
     plan_checksum: str
     target_owner_id: UUID
     imported_rows: int
+    refold: FoldReport | None = None
+    """Set when the restore was asked to fold every card's answers again and compare."""
 
 
 class OwnerRestoreService:
@@ -63,7 +67,12 @@ class OwnerRestoreService:
         *,
         target_owner_id: UUID,
         expected_plan_checksum: str,
+        refold: bool = False,
     ) -> RestoreResult:
+        """Restore the document. With `refold`, every card's answers are folded again after the
+        write and the cards whose stored schedule differs are counted; the rows are kept either
+        way, so a tampered or truncated log is reported, not silently repaired."""
+
         plan = build_restore_plan(document, target_owner_id)
         if plan.status != "ready":
             raise ExportRefused("restore plan is blocked")
@@ -98,6 +107,7 @@ class OwnerRestoreService:
                         session.add(source.row_type(**row))
                     imported_rows += 1
                 session.flush()
+            report = refold_report(session, target_owner_id) if refold else None
             self._store.append_audit(
                 session,
                 actor_id=target_owner_id,
@@ -112,6 +122,7 @@ class OwnerRestoreService:
                 plan_checksum=plan.plan_checksum,
                 target_owner_id=target_owner_id,
                 imported_rows=imported_rows,
+                refold=report,
             )
 
         try:

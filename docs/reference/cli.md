@@ -37,6 +37,7 @@ uv run --project backend sidekick-admin <command> [arguments]
 | [`revoke-token`](#sidekick-admin-revoke-token) | Revoke one personal token. |
 | [`disable-user`](#sidekick-admin-disable-user) | Disable a user so none of their credentials work. |
 | [`empty-trash`](#sidekick-admin-empty-trash) | Permanently remove everything in the trash (counts only unless --yes is given). |
+| [`media`](#sidekick-admin-media) | Check the journal photo files. |
 
 ### `sidekick-admin create-user`
 
@@ -55,7 +56,7 @@ Issue a personal access token for MCP clients and print it once.
 | --- | --- | --- | --- |
 | `--user-id` | `USER_ID` | yes | The user the token belongs to. |
 | `--label` | `LABEL` | yes | A name that tells the token apart in lists. |
-| `--scope` | `SCOPE` | no | A scope the client needs; repeat once per scope. Required: no scope is implied. One of `ai:run`, `automation:read`, `automation:run`, `automation:write`, `contacts:read`, `contacts:write`, `journal:read`, `journal:write`, `license:write`, `projects:read`, `projects:write`, `shopping:read`, `shopping:write`, `tasks:read`, `tasks:write`. Repeatable. |
+| `--scope` | `SCOPE` | no | A scope the client needs; repeat once per scope. Required: no scope is implied. One of `ai:run`, `automation:read`, `automation:run`, `automation:write`, `contacts:read`, `contacts:write`, `journal:read`, `journal:write`, `license:write`, `projects:read`, `projects:write`, `shopping:read`, `shopping:write`, `start:read`, `start:write`, `tasks:read`, `tasks:write`. Repeatable. |
 | `--expires-in-days` | `1..365` | no | Token lifetime in days (default 90). Cannot be combined with `--never-expires`. |
 | `--never-expires` | - | no | Issue a token without an end date; revoke it with revoke-token when done. Cannot be combined with `--expires-in-days`. |
 
@@ -92,6 +93,12 @@ Permanently remove everything in the trash (counts only unless --yes is given).
 | `--yes` | - | no | Really delete; without it the command only prints how many records it would delete. |
 | `--older-than` | `DAYS` | no | Only records that have been in the trash for at least this many days. |
 
+### `sidekick-admin media`
+
+Check the journal photo files.
+
+No arguments.
+
 ## `sidekick-backup`
 
 Create, verify, extract, import and prune encrypted local backups.
@@ -108,6 +115,7 @@ uv run --project backend sidekick-backup <command> [arguments]
 | [`create`](#sidekick-backup-create) | Create an encrypted local owner backup. |
 | [`verify`](#sidekick-backup-verify) | Verify and inspect an encrypted backup. |
 | [`extract-export`](#sidekick-backup-extract-export) | Write the verified owner export of an encrypted backup to a new JSON file. |
+| [`extract-export-folder`](#sidekick-backup-extract-export-folder) | Write the verified owner export of an encrypted backup, with its photo files, to a new folder (export.json and media/). |
 | [`import`](#sidekick-backup-import) | Plan, or with --apply write, the import of one owner into an existing empty owner. |
 | [`prune`](#sidekick-backup-prune) | Apply configured backup retention. |
 
@@ -132,6 +140,7 @@ Verify and inspect an encrypted backup.
 | Argument | Value | Required | Notes |
 | --- | --- | --- | --- |
 | `path` | - | yes | The encrypted backup file. |
+| `--media-directory` | `MEDIA_DIRECTORY` | no | Also read every photo file the backup lists from this folder (its media/ folder). |
 
 ### `sidekick-backup extract-export`
 
@@ -142,16 +151,27 @@ Write the verified owner export of an encrypted backup to a new JSON file.
 | `path` | - | yes | The encrypted backup file. |
 | `output` | - | yes | The new JSON file to write; never overwritten. |
 
+### `sidekick-backup extract-export-folder`
+
+Write the verified owner export of an encrypted backup, with its photo files, to a new folder (export.json and media/).
+
+| Argument | Value | Required | Notes |
+| --- | --- | --- | --- |
+| `path` | - | yes | The encrypted backup file. |
+| `output` | - | yes | The new folder to write; never overwritten. |
+| `--media-directory` | `MEDIA_DIRECTORY` | no | The backup's photo files (default: the media/ folder next to the backup file). |
+
 ### `sidekick-backup import`
 
 Plan, or with --apply write, the import of one owner into an existing empty owner.
 
 | Argument | Value | Required | Notes |
 | --- | --- | --- | --- |
-| `file` | - | yes | An encrypted backup (.skbackup), a plain owner export .json, or - for stdin. |
+| `file` | - | yes | An encrypted backup (.skbackup), a plain owner export .json, an export folder, or - for stdin. |
 | `--target-owner` | `TARGET_OWNER` | yes | The existing empty owner to import into. |
 | `--source-owner` | `SOURCE_OWNER` | no | Required if the file holds several owners. |
 | `--key-file` | `KEY_FILE` | no | Fernet key file (mode 600); default is SIDEKICK_BACKUP_ENCRYPTION_KEY. |
+| `--media-directory` | `MEDIA_DIRECTORY` | no | The photo files of the input: the backup's media/ folder, or an export's media/ folder (an export folder supplies its own). |
 | `--apply` | - | no | Write the plan given by --plan-checksum. |
 | `--plan-checksum` | `PLAN_CHECKSUM` | no | Checksum printed by the plan; required with --apply. |
 
@@ -185,7 +205,7 @@ Verify an owner export manifest.
 
 | Argument | Value | Required | Notes |
 | --- | --- | --- | --- |
-| `path` | - | yes | The owner export JSON file. |
+| `path` | - | yes | The owner export JSON file, or an export folder (export.json and media/). |
 
 ### `sidekick-owner-export plan-restore`
 
@@ -206,6 +226,7 @@ Apply a previously reviewed restore plan atomically.
 | `--apply` | - | yes | Really write the reviewed plan. |
 | `--target-owner-id` | `TARGET_OWNER_ID` | yes | The owner to restore into. |
 | `--plan-checksum` | `PLAN_CHECKSUM` | yes | Checksum printed by plan-restore. |
+| `--refold` | - | no | Fold every repetition card's answers again and report the cards that differ. |
 
 ### `sidekick-owner-export vcard`
 

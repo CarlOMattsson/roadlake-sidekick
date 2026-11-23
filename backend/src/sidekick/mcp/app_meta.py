@@ -62,12 +62,13 @@ def with_enabled_rooms(html: str, rooms: Collection[str]) -> str:
 
 
 def with_nav_icons(html: str, nav_icons: NavIcons) -> str:
-    """Declares what the room strip draws (SIDEKICK_MCP_APP_NAV_ICONS): an icon before each
-    room's name, or the icons alone.
+    """Declares what the room strip draws (SIDEKICK_MCP_APP_NAV_ICONS): names where the frame is
+    wide and an icon over each name on a phone (`auto`), names at every width (`off`), an icon
+    with each name (`label`) or the icons alone (`only`).
 
-    Without the meta (the default, `off`) the strip draws the rooms' names alone.
+    Without the meta (the default, `auto`) the app picks the layout from the width of its frame.
     """
-    if nav_icons == "off":
+    if nav_icons == "auto":
         return html
     declared = f'<head><meta name="sidekick-nav-icons" content="{nav_icons}">'
     return html.replace("<head>", declared, 1)
@@ -123,7 +124,7 @@ def with_app_context(
     license_view: LicenseView | None = None,
     owner_timezone: str = DEFAULT_OWNER_TIMEZONE,
     show_ai_usage: bool = False,
-    nav_icons: NavIcons = "off",
+    nav_icons: NavIcons = "auto",
 ) -> str:
     """The app document with all the instance declares: language, time zone, rooms, update reminder,
     license state, whether Control shows the AI cost and what the room strip draws. `license_view`

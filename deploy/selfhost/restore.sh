@@ -8,6 +8,12 @@
 # With --apply it applies that same reviewed plan (matched by its checksum) and verifies the row
 # counts. The decrypted export stays in the memory of a one-off api container (--rm).
 #
+# Journal photos: the backup lists their rows; their files are kept encrypted in the `media/` folder that sits beside the
+# backup files (copy it off the machine together with them). The folder next to --backup is used when it exists, or give
+# it with --media-dir. A plain export folder (export.json and media/) is restored the same way. The files are written
+# into the instance's media volume under the target owner. A copy of the folder is staged for the one-off container and
+# removed again, because the container's user cannot read files that only you may read.
+#
 # Requires: postgres running (docker compose --env-file selfhost.env up -d postgres) and
 # SIDEKICK_BACKUP_ENCRYPTION_KEY in selfhost.env (or as a secret file, see secrets-to-files.sh). The key is never printed or put on a command line.
 set -euo pipefail
@@ -32,13 +38,15 @@ die() {
 
 usage() {
   cat >&2 <<'EOF'
-usage: restore.sh [-p NAME] [-f FILE]... --backup FILE --target-owner UUID [--source-owner UUID] [--apply]
+usage: restore.sh [-p NAME] [-f FILE]... --backup FILE --target-owner UUID [--source-owner UUID] [--media-dir DIR] [--apply]
 
   -p, --project-name NAME  compose project name (default: compose's own, or COMPOSE_PROJECT_NAME)
   -f, --compose-file FILE  compose file, repeatable, used instead of the default compose.yaml
                          (give compose.yaml first when adding an override file)
-  --backup FILE          an encrypted .skbackup file (for example copied from the backups directory)
-                         or a plain owner export .json
+  --backup FILE          an encrypted .skbackup file (for example copied from the backups directory),
+                         a plain owner export .json, or an export folder (export.json and media/)
+  --media-dir DIR        the photo files: the media/ folder of the backups directory, or of an export
+                         (default: media/ next to the backup file or inside the export folder, if it exists)
   --target-owner UUID    existing, empty owner (create it first with sidekick-admin create-user)
   --source-owner UUID    required if the backup holds more than one owner (a .skbackup holds every owner)
   --apply                write the restore after showing the plan; without it nothing is written
@@ -49,6 +57,7 @@ EOF
 backup=""
 target_owner=""
 source_owner=""
+media_dir=""
 apply=0
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -77,6 +86,11 @@ while [ $# -gt 0 ]; do
       source_owner="$2"
       shift 2
       ;;
+    --media-dir)
+      [ $# -ge 2 ] || usage
+      media_dir="$2"
+      shift 2
+      ;;
     --apply)
       apply=1
       shift
@@ -93,7 +107,16 @@ done
 
 [ -n "$backup" ] || usage
 [ -n "$target_owner" ] || usage
-[ -f "$backup" ] || die "backup file not found"
+input_file="$backup"
+if [ -d "$backup" ]; then
+  input_file="$backup/export.json"
+  [ -f "$input_file" ] || die "export folder has no export.json"
+  [ -n "$media_dir" ] || { [ ! -d "$backup/media" ] || media_dir="$backup/media"; }
+else
+  [ -f "$backup" ] || die "backup file not found"
+  [ -n "$media_dir" ] || { [ ! -d "$(dirname -- "$backup")/media" ] || media_dir="$(dirname -- "$backup")/media"; }
+fi
+[ -z "$media_dir" ] || [ -d "$media_dir" ] || die "media folder not found"
 [ -f "$ENV_FILE" ] || die "selfhost.env not found next to this script"
 if [ "${#COMPOSE_FILES[@]}" -eq 0 ]; then
   COMPOSE_FILES=("$COMPOSE_FILE")
@@ -106,7 +129,18 @@ if [ -n "$source_owner" ]; then
   [[ "$source_owner" =~ $UUID_RE ]] || die "--source-owner must be a UUID"
 fi
 
-backup_abs="$(cd -- "$(dirname -- "$backup")" && pwd)/$(basename -- "$backup")"
+backup_abs="$(cd -- "$(dirname -- "$input_file")" && pwd)/$(basename -- "$input_file")"
+
+# The photo files are staged in a private temporary folder, readable by the container user, and mounted read-only.
+media_args=()
+media_stage=""
+if [ -n "$media_dir" ]; then
+  media_stage="$(mktemp -d)"
+  trap 'rm -rf "$media_stage"' EXIT
+  cp -R -- "$media_dir" "$media_stage/media"
+  chmod -R a+rX "$media_stage/media"
+  media_args=(-v "$media_stage/media:/restore-media:ro")
+fi
 
 # Only the api service is used: same image, env_file, network (data) and read-only root as at runtime.
 # --no-deps: postgres must already be running, and migrate must not run as a side effect.
@@ -123,8 +157,12 @@ run_import() {
   if [ -f "$RELEASE_FILE" ]; then
     compose_args+=(--env-file "$RELEASE_FILE")
   fi
-  docker compose "${compose_args[@]}" run --rm -T --no-deps \
-    api sidekick-backup import - "$@" <"$backup_abs"
+  local import_args=()
+  if [ -n "$media_dir" ]; then
+    import_args+=(--media-directory /restore-media)
+  fi
+  docker compose "${compose_args[@]}" run --rm -T --no-deps ${media_args[@]+"${media_args[@]}"} \
+    api sidekick-backup import - ${import_args[@]+"${import_args[@]}"} "$@" <"$backup_abs"
 }
 
 owner_args=(--target-owner "$target_owner")

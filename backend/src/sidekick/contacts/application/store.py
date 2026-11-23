@@ -24,6 +24,7 @@ class ContactStore(TransactionalStore, IdempotentStore, AuditingStore, RecordTag
     def contact_display_names(
         self, session: TxSession, owner_id: UUID, contact_ids: tuple[UUID, ...]
     ) -> dict[UUID, tuple[str, bool]]: ...
+    def count_contacts(self, session: TxSession, owner_id: UUID) -> int: ...
     def list_contacts(
         self,
         session: TxSession,

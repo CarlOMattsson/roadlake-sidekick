@@ -38,7 +38,7 @@ RUN apt-get update \
         /usr/local/lib/python3.13/ensurepip/_bundled/pip-*.whl /usr/local/bin/pip /usr/local/bin/pip3 /usr/local/bin/pip3.13
 
 RUN groupadd --system sidekick && useradd --system --gid sidekick --home-dir /app sidekick \
-    && install -d -o sidekick -g sidekick -m 0700 /var/lib/sidekick
+    && install -d -o sidekick -g sidekick -m 0700 /var/lib/sidekick /var/lib/sidekick/media
 # The venv keeps its build path (/app/backend/.venv), which its scripts and symlinks point at.
 COPY --from=builder /app/backend/.venv ./backend/.venv
 # The source comes from the builder (the venv's editable install points at it); the build context is read once.

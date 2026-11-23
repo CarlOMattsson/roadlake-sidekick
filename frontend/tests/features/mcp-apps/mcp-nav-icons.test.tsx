@@ -2,6 +2,7 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { HostFeatures } from "@/features/mcp-apps/bridge";
 import {
+  declaredNavIcons,
   navIcons,
   navIconsFrom,
   type NavIcons,
@@ -18,8 +19,10 @@ import {
 import type { NavEntry } from "@/features/mcp-apps/nav-state";
 import { ROOM_IDS } from "@/features/mcp-apps/router";
 
-// The room strip's cells draw the names alone (`off`), a glyph before each name (`label`) or the glyphs alone (`only`).
-// The mode comes from the shell's own prop, or else from the app document's `sidekick-nav-icons` meta.
+// The room strip's cells draw by default (`auto`) the names alone where the frame has room for them, and a glyph over
+// each name in a phone's frame. The other modes are the same at every width: the names alone (`off`), a glyph before
+// each name (`label`) or the glyphs alone (`only`). The mode comes from the shell's own prop, or else from the app
+// document's `sidekick-nav-icons` meta.
 const LOCAL: HostFeatures = {
   serverTools: true,
   message: true,
@@ -89,11 +92,11 @@ afterEach(() => {
 });
 
 describe("navIcons()", () => {
-  it("is off when the document declares nothing", () => {
-    expect(navIcons()).toBe("off");
+  it("is auto when the document declares nothing", () => {
+    expect(navIcons()).toBe("auto");
   });
 
-  it.each(["off", "label", "only"] as const)(
+  it.each(["auto", "off", "label", "only"] as const)(
     "reads %s from the meta",
     (mode) => {
       declare(mode);
@@ -101,11 +104,11 @@ describe("navIcons()", () => {
     },
   );
 
-  it("is off for a value that is none of the three", () => {
+  it("is auto for a value that is none of the four", () => {
     declare("both");
-    expect(navIcons()).toBe("off");
+    expect(navIcons()).toBe("auto");
     declare("");
-    expect(navIcons()).toBe("off");
+    expect(navIcons()).toBe("auto");
   });
 
   it("reads the meta of the document it is given", () => {
@@ -115,10 +118,11 @@ describe("navIcons()", () => {
     tag.content = "only";
     doc.head.append(tag);
     expect(navIcons(doc)).toBe("only");
-    expect(navIcons()).toBe("off");
+    expect(navIcons()).toBe("auto");
   });
 
   it("narrows an untrusted string with navIconsFrom", () => {
+    expect(navIconsFrom("auto")).toBe("auto");
     expect(navIconsFrom("label")).toBe("label");
     expect(navIconsFrom("only")).toBe("only");
     expect(navIconsFrom("off")).toBe("off");
@@ -129,6 +133,27 @@ describe("navIcons()", () => {
   });
 });
 
+describe("declaredNavIcons()", () => {
+  it("is undefined when the document declares nothing", () => {
+    expect(declaredNavIcons()).toBeUndefined();
+  });
+
+  it("is undefined for a value that is none of the four", () => {
+    declare("both");
+    expect(declaredNavIcons()).toBeUndefined();
+    declare("");
+    expect(declaredNavIcons()).toBeUndefined();
+  });
+
+  it.each(["auto", "off", "label", "only"] as const)(
+    "reads the mode %s when the meta declares it",
+    (mode) => {
+      declare(mode);
+      expect(declaredNavIcons()).toBe(mode);
+    },
+  );
+});
+
 describe.each(LOCALES)("the room strip in %s", (locale, labels, navName) => {
   const names = [
     labels.rooms.work,
@@ -136,8 +161,8 @@ describe.each(LOCALES)("the room strip in %s", (locale, labels, navName) => {
     labels.rooms.shopping,
   ];
 
-  it("draws the names alone by default, with the markup it always had", () => {
-    setup({ locale });
+  it("draws the names alone with the markup it always had when off is chosen", () => {
+    setup({ locale, navIcons: "off" });
     const nav = strip(navName);
     expect(nav).not.toHaveAttribute("data-icons");
     expect(roomCells().map((cell) => cell.textContent)).toEqual(names);
@@ -148,6 +173,27 @@ describe.each(LOCALES)("the room strip in %s", (locale, labels, navName) => {
     }
     // Mer has its ⌄ and nothing else.
     expect(moreCell().querySelectorAll("svg")).toHaveLength(1);
+    expect(moreCell()).toHaveTextContent(new RegExp(`^${labels.more}$`));
+    expect(moreCell()).not.toHaveAttribute("aria-label");
+    expect(moreCell()).not.toHaveAttribute("title");
+  });
+
+  it("draws the default, auto, a glyph and a name in each cell", () => {
+    setup({ locale });
+    const nav = strip(navName);
+    expect(nav).toHaveAttribute("data-icons", "auto");
+    expect(roomCells().map((cell) => cell.textContent)).toEqual(names);
+    roomCells().forEach((cell, index) => {
+      expect(cell.querySelectorAll("svg")).toHaveLength(1);
+      expect(cell.querySelector("svg")).toHaveAttribute("aria-hidden", "true");
+      expect(cell.querySelector(".sk-rooms__name")).toHaveTextContent(
+        names[index] ?? "",
+      );
+      expect(cell).not.toHaveAttribute("aria-label");
+      expect(cell).not.toHaveAttribute("title");
+    });
+    // Mer: its glyph and its ⌄.
+    expect(moreCell().querySelectorAll("svg")).toHaveLength(2);
     expect(moreCell()).toHaveTextContent(new RegExp(`^${labels.more}$`));
     expect(moreCell()).not.toHaveAttribute("aria-label");
     expect(moreCell()).not.toHaveAttribute("title");
@@ -203,7 +249,7 @@ describe.each(LOCALES)("the room strip in %s", (locale, labels, navName) => {
     },
   );
 
-  it.each(["label", "only"] as const)(
+  it.each(["auto", "label", "only"] as const)(
     "names the Mer cell for the room of Mer that is open in %s mode",
     (mode) => {
       setup({ locale, navIcons: mode }, { room: "contacts", view: "list" });
@@ -224,7 +270,7 @@ describe.each(LOCALES)("the room strip in %s", (locale, labels, navName) => {
   );
 
   it("keeps Mer's menu rows as names in every mode", () => {
-    for (const mode of ["off", "label", "only"] as const) {
+    for (const mode of ["auto", "off", "label", "only"] as const) {
       setup({ locale, navIcons: mode });
       fireEvent.click(moreCell());
       const menu = screen.getByRole("group", { name: labels.moreMenu });
@@ -253,10 +299,19 @@ describe("which source wins", () => {
     expect(strip()).toHaveAttribute("data-icons", "label");
   });
 
-  it("falls back to names alone for an unknown meta value", () => {
-    declare("sparkles");
+  it("ignores a meta of off without a prop, and draws the names alone", () => {
+    declare("off");
     setup();
     expect(strip()).not.toHaveAttribute("data-icons");
+    for (const cell of roomCells()) {
+      expect(cell.querySelector("svg")).toBeNull();
+    }
+  });
+
+  it("falls back to auto for an unknown meta value", () => {
+    declare("sparkles");
+    setup();
+    expect(strip()).toHaveAttribute("data-icons", "auto");
     expect(roomCells().map((cell) => cell.textContent)).toEqual([
       "Arbete",
       "Dagbok",

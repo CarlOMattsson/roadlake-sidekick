@@ -17,7 +17,7 @@ import os
 import re
 import stat
 import uuid
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -154,6 +154,15 @@ class MediaStore:
         except FileNotFoundError:
             return False
         return True
+
+    def blobs(self) -> Iterator[tuple[str, str]]:
+        """Every stored file as (owner key, digest); anything not named like a file is skipped."""
+
+        for owner in self._directories(self._root, lambda name: _TOKEN.fullmatch(name) is not None):
+            for prefix in self._directories(owner, lambda name: re.fullmatch(r"[0-9a-f]{2}", name)):
+                for entry in self._entries(prefix):
+                    if self._is_blob(entry, prefix.name):
+                        yield owner.name, entry.name
 
     def sweep(
         self,

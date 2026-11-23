@@ -42,6 +42,7 @@ from tests.support.settings import make_settings
 # missing, so a caller with no scope gets an empty answer. Each entry states what "empty" means.
 PER_PART_TOOLS: dict[str, Callable[[dict[str, Any]], bool]] = {
     "get_today_brief": lambda out: set(out) == {"day"},
+    "get_start": lambda out: set(out) == {"day"},
     "list_recent_changes": lambda out: out == {"changes": []},
 }
 

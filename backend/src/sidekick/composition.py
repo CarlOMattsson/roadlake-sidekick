@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from sidekick.activity.application.service import ActivityLedger, ActivityService
 from sidekick.activity.persistence import ActivityStore
+from sidekick.automations.application.activity import AutomationActivityService
 from sidekick.automations.application.registry import AutomationRegistryService
 from sidekick.automations.application.runs import AutomationRunService
 from sidekick.automations.persistence import SqlAutomationStore
@@ -33,7 +34,8 @@ from sidekick.journal.application.finalize import JournalFinalizeService
 from sidekick.journal.application.photos import JournalPhotoService
 from sidekick.journal.application.relations import JournalRelationService
 from sidekick.journal.application.service import JournalService
-from sidekick.journal.infrastructure.media_files import OwnerPhotoFiles
+from sidekick.journal.infrastructure.media_files import OwnerPhotoFiles, PhotoFileAudit
+from sidekick.journal.persistence.photos import JournalPhotoStore
 from sidekick.journal.persistence.store import SqlJournalStore
 from sidekick.license.persistence import LicenseStore
 from sidekick.license.service import LicenseService
@@ -54,6 +56,7 @@ from sidekick.shared.auth import AuthService
 from sidekick.shared.config import Settings, refuse_ai_key_outside_ai_worker
 from sidekick.shared.observability import TelemetryPort, configure_observability
 from sidekick.shared.persistence import create_session_factory
+from sidekick.shared.persistence.stores.base import StoreBase
 from sidekick.shared.types import CursorCodec, SystemClock
 from sidekick.shopping.application.service import ShoppingService
 from sidekick.shopping.persistence.store import ShoppingStore
@@ -128,6 +131,8 @@ class Container:
     automation_registry: AutomationRegistryService
     # Runs of an approved automation: the brief a runner follows and what it records.
     automation_runs: AutomationRunService
+    # What the automations have been doing, in counts: the overview the Start view reads.
+    automation_activity: AutomationActivityService
     # The Android companion's services (ADR-005): pairing and device tokens, push endpoints, and
     # the reminders the phone fetches. The companion routes reach them only through here.
     companion_devices: CompanionDeviceService
@@ -180,6 +185,16 @@ def create_photo_files(settings: Settings) -> OwnerPhotoFiles:
     """The photo files of all owners: `SIDEKICK_MEDIA_DIRECTORY`, one subdirectory per owner key."""
 
     return OwnerPhotoFiles.at(settings.media_directory, settings.token_pepper)
+
+
+def audit_photo_files(settings: Settings) -> PhotoFileAudit:
+    """Check the media volume against every photo row; the operator's `media verify` runs this."""
+
+    store = StoreBase(
+        create_session_factory(settings.database_url, timeouts=settings.database_timeouts)
+    )
+    references = store.transaction(JournalPhotoStore.file_references)
+    return create_photo_files(settings).audit(references)
 
 
 def create_lifecycle_service(
@@ -411,6 +426,7 @@ def create_container(
         automation_runs=AutomationRunService.from_settings(
             automation_store, SystemClock(), settings, resolved_telemetry
         ),
+        automation_activity=AutomationActivityService(automation_store),
         companion_devices=CompanionDeviceService(CompanionDeviceStore(factory), auth_service),
         push_subscriptions=PushSubscriptionService.from_settings(
             SqlPushSubscriptionStore(factory), settings

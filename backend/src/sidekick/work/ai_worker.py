@@ -1,13 +1,18 @@
-"""AI worker process: runs the AI steps the owner has queued, with the owner's own Anthropic key.
+"""AI worker process: runs the AI steps the owner has queued, with the owner's own Anthropic key,
+and checks the proposals of automation runs with the model the owner chose for it.
 
 Run as `python -m sidekick.work.ai_worker` (or `sidekick-ai-worker`), its own process mode like the
-push and memory workers. It is opt-in: the `ai` Compose profile starts it and
-`SIDEKICK_AI_RUNNER_ENABLED` turns it on. It is the only process that may hold the key.
+push and memory workers. It is opt-in: the `ai` Compose profile starts it,
+`SIDEKICK_AI_RUNNER_ENABLED` turns the runner on and `SIDEKICK_AI_CHECK_PROVIDER` turns the check
+on. It is the only process that may hold a model key.
 
 This module is only the loop and the CLI. The rules (reserve before a call, check the plan, settle
-after) are in `work.application.ai_runner`. With the runner off the worker sleeps but still beats,
-so its healthcheck passes. A worker whose key the provider refused takes no more runs and stops
-beating its success, so the healthcheck reports it instead of letting it look idle.
+after) are in `work.application.ai_runner`, and those of the check in
+`automations.application.checking`. After the check the worker ends the wait of runs that nobody
+checks (`automations.application.check_releaser`), so that their proposals can be decided. With
+both off the worker sleeps but still beats, so its healthcheck passes. A worker whose key the
+provider refused takes no more runs of that kind and stops beating its success, so the
+healthcheck reports it instead of letting it look idle.
 
 SIGTERM lets a model call in flight finish and be booked before the process exits.
 """
@@ -26,6 +31,11 @@ from uuid import uuid4
 
 from sidekick.activity.application.service import ActivityLedger
 from sidekick.activity.persistence import ActivityStore
+from sidekick.automations.application.check_releaser import CheckReleaseService
+from sidekick.automations.application.checking import AutomationCheckService
+from sidekick.automations.application.runs import AutomationRunLimits
+from sidekick.automations.check_store import SqlCheckStore
+from sidekick.automations.infrastructure.checkers import build_suggestion_checker
 from sidekick.shared.cli_errors import run_guarded
 from sidekick.shared.config import Settings, get_settings
 from sidekick.shared.db_timeouts import database_timeout_reason
@@ -89,32 +99,131 @@ def build_runner(
     )
 
 
+def build_checker(
+    settings: Settings, stopping: Callable[[], bool], telemetry: TelemetryPort | None = None
+) -> AutomationCheckService | None:
+    """The check of automation runs wired to the database and its model, None while the check is
+    off, or the refusal to start (no key, no price)."""
+
+    checker = build_suggestion_checker(settings)
+    if checker is None:
+        return None
+    resolved_telemetry = telemetry or configure_observability(settings.environment)
+    factory = create_session_factory(
+        settings.database_url,
+        require_unprivileged_role=settings.environment == "production",
+        timeouts=settings.database_timeouts,
+    )
+    return AutomationCheckService(
+        SqlCheckStore(factory, resolved_telemetry),
+        SystemClock(),
+        AutomationRunLimits.from_settings(settings),
+        checker,
+        owner_timezone=settings.owner_zone,
+        telemetry=resolved_telemetry,
+        stopping=stopping,
+    )
+
+
+def build_releaser(
+    settings: Settings, telemetry: TelemetryPort | None = None
+) -> CheckReleaseService:
+    """The end of the wait of runs that nobody checks, wired to the database."""
+
+    resolved_telemetry = telemetry or configure_observability(settings.environment)
+    factory = create_session_factory(
+        settings.database_url,
+        require_unprivileged_role=settings.environment == "production",
+        timeouts=settings.database_timeouts,
+    )
+    return CheckReleaseService(
+        SqlCheckStore(factory, resolved_telemetry),
+        SystemClock(),
+        AutomationRunLimits.from_settings(settings),
+    )
+
+
 def run_worker(
     settings: Settings,
     *,
     once: bool = False,
     stop: threading.Event | None = None,
     build: Callable[[Settings, Callable[[], bool]], AiRunnerService] = build_runner,
+    build_check: Callable[
+        [Settings, Callable[[], bool]], AutomationCheckService | None
+    ] = build_checker,
+    build_release: Callable[[Settings], CheckReleaseService] = build_releaser,
 ) -> None:
     stop = stop or threading.Event()
     heartbeat = WorkerHeartbeat("ai")
-    if not settings.ai_runner_enabled:
-        LOGGER.info("ai_runner", extra=safe_log_fields({"outcome": "disabled"}))
-        if once:
-            return
-        while not stop.is_set():  # Nothing to do; stay up so a supervisor does not restart-loop.
-            heartbeat.beat(IDLE_SLEEP_SECONDS)
-            heartbeat.succeeded()
-            stop.wait(IDLE_SLEEP_SECONDS)
-        return
-    runner = build(settings, stop.is_set)
+    check_on = settings.ai_check_provider != "off"
+    releases = build_release(settings)
     # The column holds 80 characters.
     worker_id = f"{socket.gethostname()[:50]}:{os.getpid()}:{uuid4().hex[:12]}"
+    if not settings.ai_runner_enabled and not check_on:
+        LOGGER.info("ai_runner", extra=safe_log_fields({"outcome": "disabled"}))
+        # Nothing to run or check; stay up so a supervisor does not restart-loop. Runs that wait
+        # for a check that is now off are still released, so their proposals can be decided.
+        while not stop.is_set():
+            heartbeat.beat(IDLE_SLEEP_SECONDS)
+            released = _drain(
+                releases.run_next,
+                lambda: False,
+                worker_id,
+                heartbeat,
+                IDLE_SLEEP_SECONDS,
+                stop,
+                once,
+            )
+            if released:
+                heartbeat.succeeded()
+            if once:
+                return
+            stop.wait(IDLE_SLEEP_SECONDS)
+        return
+    runner = build(settings, stop.is_set) if settings.ai_runner_enabled else None
+    checks = build_check(settings, stop.is_set) if check_on else None
+    if checks is not None:
+        checks.progress = lambda: heartbeat.beat(settings.ai_poll_seconds)
     while not stop.is_set():
         heartbeat.beat(settings.ai_poll_seconds)
-        recovered = _guarded(runner.recover_stalled, "recovery", "ai run recovery failed")
-        drained = _drain(runner, worker_id, heartbeat, settings.ai_poll_seconds, stop, once)
-        if recovered is not None and drained and not runner.credentials_rejected:
+        healthy = True
+        if runner is not None:
+            recovered = _guarded(runner.recover_stalled, "recovery", "ai run recovery failed")
+            drained = _drain(
+                runner.run_next,
+                lambda: runner.credentials_rejected,
+                worker_id,
+                heartbeat,
+                settings.ai_poll_seconds,
+                stop,
+                once,
+            )
+            healthy = recovered is not None and drained and not runner.credentials_rejected
+        if checks is not None:
+            checked = _drain(
+                checks.run_next,
+                lambda: checks.credentials_rejected,
+                worker_id,
+                heartbeat,
+                settings.ai_poll_seconds,
+                stop,
+                once,
+            )
+            healthy = healthy and checked and not checks.credentials_rejected
+        # After the check: runs that nobody checks (the check is off, or no worker took them for
+        # too long) must not keep their proposals from the owner.
+        released = _drain(
+            releases.run_next,
+            lambda: False,
+            worker_id,
+            heartbeat,
+            settings.ai_poll_seconds,
+            stop,
+            once,
+        )
+        healthy = healthy and released
+        if healthy:
             heartbeat.succeeded()
         if once:
             return
@@ -122,18 +231,19 @@ def run_worker(
 
 
 def _drain(
-    runner: AiRunnerService,
+    take: Callable[[str], bool],
+    rejected: Callable[[], bool],
     worker_id: str,
     heartbeat: WorkerHeartbeat,
     poll_seconds: int,
     stop: threading.Event,
     once: bool,
 ) -> bool:
-    """Run the queued runs one after the other. False when one failed unexpectedly."""
+    """Take the waiting runs one after the other. False when one failed unexpectedly."""
 
-    while not stop.is_set() and not runner.credentials_rejected:
+    while not stop.is_set() and not rejected():
         heartbeat.beat(poll_seconds)
-        taken = _guarded(lambda: runner.run_next(worker_id), "run", "ai run failed")
+        taken = _guarded(lambda: take(worker_id), "run", "ai run failed")
         if taken is None:
             return False
         if not taken or once:

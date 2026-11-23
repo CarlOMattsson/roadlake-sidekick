@@ -20,9 +20,10 @@ const ROOM_GLYPHS: Record<StripRoomId, (props: RoomIconProps) => ReactNode> = {
 };
 
 /**
- * What a cell of the room strip draws (designsystem §3 "Rumsremsan"): the name alone (`off`), a 20 glyph before the
- * name (`label`) or the glyph alone (`only`). `room` is the room whose glyph it is; without one it is the Mer cell at
- * rest, four tiles. `stripCellNames` names a cell whose name is not drawn.
+ * What a cell of the room strip draws (designsystem §3 "Rumsremsan"): the name alone (`off`), a 20 glyph with the name
+ * (`label`; and `auto`, where the styles draw the glyph in a phone's frame only) or the glyph alone (`only`). `room`
+ * is the room whose glyph it is; without one it is the Mer cell at rest, four tiles. `stripCellNames` names a cell
+ * whose name is not drawn.
  */
 export function StripCellFace({
   icons,
@@ -38,25 +39,22 @@ export function StripCellFace({
   return (
     <>
       <Glyph size={20} />
-      {icons === "label" ? (
-        <span className="sk-rooms__name">{name}</span>
-      ) : null}
+      {icons === "only" ? null : <span className="sk-rooms__name">{name}</span>}
     </>
   );
 }
 
 /**
- * How a cell with a glyph is named. `label` is its `aria-label`: the drawn name is left out with glyphs alone, and
- * in a narrow frame for every room but the one that is open (sidekick-shell.css), so the name is said either way.
- * `tip` is its `title`, the tooltip a hovering pointer gets, for a cell that never draws its name. Both undefined
- * with names alone.
+ * How a cell that an instance or an owner gave glyphs is named. `label` is its `aria-label`, the room's name whether
+ * the face draws it or not. `tip` is its `title`, the tooltip a hovering pointer gets, for a cell that never draws its
+ * name. Both undefined where the name is the face at every width that has room for it (`off`, `auto`).
  */
 export function stripCellNames(
   icons: NavIcons,
   name: string,
 ): { label: string | undefined; tip: string | undefined } {
   return {
-    label: icons === "off" ? undefined : name,
+    label: icons === "label" || icons === "only" ? name : undefined,
     tip: icons === "only" ? name : undefined,
   };
 }

@@ -161,6 +161,21 @@ orientering. Ägaren kan ändra eller ta bort varje fält, och inget av dem går
 migreringen behåller alla värden och läses som ett foto utan plats, kamera eller orientering. En återrullning släpper de
 fem kolumnerna, vilket bara förlorar de detaljer som angetts sedan dess.
 
+## Migrering 121: repetition
+
+`121_review.py` är en additiv (expand) migrering. Den lägger till tre tabeller: `review_settings` (en rad per ägare,
+skrivs vid första användningen; repetition är av tills ägaren slår på den), `review_cards` (ett kort per kontakt eller
+biblioteksfakta, utan kopia av det kortet frågar om och med ett cachat schema) och `review_log` (en rad per svar, den
+auktoritativa källan som varje schema viks fram ur). Exakt den nyckel som hör till kortets sort är satt, en källa har
+högst ett kort, och ett svar bär en klientnyckel så att en återspelning från en telefon som var offline inte skriver
+något två gånger. Ett kort pekar ut en biblioteksfakta utan främmande nyckel tills tabellen för biblioteksfakta finns.
+Programrollen får läsa, lägga till och ändra inställningarna, göra allt fyra på korten och bara läsa och lägga till i
+loggen: ett svar ändras eller raderas aldrig av den, och försvinner först med sitt kort eller med ägarens konto, genom
+de främmande nycklarna. En återställning av migreringen tar bort de tre tabellerna, vilket bara förlorar
+repetitionsdata. Ägarexporten bär alla tre som samlingar (format 11); en export av ett tidigare format har ingen av dem
+och återställer ingen repetition. `sidekick-owner-export restore --refold` viker varje återställt korts svar igen och
+rapporterar de kort vars lagrade schema skiljer sig.
+
 ## Ändra schemat: det incheckade fingeravtrycket
 
 `backend/tests/fixtures/baseline-catalogue.json` är schemats fingeravtryck: efter `yoyo apply` på en tom databas de

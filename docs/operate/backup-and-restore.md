@@ -11,6 +11,7 @@ What each copy holds:
 | Copy | Made by | Holds | Restore with |
 | --- | --- | --- | --- |
 | Encrypted owner backup (`.skbackup`) | `--profile backup`, and `update.sh --apply` | one or more owners' data, as an export | `restore.sh` (`sidekick-backup import`) |
+| Journal photo files | `--profile backup` | the files of the photos, each encrypted on its own, in `media/` beside the backup files | `restore.sh`, with that `media/` folder |
 | Encrypted database snapshot | `update.sh --apply`, in `update-state/snapshots/` | the whole database | the steps below |
 | Hindsight memory | nothing automatic | the `hindsight_pg0` volume | the steps below |
 
@@ -28,6 +29,22 @@ them off the machine:
 
 ```bash
 mkdir -p backups && docker compose --env-file selfhost.env --profile backup cp backup:/var/lib/sidekick/backups/. ./backups/
+```
+
+**Journal photos.** The `.skbackup` file holds the rows of the photos (place, camera, text), not their files. The files
+are in the `media` volume, which the `api` and the workers mount and the backup service mounts read-only. Each backup
+copies them, one encrypted file each, into `media/` beside the backup files (`/var/lib/sidekick/backups/media`). Only the
+files that folder does not have yet are copied, so a backup after the first is quick, and a file leaves the folder when
+no kept backup lists it any more. The names are a keyed hash of the owner and the photo, so the folder tells nobody which
+photo is which. The copy command above takes the `media/` folder with it: keep it together with the backup files. An
+update snapshot is a database dump and does not hold the photo files. A file that was already lost when a backup is made
+does not stop it: the backup records it, and the worker logs how many are missing. To see what is lost, hash every file
+the database names (counts only; the exit status is 1 if one is missing or damaged), and read every file a backup lists:
+
+```bash
+docker compose --env-file selfhost.env run --rm --no-deps api sidekick-admin media verify
+docker compose --env-file selfhost.env --profile backup exec backup sidekick-backup verify \
+  /var/lib/sidekick/backups/<file>.skbackup --media-directory /var/lib/sidekick/backups/media
 ```
 
 **Free space and pruning.** A new owner backup, and the snapshot of `update.sh --apply`, are written only when the
@@ -60,6 +77,14 @@ owner that already holds data is refused, and so is a wrong key or a changed pla
 ./restore.sh --backup FILE.skbackup --target-owner UUID [--source-owner UUID]           # plan only
 ./restore.sh --backup FILE.skbackup --target-owner UUID [--source-owner UUID] --apply
 ```
+
+Photos come back with the owner. `restore.sh` takes the `media/` folder that sits next to the backup file, or the one you
+name with `--media-dir DIR`, and writes the files into the `media` volume under the target owner. The plan shows how many
+files it lists and how many it can read; without the folder the plan says none can be read and `--apply` refuses before
+it writes anything. An export folder (the export document plus a `media/` folder, export format 10) is restored the same way, as
+`--backup FOLDER`. Make one from a backup with `sidekick-backup extract-export-folder FILE.skbackup OUTPUT_FOLDER` (the
+folder must not exist yet; the photo files are decrypted into it, so keep it private) and check one with
+`sidekick-owner-export verify FOLDER`.
 
 For a backup from an earlier installation, the key must be the one that installation encrypted it with, not the new key from `keygen` above, which cannot decrypt it. The key is read from `SIDEKICK_BACKUP_ENCRYPTION_KEY` in `selfhost.env` (or from `--key-file` below); a plain `.json` export needs no key. Without
 the wrapper, run the command yourself and apply in a second step with the checksum the plan printed (`FILE` of `-`

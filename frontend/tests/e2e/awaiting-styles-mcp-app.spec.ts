@@ -13,9 +13,17 @@ import {
 async function openWaiting(
   page: Page,
   options: { safeAreaInsets?: Record<string, number> } = {},
+  /** What the instance declares the room strip draws (the `sidekick-nav-icons` meta); absent, nothing: the default. */
+  navIcons?: "off" | "label" | "only",
 ) {
+  const built = readBuiltApp("work", "en");
   const opened = await openSimulatedApp(page, {
-    resource: readBuiltApp("work", "en"),
+    resource: navIcons
+      ? built.replace(
+          "<head>",
+          `<head><meta name="sidekick-nav-icons" content="${navIcons}">`,
+        )
+      : built,
     width: 375,
     height: 800,
     hostContext: {
@@ -34,7 +42,30 @@ async function openWaiting(
   return opened;
 }
 
-test("the placeholder pads 16 at the sides and 8 above plus the host's safe area, has no corner radius of its own, and draws the strip 40 high", async ({
+for (const [navIcons, height] of [
+  ["off", "40px"],
+  ["only", "40px"],
+  ["label", "48px"],
+] as const) {
+  test(`the placeholder's strip is ${height} high where the instance chose ${navIcons} for the room strip`, async ({
+    page,
+  }) => {
+    const { app, failures } = await openWaiting(page, {}, navIcons);
+    expect(await style(app.locator(".sidekick-wait-strip"), "height")).toEqual({
+      height,
+    });
+    // Names alone and glyphs alone are strips of 40 in the shell: the placeholder keeps its names and draws no glyph.
+    expect(
+      await app
+        .locator(".sidekick-wait-room")
+        .first()
+        .evaluate((cell) => getComputedStyle(cell, "::before").content),
+    ).toBe(height === "40px" ? "none" : '""');
+    expect(failures).toEqual([]);
+  });
+}
+
+test("the placeholder pads 16 at the sides and 8 above plus the host's safe area, has no corner radius of its own, and draws the strip 48 high with a glyph over each name", async ({
   page,
 }) => {
   const { app, failures } = await openWaiting(page, {
@@ -58,14 +89,28 @@ test("the placeholder pads 16 at the sides and 8 above plus the host's safe area
     paddingLeft: "20px",
     borderTopLeftRadius: "0px",
   });
-  // The strip: 40 px high, a row of cells sharing it equally, none narrower than its label.
+  // The strip in a phone's frame, as the shell draws it there: 48 px high, a row of cells sharing it equally, none
+  // narrower than its label, each a 20 glyph over its name in 12/16.
   const strip = app.locator(".sidekick-wait-strip");
   expect(await style(strip, "display", "height")).toEqual({
     display: "flex",
-    height: "40px",
+    height: "48px",
   });
   const rooms = await app.locator(".sidekick-wait-room").all();
   expect(rooms).toHaveLength(4);
+  for (const room of rooms) {
+    expect(await style(room, "height", "fontSize", "lineHeight")).toEqual({
+      height: "40px",
+      fontSize: "12px",
+      lineHeight: "16px",
+    });
+    expect(
+      await room.evaluate((cell) => {
+        const glyph = getComputedStyle(cell, "::before");
+        return [glyph.width, glyph.height, glyph.maskImage.startsWith("url(")];
+      }),
+    ).toEqual(["20px", "20px", true]);
+  }
   for (const room of rooms)
     expect(await style(room, "flexGrow", "flexShrink", "minWidth")).toEqual({
       flexGrow: "1",

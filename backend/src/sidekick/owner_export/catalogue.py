@@ -33,6 +33,7 @@ from sidekick.shared.persistence.models import (
     DomainEventRow,
     DomainRow,
     DomainTagRow,
+    JournalAttachmentRow,
     JournalDraftRow,
     JournalEntryContactRow,
     JournalEntryProjectRow,
@@ -50,6 +51,9 @@ from sidekick.shared.persistence.models import (
     ProjectContactRow,
     ProjectRow,
     ProjectTagRow,
+    ReviewCardRow,
+    ReviewLogRow,
+    ReviewSettingsRow,
     SavedViewRow,
     StepRow,
     TaskContactRow,
@@ -61,9 +65,22 @@ from sidekick.shared.persistence.models import (
 from sidekick.shopping.persistence.rows import ShoppingItemRow, ShoppingListRow, ShoppingStatusRow
 
 EXPORT_FORMAT = "sidekick.owner-export"
-EXPORT_FORMAT_VERSION = 9
-# Format 8 (written at migrations 115 to 117) has none of the six collections that migration 116
-# added: the automations, their runs, datapoints, suggestions and checks, and the report cursor. A
+EXPORT_FORMAT_VERSION = 11
+# Formats up to 10 have none of the three collections that migration 121 added: the repetition
+# settings, cards and answers. Such an export is still read: those collections are simply absent
+# and restore as empty. (Format 10 is the one the owner export of photos takes.)
+FORMAT_WITHOUT_REVIEW = 10
+COLLECTIONS_ADDED_IN_FORMAT_11: frozenset[str] = frozenset(
+    {"review_settings", "review_cards", "review_log"}
+)
+# Format 9 (written at migrations 116, 117 and 124) has no photo collection: `journal_attachments`
+# came with format 10, and the photo files travel beside the document (see
+# `sidekick.owner_export.media`). A format 9 export is still read: the collection is simply absent
+# and restores as empty.
+FORMAT_WITHOUT_PHOTOS = 9
+COLLECTIONS_ADDED_IN_FORMAT_10: frozenset[str] = frozenset({"journal_attachments"})
+# Format 8 (written at migrations 115 to 117) has none of the six collections that format 9 added:
+# the automations, their runs, datapoints, suggestions and checks, and the report cursor. A
 # format 8 export is still read: those collections are simply absent and restore as empty.
 FORMAT_WITHOUT_AUTOMATIONS = 8
 COLLECTIONS_ADDED_IN_FORMAT_9: frozenset[str] = frozenset(
@@ -140,11 +157,12 @@ SCHEMA_CHAIN: tuple[tuple[str, bool], ...] = (
     ("115_contact_slack_profile", False),
     # Adds the automation tables, which are exported (format 9).
     ("116_automations", False),
-    # Photo metadata. Photos are not exported until the export format that carries them, so no
-    # exported table or column changes yet.
+    # Photo metadata, exported from format 10 on (a `journal_attachments` collection and, beside the
+    # document, the photo files). Format 10 is written at this head or later.
     ("117_journal_attachments", True),
-    # Fields beside a photo (place, camera, orientation). Photos are not exported yet, so no
-    # exported table or column changes.
+    # Adds the repetition tables, which are exported (format 11).
+    ("121_review", False),
+    # Fields beside a photo (place, camera, orientation): columns of that collection.
     ("124_journal_attachment_details", True),
 )
 SCHEMA_HEAD = SCHEMA_CHAIN[-1][0]
@@ -178,10 +196,16 @@ def accepted_schema_heads(chain: tuple[tuple[str, bool], ...]) -> frozenset[str]
 # baseline or at a head of the folded chain, a format 5 export at migration 106, a format 6 export
 # at migration 107 or 108, a format 7 export at migration 110 or 111, a format 8 export at
 # migration 115, 116, 117 or 124 (112 and 115 added exported columns before format 8 was first
-# released; the build that wrote 116 and 117 before format 9 existed wrote format 8) and a format 9
-# export at migration 116 or later.
+# released; the build that wrote 116 and 117 before format 9 existed wrote format 8), a format 9
+# export at migration 116, 117 or 124 (the photo collection came with format 10), a format 10
+# export at migration 124 (the build that first wrote photos) and a format 11 export at migration
+# 121 or 124 (the heads from the last format-changing migration on).
 ACCEPTED_SCHEMA_HEADS_BY_FORMAT: dict[int, frozenset[str]] = {
     EXPORT_FORMAT_VERSION: accepted_schema_heads(SCHEMA_CHAIN),
+    FORMAT_WITHOUT_REVIEW: frozenset({"124_journal_attachment_details"}),
+    FORMAT_WITHOUT_PHOTOS: frozenset(
+        {"116_automations", "117_journal_attachments", "124_journal_attachment_details"}
+    ),
     FORMAT_WITHOUT_AUTOMATIONS: frozenset(
         {
             "115_contact_slack_profile",
@@ -254,6 +278,7 @@ EXPORT_SOURCES: tuple[ExportSource, ...] = (
     ExportSource("journal_entry_projects", JournalEntryProjectRow),
     ExportSource("journal_entry_tasks", JournalEntryTaskRow),
     ExportSource("journal_entry_contacts", JournalEntryContactRow),
+    ExportSource("journal_attachments", JournalAttachmentRow),
     ExportSource("daily_journal_summaries", DailyJournalSummaryRow),
     ExportSource("daily_journal_summary_entries", DailyJournalSummaryEntryRow),
     ExportSource("automations", AutomationRow),
@@ -262,6 +287,9 @@ EXPORT_SOURCES: tuple[ExportSource, ...] = (
     ExportSource("automation_suggestions", AutomationSuggestionRow),
     ExportSource("automation_checks", AutomationCheckRow),
     ExportSource("automation_report_cursors", AutomationReportCursorRow),
+    ExportSource("review_settings", ReviewSettingsRow),
+    ExportSource("review_cards", ReviewCardRow),
+    ExportSource("review_log", ReviewLogRow),
     # The forgotten-statement salt is not exported yet, and neither are the statements it keys
     # (`memory_forgotten_facts`). An export written now therefore restores without them.
     ExportSource("memory_settings", MemorySettingsRow, redacted_fields=frozenset({"forget_salt"})),

@@ -226,6 +226,7 @@ AREAS: tuple[Area, ...] = (
         "overview",
         (
             "get_today_brief",
+            "get_start",
             "show_work_changes",
             "list_recent_changes",
         ),

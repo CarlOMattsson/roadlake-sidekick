@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date, datetime, time
 from decimal import Decimal
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import Column, Date, DateTime, Numeric, func, select
+from sqlalchemy import Column, Date, DateTime, Numeric, Time, func, select
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
 
 from sidekick.shared.persistence.models import MemorySettingsRow, UserRow
@@ -35,6 +35,8 @@ def coerce_restore_value(column: Any, value: Any) -> Any:
         return value if isinstance(value, datetime) else datetime.fromisoformat(str(value))
     if isinstance(column.type, Date):
         return value if isinstance(value, date) else date.fromisoformat(str(value))
+    if isinstance(column.type, Time):
+        return value if isinstance(value, time) else time.fromisoformat(str(value))
     if isinstance(column.type, Numeric):
         return value if isinstance(value, Decimal) else Decimal(str(value))
     return value

@@ -39,6 +39,7 @@ from sidekick.mcp.rooms import remove_disabled_room_tools, room_actor_provider
 from sidekick.mcp.search import register_search_tools
 from sidekick.mcp.shopping import register_shopping_tools
 from sidekick.mcp.sidekick_app import register_sidekick_app_resource
+from sidekick.mcp.start_tools import register_start_tools
 from sidekick.mcp.titles import LocalizeToolTitles, MirrorToolTitles
 from sidekick.mcp.tool_context import ToolContext
 from sidekick.mcp.validation_errors import install_validation_error_redaction
@@ -114,6 +115,7 @@ def _register_tools(
     register_license_tools(mcp, ctx)
     register_work_card_tools(mcp, ctx)
     register_brief_tools(mcp, ctx)
+    register_start_tools(mcp, ctx)
     register_change_tools(mcp, ctx)
     register_reschedule_tools(mcp, ctx)
     register_review_tools(mcp, ctx)

@@ -261,3 +261,44 @@ async def test_the_day_and_today_follow_the_owner_zone_not_utc() -> None:
     assert (tasks["overdue_count"], tasks["today_count"], tasks["upcoming_7d_count"]) == (0, 1, 1)
     assert [row["id"] for row in tasks["items"]] == [late_today["id"]]
     assert tasks["items"][0]["agenda_group"] == "today"
+
+
+@pytest.mark.asyncio
+@pytest.mark.integration
+async def test_a_project_title_is_shown_only_to_a_caller_who_may_read_projects() -> None:
+    container, owner = _setup(NOON)
+    async with Client(_server(container, Actor(owner, ALL_SCOPES | {"projects:write"}))) as client:
+        domain = _data(
+            await client.call_tool(
+                "create_domain", {"name": "Home", "idempotency_key": "proj-title-dom"}
+            )
+        )["domain"]
+        project = _data(
+            await client.call_tool(
+                "create_project",
+                {
+                    "domain_id": domain["id"],
+                    "title": "Secret garden",
+                    "idempotency_key": "proj-title-prj",
+                },
+            )
+        )["project"]
+        await client.call_tool(
+            "create_task",
+            {
+                "title": "Water the beds",
+                "due_at": "2026-10-29T18:00:00+01:00",
+                "project_id": project["id"],
+                "idempotency_key": "proj-title-task",
+            },
+        )
+
+    async with Client(_server(container, Actor(owner, ALL_SCOPES))) as client:
+        allowed = _data(await client.call_tool("get_today_brief", {}))
+    async with Client(_server(container, Actor(owner, READ_SCOPES))) as client:
+        denied = _data(await client.call_tool("get_today_brief", {}))
+
+    assert allowed["tasks"]["items"][0]["project_title"] == "Secret garden"
+    assert denied["tasks"]["items"][0]["title"] == "Water the beds"
+    assert denied["tasks"]["items"][0]["project_title"] is None
+    assert "Secret garden" not in str(denied)

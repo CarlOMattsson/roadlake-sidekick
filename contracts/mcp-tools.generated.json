@@ -16010,6 +16010,427 @@
     "title": "Dagens l\u00e4ge"
   },
   {
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": true,
+      "title": "Startvy"
+    },
+    "description": "Use this when the user opens Start or asks what needs attention now. Returns, in the owner's zone, the parts that have something to say: one insight sentence (written_by ai: a model wrote it, untrusted), pending automation suggestions and what automations did since the owner last looked (counts), overdue and today's tasks (3 rows), tasks waiting on someone (2 rows), menu counts. Read-only; a part needs the read scope of what it shows and is left out without it. A failed part is listed in unavailable; the rest stands.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {},
+      "type": "object"
+    },
+    "name": "get_start",
+    "outputSchema": {
+      "additionalProperties": false,
+      "description": "A part is present only when its scope was held and it had something to say.",
+      "properties": {
+        "day": {
+          "format": "date",
+          "title": "Day",
+          "type": "string"
+        },
+        "insight": {
+          "anyOf": [
+            {
+              "additionalProperties": false,
+              "properties": {
+                "code": {
+                  "enum": [
+                    "automation_failed",
+                    "overdue_backlog",
+                    "waiting_long",
+                    "tomorrow_heavy",
+                    "automation_summary"
+                  ],
+                  "title": "Code",
+                  "type": "string"
+                },
+                "text": {
+                  "title": "Text",
+                  "type": "string"
+                },
+                "written_by": {
+                  "enum": [
+                    "system",
+                    "ai"
+                  ],
+                  "title": "Written By",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "code",
+                "written_by",
+                "text"
+              ],
+              "title": "StartInsight",
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "more": {
+          "anyOf": [
+            {
+              "additionalProperties": false,
+              "description": "Counts the menu shows next to its entries; a count of nothing is left out.",
+              "properties": {
+                "automations_failed_today": {
+                  "anyOf": [
+                    {
+                      "type": "integer"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "title": "Automations Failed Today"
+                },
+                "contacts": {
+                  "anyOf": [
+                    {
+                      "type": "integer"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "title": "Contacts"
+                }
+              },
+              "title": "StartMore",
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "since_last": {
+          "anyOf": [
+            {
+              "additionalProperties": false,
+              "properties": {
+                "failed_runs": {
+                  "title": "Failed Runs",
+                  "type": "integer"
+                },
+                "runs": {
+                  "title": "Runs",
+                  "type": "integer"
+                },
+                "since": {
+                  "format": "date-time",
+                  "title": "Since",
+                  "type": "string"
+                },
+                "suggestions_created": {
+                  "title": "Suggestions Created",
+                  "type": "integer"
+                },
+                "suggestions_decided": {
+                  "title": "Suggestions Decided",
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "since",
+                "runs",
+                "failed_runs",
+                "suggestions_created",
+                "suggestions_decided"
+              ],
+              "title": "StartSinceLast",
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "suggestions": {
+          "anyOf": [
+            {
+              "additionalProperties": false,
+              "properties": {
+                "automation_count": {
+                  "title": "Automation Count",
+                  "type": "integer"
+                },
+                "pending_count": {
+                  "title": "Pending Count",
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "pending_count",
+                "automation_count"
+              ],
+              "title": "StartSuggestions",
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "today": {
+          "anyOf": [
+            {
+              "additionalProperties": false,
+              "properties": {
+                "items": {
+                  "items": {
+                    "additionalProperties": false,
+                    "description": "One overdue or due-today Work record, with the id and version a follow-up call needs.",
+                    "properties": {
+                      "agenda_group": {
+                        "enum": [
+                          "overdue",
+                          "today"
+                        ],
+                        "title": "Agenda Group",
+                        "type": "string"
+                      },
+                      "due_at": {
+                        "anyOf": [
+                          {
+                            "format": "date-time",
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ],
+                        "title": "Due At"
+                      },
+                      "id": {
+                        "format": "uuid",
+                        "title": "Id",
+                        "type": "string"
+                      },
+                      "kind": {
+                        "title": "Kind",
+                        "type": "string"
+                      },
+                      "project_title": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ],
+                        "title": "Project Title"
+                      },
+                      "title": {
+                        "title": "Title",
+                        "type": "string"
+                      },
+                      "version": {
+                        "title": "Version",
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "kind",
+                      "title",
+                      "version",
+                      "agenda_group",
+                      "due_at",
+                      "project_title"
+                    ],
+                    "title": "BriefTaskRecord",
+                    "type": "object"
+                  },
+                  "title": "Items",
+                  "type": "array"
+                },
+                "overdue_count": {
+                  "title": "Overdue Count",
+                  "type": "integer"
+                },
+                "today_count": {
+                  "title": "Today Count",
+                  "type": "integer"
+                },
+                "truncated": {
+                  "title": "Truncated",
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "overdue_count",
+                "today_count",
+                "items",
+                "truncated"
+              ],
+              "title": "StartToday",
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "unavailable": {
+          "anyOf": [
+            {
+              "items": {
+                "additionalProperties": false,
+                "properties": {
+                  "error": {
+                    "const": "unavailable",
+                    "default": "unavailable",
+                    "title": "Error",
+                    "type": "string"
+                  },
+                  "part": {
+                    "enum": [
+                      "insight",
+                      "suggestions",
+                      "today",
+                      "waiting",
+                      "since_last",
+                      "more"
+                    ],
+                    "title": "Part",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "part"
+                ],
+                "title": "PartUnavailable",
+                "type": "object"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Unavailable"
+        },
+        "waiting": {
+          "anyOf": [
+            {
+              "additionalProperties": false,
+              "properties": {
+                "capped": {
+                  "title": "Capped",
+                  "type": "boolean"
+                },
+                "items": {
+                  "items": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "contact_id": {
+                        "anyOf": [
+                          {
+                            "format": "uuid",
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ],
+                        "title": "Contact Id"
+                      },
+                      "contact_name": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ],
+                        "title": "Contact Name"
+                      },
+                      "days": {
+                        "title": "Days",
+                        "type": "integer"
+                      },
+                      "id": {
+                        "format": "uuid",
+                        "title": "Id",
+                        "type": "string"
+                      },
+                      "title": {
+                        "title": "Title",
+                        "type": "string"
+                      },
+                      "version": {
+                        "title": "Version",
+                        "type": "integer"
+                      },
+                      "waiting_since": {
+                        "format": "date-time",
+                        "title": "Waiting Since",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "title",
+                      "version",
+                      "waiting_since",
+                      "days",
+                      "contact_id",
+                      "contact_name"
+                    ],
+                    "title": "StartWaitingRow",
+                    "type": "object"
+                  },
+                  "title": "Items",
+                  "type": "array"
+                },
+                "total": {
+                  "title": "Total",
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "total",
+                "items",
+                "capped"
+              ],
+              "title": "StartWaiting",
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "day"
+      ],
+      "title": "StartOutput",
+      "type": "object"
+    },
+    "title": "Startvy"
+  },
+  {
     "_meta": {
       "ui": {
         "resourceUri": "ui://sidekick/app-v1.html"

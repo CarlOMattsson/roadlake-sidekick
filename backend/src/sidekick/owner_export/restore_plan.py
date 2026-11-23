@@ -24,6 +24,7 @@ from sidekick.owner_export.restore_remap import (
     user_reference_fields,
     uuid_or_none,
 )
+from sidekick.owner_export.restore_review import require_consistent_cards
 from sidekick.tasks.domain.task import SCHEDULING_FIELDS
 from sidekick.work.domain.ai_spec import AiStepSpecV1
 
@@ -271,6 +272,7 @@ def build_restore_plan(
     _require_undated_ambitions(tasks)
     _require_consistent_ai_steps(cast(list[Mapping[str, Any]], collections["steps"]))
     require_valid_references(cast(list[Mapping[str, Any]], collections["automation_suggestions"]))
+    require_consistent_cards(cast(list[Mapping[str, Any]], collections["review_cards"]))
     identity_map = restore_identity_map(document, target_owner_id)
     unresolved: list[str] = []
     collection_plans = tuple(

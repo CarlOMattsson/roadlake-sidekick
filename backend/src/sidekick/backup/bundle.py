@@ -7,24 +7,34 @@ process environment or another secret store and is never persisted by Sidekick.
 
 from __future__ import annotations
 
+import fcntl
 import hashlib
 import json
 import os
+import re
 import shutil
-from collections.abc import Mapping, Sequence
-from contextlib import suppress
+from collections.abc import Generator, Mapping, Sequence
+from contextlib import contextmanager, suppress
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any, cast
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 from cryptography.fernet import Fernet, InvalidToken
 from pydantic import SecretStr
 
+from sidekick.backup.media import (
+    BackupMediaStore,
+    MediaCopy,
+    PhotoFileSource,
+    backup_media_directory,
+    copy_media,
+)
 from sidekick.owner_export.catalogue import EXPORT_FORMAT_VERSION, ExportRefused
 from sidekick.owner_export.document import ExportBudget, canonical_json, verify_export
 from sidekick.owner_export.export import OwnerExportService
+from sidekick.owner_export.media import media_files
 from sidekick.owner_export.restore_plan import verify_restorable
 from sidekick.shared.backup_files import (
     BACKUP_FILE_PREFIX,
@@ -120,6 +130,30 @@ def _fernet(key: str | bytes | SecretStr) -> Fernet:
         raise ExportRefused("backup encryption key must be a valid Fernet key") from error
 
 
+def open_media_store(folder: Path, key: str | bytes | SecretStr) -> BackupMediaStore:
+    """The store of the encrypted photo files in `folder` (the `media/` beside backups).
+
+    File names are a keyed hash with the backup key, so the folder says which photo is which
+    to nobody.
+    """
+
+    value = _secret_value(key)
+    return BackupMediaStore(
+        folder,
+        _fernet(key),
+        value if isinstance(value, bytes) else value.encode("ascii"),
+    )
+
+
+def recorded_missing_files(bundle: Mapping[str, Any]) -> frozenset[tuple[UUID, str]]:
+    """The photo files the backup recorded as already gone when it was made."""
+
+    return frozenset(
+        (UUID(owner), digest)
+        for owner, digest in cast(list[list[str]], bundle.get("media_missing", []))
+    )
+
+
 def verify_backup_file(path: Path, key: str | bytes | SecretStr) -> int:
     """Re-open a written backup and prove every owner export in it can be restored.
 
@@ -141,8 +175,36 @@ def verify_backup_file(path: Path, key: str | bytes | SecretStr) -> int:
     return len(exports)
 
 
-def build_backup_bundle(exports: Sequence[Any]) -> dict[str, Any]:
-    """Validate and package owner exports without exposing their contents in metadata."""
+def _checked_missing(media_missing: Sequence[Any], owners: set[str]) -> list[list[str]]:
+    """The recorded-missing list as sorted `[owner id, digest]` pairs; other shapes are refused."""
+
+    if not isinstance(media_missing, (list, tuple)):
+        raise ExportRefused("backup lists missing photo files that are not valid")
+    checked: list[list[str]] = []
+    for pair in cast(Sequence[object], media_missing):
+        invalid = ExportRefused("backup lists a missing photo file that is not valid")
+        if not isinstance(pair, (list, tuple)):
+            raise invalid
+        parts = [str(item) for item in cast(Sequence[object], pair) if isinstance(item, str)]
+        if (
+            len(parts) != 2
+            or len(cast(Sequence[object], pair)) != 2
+            or parts[0] not in owners
+            or re.fullmatch(r"[0-9a-f]{64}", parts[1]) is None
+        ):
+            raise invalid
+        checked.append(parts)
+    return sorted(checked)
+
+
+def build_backup_bundle(
+    exports: Sequence[Any], media_missing: Sequence[Any] = ()
+) -> dict[str, Any]:
+    """Validate and package owner exports without exposing their contents in metadata.
+
+    `media_missing` names the photo files (owner id and digest) the instance no longer had when
+    the backup was made; the bundle carries the list only when it is not empty.
+    """
 
     normalized: list[dict[str, Any]] = []
     owners: set[str] = set()
@@ -154,12 +216,15 @@ def build_backup_bundle(exports: Sequence[Any]) -> dict[str, Any]:
             raise ExportRefused("backup contains the same owner more than once")
         owners.add(str(verification.owner_id))
         normalized.append(dict(cast(Mapping[str, Any], export)))
-    return {
+    bundle: dict[str, Any] = {
         "format": BUNDLE_FORMAT,
         "format_version": BACKUP_FORMAT_VERSION,
         "export_format_version": EXPORT_FORMAT_VERSION,
         "exports": normalized,
     }
+    if media_missing:
+        bundle["media_missing"] = _checked_missing(media_missing, owners)
+    return bundle
 
 
 def build_backup_envelope(
@@ -179,7 +244,9 @@ def build_backup_envelope(
     exports = bundle.get("exports")
     if not isinstance(exports, list):
         raise ExportRefused("backup exports must be an array")
-    validated_bundle = build_backup_bundle(cast(list[Any], exports))
+    validated_bundle = build_backup_bundle(
+        cast(list[Any], exports), cast(list[list[str]], bundle.get("media_missing", []))
+    )
     plaintext = bounded_canonical_json(validated_bundle, MAX_BUNDLE_PLAINTEXT_BYTES)
     ciphertext = _fernet(key).encrypt(plaintext).decode("ascii")
     return {
@@ -229,7 +296,10 @@ def decrypt_backup_envelope(
         raise ExportRefused("unsupported backup bundle version")
     if not isinstance(bundle.get("exports"), list):
         raise ExportRefused("backup exports must be an array")
-    build_backup_bundle(cast(list[Mapping[str, Any]], bundle["exports"]))
+    build_backup_bundle(
+        cast(list[Mapping[str, Any]], bundle["exports"]),
+        cast(list[list[str]], bundle.get("media_missing", [])),
+    )
     return dict(bundle)
 
 
@@ -373,12 +443,34 @@ def prune_backup_files(
     return tuple(deleted)
 
 
+@contextmanager
+def _exclusive(directory: Path) -> Generator[None]:
+    """Hold a lock on the backup directory, so two backups (and their pruning of backups and
+    photo files) never run at once; a second one is refused, not queued. A directory that does
+    not exist yet has nothing to protect and is not made here."""
+
+    if not directory.is_dir():
+        yield
+        return
+    descriptor = os.open(directory, os.O_RDONLY | os.O_DIRECTORY)
+    try:
+        try:
+            fcntl.flock(descriptor, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:
+            raise ExportRefused("another backup is running in this directory") from None
+        yield
+    finally:
+        os.close(descriptor)  # closing the descriptor releases the lock
+
+
 @dataclass(frozen=True, slots=True)
 class BackupResult:
     path: Path
     owner_count: int
     ciphertext_sha256: str
     pruned_count: int
+    media_stored: int = 0
+    media_missing: int = 0
 
 
 class OwnerBackupService:
@@ -389,7 +481,9 @@ class OwnerBackupService:
         store: Any,
         clock: Clock | None = None,
         telemetry: TelemetryPort | None = None,
+        photo_files: PhotoFileSource | None = None,
     ) -> None:
+        self._photo_files = photo_files
         self._export = OwnerExportService(store, clock, telemetry)
         self._clock = clock or SystemClock()
         self._telemetry = telemetry or NoopTelemetryAdapter()
@@ -403,6 +497,28 @@ class OwnerBackupService:
         retention_days: int,
         min_keep: int = 1,
         space_margin_percent: int = DEFAULT_SPACE_MARGIN_PERCENT,
+    ) -> BackupResult:
+        """One backup and the pruning after it; refused while another runs in `directory`."""
+
+        with _exclusive(directory):
+            return self._create(
+                directory=directory,
+                key=key,
+                retention_count=retention_count,
+                retention_days=retention_days,
+                min_keep=min_keep,
+                space_margin_percent=space_margin_percent,
+            )
+
+    def _create(
+        self,
+        *,
+        directory: Path,
+        key: str | bytes | SecretStr,
+        retention_count: int,
+        retention_days: int,
+        min_keep: int,
+        space_margin_percent: int,
     ) -> BackupResult:
         created_at = self._clock.now()
         try:
@@ -426,7 +542,10 @@ class OwnerBackupService:
             # are checked before anything is written, and the file is read back once written.
             for export in exports:
                 verify_restorable(export)
-            bundle = build_backup_bundle(exports)
+            media = self._copy_media(exports, directory, key, created_at)
+            bundle = build_backup_bundle(
+                exports, [[str(owner), digest] for owner, digest in media.missing]
+            )
             envelope = build_backup_envelope(bundle, key, created_at=created_at)
             path = backup_file_path(directory, created_at)
             try:
@@ -463,6 +582,7 @@ class OwnerBackupService:
             keep=path,
             min_keep=min_keep,
         )
+        self._prune_media(directory, key, created_at)
         self._telemetry.count(
             "sidekick.owner_backup",
             {
@@ -470,6 +590,8 @@ class OwnerBackupService:
                 "outcome": "success",
                 "owner_backup.owner_count": str(len(exports)),
                 "owner_backup.pruned_count": str(len(deleted)),
+                "owner_backup.media_stored": str(media.stored),
+                "owner_backup.media_missing": str(len(media.missing)),
             },
         )
         return BackupResult(
@@ -477,4 +599,42 @@ class OwnerBackupService:
             owner_count=len(exports),
             ciphertext_sha256=envelope["sha256"],
             pruned_count=len(deleted),
+            media_stored=media.stored,
+            media_missing=len(media.missing),
         )
+
+    def _copy_media(
+        self,
+        exports: Sequence[Mapping[str, Any]],
+        directory: Path,
+        key: str | bytes | SecretStr,
+        created_at: datetime,
+    ) -> MediaCopy:
+        """Copy the photo files the exports list; refuse if photos exist but no files are given."""
+
+        if self._photo_files is None:
+            if any(media_files(export) for export in exports):
+                raise ExportRefused("the backup has photos but no media directory was given")
+            return MediaCopy(0, 0, ())
+        return copy_media(
+            open_media_store(backup_media_directory(directory), key),
+            self._photo_files,
+            exports,
+            when=created_at,
+            media_directory=backup_media_directory(directory),
+        )
+
+    def _prune_media(
+        self, directory: Path, key: str | bytes | SecretStr, created_at: datetime
+    ) -> None:
+        """Delete the photo files no kept backup lists; a failure here never fails the backup."""
+
+        kept = [
+            time
+            for path in directory.iterdir()
+            if path.is_file() and (time := finished_backup_time(path.name)) is not None
+        ]
+        with suppress(OSError):
+            open_media_store(backup_media_directory(directory), key).remove_unlisted(
+                min(kept, default=created_at)
+            )

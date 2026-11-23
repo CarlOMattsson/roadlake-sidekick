@@ -161,6 +161,20 @@ a real orientation. The owner can change or remove each field, and none of them 
 this migration keeps every value and reads as one with no place, camera or orientation. Rolling it back drops the five
 columns, which loses only the details entered since.
 
+## Migration 121: repetition
+
+`121_review.py` is an additive (expand) migration. It adds three tables: `review_settings` (one row per owner, written on
+first use; repetition is off until the owner turns it on), `review_cards` (one card per contact or library fact, holding
+no copy of what it asks about and a cached schedule) and `review_log` (one row per answer, the authority every schedule
+is folded from). Exactly the key that matches a card's kind is set, a source has at most one card, and an answer carries
+a client key so that a replay from a phone that was offline writes nothing twice. A card names a library fact without a
+foreign key until the table of library facts exists. The application role may read, insert and update the settings, do all
+four on the cards, and only read and insert the log: an answer is never changed or deleted by it, and leaves only with its
+card or its owner's account, through the foreign keys. Rolling it back drops the three tables, which loses only the
+repetition data. The owner export carries all three as collections (format 11); an export of an earlier format has none of
+them and restores no repetition. `sidekick-owner-export restore --refold` folds every restored card's answers again and
+reports the cards whose stored schedule differs.
+
 ## Changing the schema: the checked-in fingerprint
 
 `backend/tests/fixtures/baseline-catalogue.json` is the schema fingerprint: after `yoyo apply` on an empty database,

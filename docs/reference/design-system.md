@@ -156,9 +156,14 @@ layer 8 past the row on each side with radius 8, so the text stands still, and t
 
 ## 3. Components
 
-**Room strip (Rumsremsan).** The rooms used several times a week as equal tabs (`flex: 1 1 0`, never narrower than
-their name): Arbete · Dagbok · Inköp, then the last cell **Mer ⌄** with the rooms used about once a week or less
-(Kontakter). The order is fixed at design time and never follows use. Mer opens the one `Menu`: a popover under the
+**Room strip (Rumsremsan).** A room stands where its use puts it, not where its subject would: the rooms used several
+times a week are equal tabs (`flex: 1 1 0`, never narrower than their name), Arbete · Dagbok · Inköp, most used
+first, then the last cell **Mer ⌄** with the rooms used about once a week or less (Kontakter). The row holds at most
+four rooms and Mer, the five cells a 360 frame has room for in both languages; the fourth place is the start view's,
+and a room that would be a fifth is a row of Mer. A daily habit that needs no room of its own (the day's review) is a
+block of the start view, never a cell. The room of an opt-in feature is drawn only while the instance has it on
+(`SIDEKICK_ENABLED_ROOMS`), in the row or in Mer by the same rule. The order is fixed at design time and never
+follows use, so no cell moves under the thumb. Mer opens the one `Menu`: a popover under the
 cell with the start edges aligned (with a mouse, or in a frame of at least 40 rem), on a phone a panel over the room
 under the strip, which a press outside closes. Its rows are rooms only, with at most one meta line that asks for a
 decision, and the room you are in is ticked. While a room of Mer is open the Mer cell shows its name and the raised
@@ -172,13 +177,19 @@ full-screen room; detail views mark the parent room. In Control the strip has no
 `aria-current`, labels all muted; the picker reads "Rum ⌄" / "Rooms ⌄", no item has `aria-checked`). It is
 `position: sticky` on the page colour and the fixed chrome is bounded: 96.4 at 110 %, 99 at 150 %, 104 at 200 %.
 
-_Glyphs in the strip_ are a choice, never the default: names alone everywhere unless the instance
-(`SIDEKICK_MCP_APP_NAV_ICONS`, written into the app document as `sidekick-nav-icons`) or, on the phone, the owner
-(Inställningar → Rumsraden: Text · Båda · Ikoner) says otherwise. `label` puts a 20 glyph 6 before each name; `only`
-draws the glyph alone, and each cell then carries its name in `aria-label` and in `title` (the tooltip). The strip
-stays 40 and every target 48 in both. In a frame of 32 rem or less `label` draws the name in the room that is open and
-the glyph alone in the others, so the row holds on a phone instead of giving way to the picker; every cell is still
-named for assistive technology. In the wide head `only` makes every cell 48 wide. The glyphs are one family in
+_What a cell draws_ follows the frame by default (`auto`): the names alone where the frame is wider than 32 rem, as
+above, and in a phone's frame each room's 20 glyph over its name in `--sk-type-caption` (12/16), so every room keeps
+its name and a row of five holds where five names side by side do not. Such a cell is 40 (the glyph, the name's line
+and 4 of air) in the 4 px frame: the strip is 48 there, and the raised pill, the muted 500 and the bold 600 are the
+same. In the Mer cell the ⌄ stands beside the glyph, which stays centred over the name ("Mer", or the room of Mer
+that is open). At large text (a frame of 17.25 rem or less, 412 px at 150 %) the names stand alone again: they are
+large enough there, and the chrome keeps its bound. The placeholder before the first result draws the same strip
+(`awaiting.css`), so nothing moves when the room arrives. The instance may choose one face for every width instead
+(`SIDEKICK_MCP_APP_NAV_ICONS`, written into the app document as `sidekick-nav-icons`), and on the phone app the owner
+chooses (Inställningar → Rumsraden: Text · Båda · Ikoner): `off` is the names alone at every width; `label` is a
+glyph with each name, 6 before it, and over it in a phone's frame as `auto` draws it; `only` draws the glyph alone,
+and each cell then carries its name in `aria-label` and in `title` (the tooltip). With `off` and `only` the strip
+stays 40 at every width. In the wide head `only` makes every cell 48 wide. The glyphs are one family in
 `ui/icons.tsx` (2 px outline on the 24 box): house (Start), ticked ring (Arbete), notebook (Dagbok), basket (Inköp),
 two people (Kontakter), open book (Bibliotek), bolt (Automationer) and four tiles for Mer, which never borrows the ⋯
 of a room's tools. Mer's menu rows are names in every mode.

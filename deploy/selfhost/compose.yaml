@@ -129,8 +129,12 @@ x-sidekick-env-ai: &sidekick-env-ai
   SIDEKICK_AI_MAX_ATTEMPTS_PER_STEP:
   SIDEKICK_AI_LOCAL_MODELS_EXEMPT_FROM_CAP:
   SIDEKICK_AI_CHECK_PROVIDER:
+  SIDEKICK_AI_CHECK_MODE:
   SIDEKICK_AI_CHECK_MODEL:
   SIDEKICK_AI_CHECK_BASE_URL:
+  SIDEKICK_AI_CHECK_UNCERTAIN_THRESHOLD:
+  SIDEKICK_AI_CHECK_SUSPICIOUS_THRESHOLD:
+  SIDEKICK_AI_CHECK_RELEASE_AFTER_MINUTES:
   SIDEKICK_AI_CHECK_MAX_RESPONSE_BYTES:
   SIDEKICK_AI_CHECK_PRICE_INPUT_USD_PER_MTOK:
   SIDEKICK_AI_CHECK_PRICE_OUTPUT_USD_PER_MTOK:
@@ -275,6 +279,8 @@ services:
       # Pinned here, not only in the env file, so a missing or edited file cannot fall back to the
       # development defaults of Settings.
       SIDEKICK_ENVIRONMENT: production
+      # Journal photos: content-addressed files on the media volume, never in the read-only root.
+      SIDEKICK_MEDIA_DIRECTORY: /var/lib/sidekick/media
       <<:
         - *sidekick-secret-files-common
         - *sidekick-secret-files-memory
@@ -361,6 +367,7 @@ services:
       start_period: 120s
     volumes:
       - state:/var/lib/sidekick
+      - media:/var/lib/sidekick/media
     read_only: true
     tmpfs: [/tmp]
     cap_drop: [ALL]
@@ -387,7 +394,7 @@ services:
       SIDEKICK_PUSH_ENABLED:
       SIDEKICK_PUSH_WAKE_MIN_INTERVAL_SECONDS:
       SIDEKICK_LICENSE_PUBLIC_KEY:
-      SIDEKICK_MEDIA_DIRECTORY:
+      SIDEKICK_MEDIA_DIRECTORY: /var/lib/sidekick/media
     secrets:
       - database_url
       - cursor_signing_secret
@@ -404,6 +411,8 @@ services:
       migrate: { condition: service_completed_successfully }
     # Database access only, like backup. No port, no edge network, no internet route.
     networks: [data]
+    volumes:
+      - media:/var/lib/sidekick/media
     read_only: true
     tmpfs: [/tmp]
     cap_drop: [ALL]
@@ -418,6 +427,7 @@ services:
     # Runs the existing sidekick-backup-worker from the api image. Each iteration writes one
     # encrypted owner export to /var/lib/sidekick/backups (in the state volume) and prunes old
     # files. The key comes from selfhost.env only, never from the command line or the logs.
+    # Journal photos: each file is encrypted on its own into /var/lib/sidekick/backups/media (only new ones each time).
     # Restore: deploy/selfhost/restore.sh (run it without --apply first to see the plan).
     profiles: [backup]
     image: ${SIDEKICK_API_IMAGE:-roadlake-sidekick:selfhost}
@@ -429,6 +439,8 @@ services:
       SIDEKICK_ENVIRONMENT: production
       SIDEKICK_BACKUP_ENABLED: "true"
       SIDEKICK_BACKUP_DIRECTORY: /var/lib/sidekick/backups
+      # Read only: the worker copies the journal photo files into the backup directory (encrypted, one file each).
+      SIDEKICK_MEDIA_DIRECTORY: /var/lib/sidekick/media
     secrets:
       - database_url
       - cursor_signing_secret
@@ -446,6 +458,7 @@ services:
     networks: [data]
     volumes:
       - state:/var/lib/sidekick
+      - media:/var/lib/sidekick/media:ro
     read_only: true
     tmpfs: [/tmp]
     cap_drop: [ALL]
@@ -823,6 +836,9 @@ secrets:
 volumes:
   pgdata: {}
   state: {}
+  # Journal photo files (api and automation-worker read and write, backup reads). The owner backup copies them;
+  # an update snapshot is a database dump and does not.
+  media: {}
   caddy_data: {}
   caddy_config: {}
   tsstate: {}

@@ -71,7 +71,9 @@ CHARS_PER_TOKEN = 3.5
 # `record_automation_results`), about 1 400 tokens, of which the `datapoints` and `suggestions`
 # inputs of `record_automation_results` are about 1 000: closed kinds, sources and fields are what
 # keeps a routine's input narrow; measured 26 382 for the 86 model-visible tools, rounded up.
-TOKEN_BUDGET = 26_400
+# 2026-11-23: raised to 26 600 for `get_start`, the Start view (a 522-character description and no
+# input, about 150 tokens); measured 26 552 for the 87 model-visible tools, rounded up.
+TOKEN_BUDGET = 26_600
 LARGEST_LISTED = 5
 # Measured 2026-10-25: the longest model-visible description is 527 chars, rounded up to 50.
 DESCRIPTION_CHAR_CAP = 550
@@ -99,7 +101,10 @@ GUIDE_TOOL_DESCRIPTION_CHAR_CAP = 1000
 # The five photo tools are app-only and cost nothing here.
 # 2026-11-22: raised to 236 000 when the review queue fields and the photo summary met; measured
 # 235 948 for the model-visible tools, rounded up.
-OUTPUT_SCHEMA_CHAR_CAP = 236_000
+# 2026-11-23: raised to 240 800 for the output of `get_start` (the insight, the suggestion, task,
+# waiting and since-last parts and the menu counts, 4 840 characters); measured 240 788 for the 87
+# model-visible tools, rounded up.
+OUTPUT_SCHEMA_CHAR_CAP = 240_800
 
 
 def _estimated_tokens(tool: dict[str, object]) -> float:

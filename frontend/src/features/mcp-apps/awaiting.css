@@ -42,7 +42,8 @@
 }
 
 /* The room strip (sidekick-shell.css, .sk-rooms): 40 px high, a 4 px frame in the surface tone and four 32 px cells with
-   the labels in 14/18 at 500, the active one 600. The strip does not pulse: it is navigation, not content. */
+   the labels in 14/18 at 500, the active one 600; in a phone's frame the glyphs over the names, below. The strip does not
+   pulse: it is navigation, not content. */
 .sidekick-wait-strip {
   display: flex;
   gap: 0.25rem;
@@ -69,7 +70,7 @@
   white-space: nowrap;
 }
 
-/* The Mer cell: its name and a 16 ⌄ on one line, as the real cell (shell-parts/strip-more.tsx). */
+/* The Mer cell: its name and a 16 ⌄ on one line, as the real cell (shell-parts/room-strip.tsx). */
 .sidekick-wait-room[data-more] {
   grid-auto-flow: column;
   justify-content: center;
@@ -83,6 +84,80 @@
   --w-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M6 9l6 6 6-6' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   -webkit-mask: var(--w-chevron) center / 100% no-repeat;
   mask: var(--w-chevron) center / 100% no-repeat;
+}
+
+/* A phone's frame: each room's 20 glyph over its name in 12/16, a 40 cell and the strip 48, as the shell's strip draws
+   it there (sidekick-shell.css), unless the instance chose names alone or glyphs alone for every width (the
+   `sidekick-nav-icons` meta, nav-icons.ts): those strips are 40, and this one keeps the names it has. The glyphs are
+   the strip's own (ui/icons.tsx), as masks, so the static placeholder draws them without the bundle. The ⌄ of Mer
+   stands beside its glyph, which stays centred over the name. Not at large text, as in the shell. */
+@media (17.25rem < width <= 32rem) {
+  :root:not(
+      :has(
+        meta[name="sidekick-nav-icons"]:is([content="off"], [content="only"])
+      )
+    )
+    .sidekick-wait-strip {
+    height: 48px;
+  }
+  :root:not(
+      :has(
+        meta[name="sidekick-nav-icons"]:is([content="off"], [content="only"])
+      )
+    )
+    .sidekick-wait-room {
+    position: relative;
+    align-content: center;
+    padding: 3px 2px 1px;
+    font-size: var(--sk-type-caption-size);
+    line-height: var(--sk-type-caption-line);
+  }
+  :root:not(
+      :has(
+        meta[name="sidekick-nav-icons"]:is([content="off"], [content="only"])
+      )
+    )
+    .sidekick-wait-room::before {
+    content: "";
+    width: 20px;
+    height: 20px;
+    background: currentColor;
+    -webkit-mask: var(--w-glyph) center / 100% no-repeat;
+    mask: var(--w-glyph) center / 100% no-repeat;
+  }
+  :root:not(
+      :has(
+        meta[name="sidekick-nav-icons"]:is([content="off"], [content="only"])
+      )
+    )
+    .sidekick-wait-room[data-more] {
+    grid-auto-flow: row;
+  }
+  :root:not(
+      :has(
+        meta[name="sidekick-nav-icons"]:is([content="off"], [content="only"])
+      )
+    )
+    .sidekick-wait-room[data-more]::after {
+    position: absolute;
+    top: 5px;
+    left: calc(50% + 10px);
+  }
+}
+.sidekick-wait-room {
+  --w-glyph: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='4' y='4' width='6.5' height='6.5' rx='1.5'/%3E%3Crect x='13.5' y='4' width='6.5' height='6.5' rx='1.5'/%3E%3Crect x='4' y='13.5' width='6.5' height='6.5' rx='1.5'/%3E%3Crect x='13.5' y='13.5' width='6.5' height='6.5' rx='1.5'/%3E%3C/svg%3E");
+}
+.sidekick-wait-room[data-room="work"] {
+  --w-glyph: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='8.5'/%3E%3Cpath d='M8.5 12.5l2.5 2.5 4.5-5.5'/%3E%3C/svg%3E");
+}
+.sidekick-wait-room[data-room="journal"] {
+  --w-glyph: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='5' y='3.5' width='14' height='17' rx='2'/%3E%3Cpath d='M9 3.5v17M12.5 8.5h3M12.5 12h3'/%3E%3C/svg%3E");
+}
+.sidekick-wait-room[data-room="shopping"] {
+  --w-glyph: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 10h18M4.5 10l1.4 8a1.5 1.5 0 0 0 1.5 1.25h9.2a1.5 1.5 0 0 0 1.5-1.25l1.4-8M8 10l3-5.5M16 10l-3-5.5'/%3E%3C/svg%3E");
+}
+.sidekick-wait-room[data-room="contacts"] {
+  --w-glyph: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='9' cy='8.5' r='3.25'/%3E%3Cpath d='M3 19.5a6 6 0 0 1 12 0M15.5 5.4a3.25 3.25 0 0 1 0 6.2M17.5 14a6 6 0 0 1 3.5 5.5'/%3E%3C/svg%3E");
 }
 
 /* The active room, once the host has named the tool: chosen as in the real strip (--sk-nav-active-*): a raised pill, no frame. */

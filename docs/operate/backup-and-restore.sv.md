@@ -11,6 +11,7 @@ Det här innehåller varje kopia:
 | Kopia | Skapas av | Innehåller | Återställs med |
 | --- | --- | --- | --- |
 | Krypterad ägarbackup (`.skbackup`) | `--profile backup` och `update.sh --apply` | en eller flera ägares data, som en export | `restore.sh` (`sidekick-backup import`) |
+| Dagbokens fotofiler | `--profile backup` | fotona som filer, var och en krypterad för sig, i `media/` bredvid backupfilerna | `restore.sh`, med den `media/`-mappen |
 | Krypterad ögonblicksbild av databasen | `update.sh --apply`, i `update-state/snapshots/` | hela databasen | stegen nedan |
 | Hindsight-minnet | inget automatiskt | volymen `hindsight_pg0` | stegen nedan |
 
@@ -28,6 +29,23 @@ Kopiera dem från maskinen:
 
 ```bash
 mkdir -p backups && docker compose --env-file selfhost.env --profile backup cp backup:/var/lib/sidekick/backups/. ./backups/
+```
+
+**Dagbokens foton.** Filen `.skbackup` innehåller fotona som rader (plats, kamera, text), inte själva filerna. Filerna
+ligger i volymen `media`, som `api` och arbetarna monterar och som backuptjänsten monterar skrivskyddad. Varje backup
+kopierar dem, en krypterad fil per foto, till `media/` bredvid backupfilerna (`/var/lib/sidekick/backups/media`). Bara
+filer som mappen inte redan har kopieras, så en backup efter den första går snabbt, och en fil lämnar mappen när ingen
+sparad backup längre listar den. Namnen är en nyckelad hash av ägaren och fotot, så mappen avslöjar inte vilket foto som
+är vilket. Kopieringskommandot ovan tar med `media/`-mappen: förvara den tillsammans med backupfilerna. En
+uppdateringsbild är en databasdump och innehåller inte fotofilerna. En fil som redan var förlorad när backupen togs
+stoppar den inte: backupen noterar det och arbetaren loggar hur många som saknas. För att se vad som är förlorat kan du
+hasha varje fil som databasen nämner (bara antal; slutstatus 1 om någon saknas eller är skadad) och läsa varje fil som en
+backup listar:
+
+```bash
+docker compose --env-file selfhost.env run --rm --no-deps api sidekick-admin media verify
+docker compose --env-file selfhost.env --profile backup exec backup sidekick-backup verify \
+  /var/lib/sidekick/backups/<fil>.skbackup --media-directory /var/lib/sidekick/backups/media
 ```
 
 **Ledigt utrymme och gallring.** En ny ägarbackup, och ögonblicksbilden i `update.sh --apply`, skrivs bara när
@@ -61,6 +79,13 @@ exporter som 0.1.0 skrivit läses (exportformat 4 till 6); äldre läses inte. U
 ./restore.sh --backup FILE.skbackup --target-owner UUID [--source-owner UUID]           # bara planen
 ./restore.sh --backup FILE.skbackup --target-owner UUID [--source-owner UUID] --apply
 ```
+
+Fotona följer med ägaren. `restore.sh` tar `media/`-mappen som ligger bredvid backupfilen, eller den du anger med
+`--media-dir MAPP`, och skriver filerna till volymen `media` under målägaren. Planen visar hur många filer den listar
+och hur många den kan läsa; utan mappen säger planen att inga kan läsas och `--apply` avvisar innan något skrivs. En
+exportmapp (exportdokumentet och en mapp `media/`, exportformat 10) återställs på samma sätt, som `--backup MAPP`. Gör en från en
+backup med `sidekick-backup extract-export-folder FIL.skbackup UTMAPP` (mappen får inte finnas ännu; fotofilerna
+dekrypteras in i den, så håll den privat) och kontrollera en med `sidekick-owner-export verify MAPP`.
 
 För en backup från en tidigare installation måste nyckeln vara den som den installationen krypterade den med, inte den nya nyckeln från `keygen` ovan, som inte kan dekryptera den. Nyckeln läses från `SIDEKICK_BACKUP_ENCRYPTION_KEY` i `selfhost.env` (eller från `--key-file` nedan); en okrypterad `.json`-export behöver ingen nyckel. Utan omslaget kör du kommandot själv och tillämpar i ett andra steg med den checksumma planen skrev ut
 (`FILE` som `-` läser standard in; `--key-file PATH` läser nyckeln från en fil med läge 600 i stället för från

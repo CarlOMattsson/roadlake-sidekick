@@ -251,7 +251,7 @@ def test_the_backup_worker_beats_even_with_backups_off(
     monkeypatch.setattr(backup_worker, "get_settings", lambda: _settings(backup_enabled=False))
     monkeypatch.setattr(backup_worker, "create_session_factory", lambda _url, **_kw: None)
     monkeypatch.setattr(backup_worker, "StoreBase", lambda _factory: None)
-    monkeypatch.setattr(backup_worker, "OwnerBackupService", lambda _store: None)
+    monkeypatch.setattr(backup_worker, "OwnerBackupService", lambda _store, **_kw: None)
     monkeypatch.setattr(backup_worker.asyncio, "sleep", fake_sleep)
 
     with pytest.raises(_Stop):

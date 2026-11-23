@@ -19,6 +19,7 @@ from sidekick import composition
 from sidekick.admin import cli as auth_cli
 from sidekick.backup import cli as backup_cli
 from sidekick.backup import worker as backup_worker
+from sidekick.backup.importer import LoadedExport
 from sidekick.companion import cli as companion_cli
 from sidekick.companion import push_worker
 from sidekick.license import cli as license_cli
@@ -565,7 +566,7 @@ def test_ensure_user_on_a_disabled_login_is_refused_with_its_fixed_text() -> Non
         (
             ["extract-export", "{dir}/in.skbackup", "{dir}/gone/out.json"],
             "gone/out.json",
-            "(output file: out.json)",
+            "(output file or folder: out.json)",
         ),
     ],
 )
@@ -630,7 +631,9 @@ def test_backup_import_follows_the_exit_code_table(
     export = tmp_path / "export.json"
     export.write_text("{}", encoding="utf-8")
     monkeypatch.setattr(backup_cli, "_import_store", lambda: object())
-    monkeypatch.setattr(backup_cli, "load_export_document", lambda *_a, **_k: {})
+    monkeypatch.setattr(
+        backup_cli, "load_export", lambda *_a, **_k: LoadedExport({}, False, frozenset())
+    )
     monkeypatch.setattr(backup_cli, "plan_import", raising(error))
 
     assert backup_cli.main(["import", str(export), "--target-owner", OWNER]) == code

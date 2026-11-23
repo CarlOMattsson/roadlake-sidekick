@@ -177,3 +177,7 @@ def _insert(connection: Connection, table: str, values: dict[str, Any]) -> None:
     columns = ", ".join(values)
     statement = f"INSERT INTO sidekick.{table} ({columns}) VALUES ({', '.join(placeholders)})"  # noqa: S608
     connection.execute(text(statement), params)
+
+
+insert_row = _insert
+"""The same insert for the row helpers of other tables (`review_rows`)."""

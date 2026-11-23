@@ -23,7 +23,8 @@ const apps = {
 // 2026-11-18: 235 KiB to 245 KiB for the owner-approved Q1–Q4 (repeat rules, week view, quick shopping changes, clickable inline names; measured 235 672).
 // 2026-11-20: 245 KiB to 255 KiB for the desktop layer (popover menus, room head, list beside detail; measured 253 910).
 // 2026-11-20: 255 KiB to 270 KiB for the desktop Journal and Control (month rail, reading pane, Control's table; measured 263 695).
-const GZIP_BUDGET_BYTES = 270 * 1024;
+// 2026-11-23: 270 KiB to 275 KiB for the room strip that follows the frame (a glyph over each name on a phone, also in the placeholder; measured 277 534).
+const GZIP_BUDGET_BYTES = 275 * 1024;
 type AppName = keyof typeof apps;
 
 const LOCALES = ["sv", "en"] as const;
@@ -31,6 +32,8 @@ const LOCALES = ["sv", "en"] as const;
  * The room names of the strip and the loading line by app language. Keep in step with the shell labels
  * (sidekick-shell-labels.ts) and `awaitingSv`/`awaitingEn` in awaiting.tsx; tests/features/mcp-apps/awaiting.test.tsx checks the built document.
  */
+/** The rooms of the strip's own cells (PRIMARY_ROOM_IDS in router.ts), in the order of `rooms` below: each names its glyph. */
+const WAIT_ROOMS = ["work", "journal", "shopping"] as const;
 const WAIT_TEXT = {
   sv: { rooms: ["Arbete", "Dagbok", "Inköp"], more: "Mer", loading: "Laddar…" },
   en: {
@@ -70,10 +73,12 @@ function waitPlaceholder() {
     `<div class="sidekick-wait-row">${block("sidekick-wait-glyph")}<span class="sidekick-wait-text">${block("sidekick-wait-row-title").repeat(lines)}${block("sidekick-wait-meta")}</span></div>`;
   // The room is not known before the host has answered: no room is marked and no room's header is drawn.
   const strip = (locale: (typeof LOCALES)[number]) => {
+    const rooms: readonly string[] = WAIT_TEXT[locale].rooms;
     const names =
-      WAIT_TEXT[locale].rooms
-        .map((room) => `<span class="sidekick-wait-room">${room}</span>`)
-        .join("") +
+      WAIT_ROOMS.map(
+        (id, index) =>
+          `<span class="sidekick-wait-room" data-room="${id}">${rooms[index]}</span>`,
+      ).join("") +
       `<span class="sidekick-wait-room" data-more="">${WAIT_TEXT[locale].more}</span>`;
     return `<div aria-hidden="true" class="sidekick-wait-strip" data-wait-locale="${locale}">${names}</div>`;
   };

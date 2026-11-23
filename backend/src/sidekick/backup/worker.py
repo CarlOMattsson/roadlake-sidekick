@@ -8,6 +8,7 @@ import logging
 import sys
 from uuid import uuid4
 
+from sidekick import composition
 from sidekick.backup.bundle import BackupTooLarge, OwnerBackupService
 from sidekick.shared.cli_errors import run_guarded
 from sidekick.shared.config import get_settings, refuse_ai_key_outside_ai_worker
@@ -40,7 +41,8 @@ async def run_worker(*, once: bool = False) -> bool:
                 require_unprivileged_role=settings.environment == "production",
                 timeouts=settings.database_timeouts.unbounded_statements(),
             )
-        )
+        ),
+        photo_files=composition.create_photo_files(settings),
     )
     key = settings.backup_encryption_key
     if settings.backup_enabled and key is None:
@@ -69,8 +71,19 @@ async def run_worker(*, once: bool = False) -> bool:
                         "outcome": "success",
                         "backup_owner_count": result.owner_count,
                         "backup_pruned_count": result.pruned_count,
+                        "backup_media_stored": result.media_stored,
+                        "backup_media_missing": result.media_missing,
                     },
                 )
+                if result.media_missing:
+                    # Counts only: which photos are gone is for `sidekick-admin media verify`.
+                    LOGGER.warning(
+                        "photo files are missing from the media directory",
+                        extra={
+                            "backup_run_id": run_id,
+                            "backup_media_missing": result.media_missing,
+                        },
+                    )
             except BackupTooLarge:
                 # Sizes and owner data are not logged: the message of this error is fixed text.
                 LOGGER.error(

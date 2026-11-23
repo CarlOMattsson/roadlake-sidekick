@@ -11,10 +11,11 @@ from collections.abc import Collection, Sequence
 from datetime import date, datetime
 from uuid import UUID
 
-from sqlalchemy import func, select, update
+from sqlalchemy import ColumnElement, func, or_, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, sessionmaker
 
+from sidekick.automations.domain.activity import PendingSuggestions, RunFacts, WindowCounts
 from sidekick.automations.domain.automation import Automation, ReportCursor, SuggestionCheck
 from sidekick.automations.domain.datapoints import Datapoint, DatapointKind, SourceKind
 from sidekick.automations.domain.effects import EffectKind
@@ -309,6 +310,19 @@ def _insert(session: Session, row: Base, primary_key: str, not_found: str) -> No
         raise
 
 
+def unattended_conditions(now: datetime, idle_since: datetime | None) -> list[ColumnElement[bool]]:
+    """Runs that wait for their check and that no worker holds: none ever took them, or the lease
+    of the one that did has run out. `idle_since` keeps only runs not touched since then."""
+
+    conditions = [
+        AutomationRunRow.state == RunState.CHECKING.value,
+        or_(AutomationRunRow.lease_until.is_(None), AutomationRunRow.lease_until <= now),
+    ]
+    if idle_since is not None:
+        conditions.append(AutomationRunRow.updated_at <= idle_since)
+    return conditions
+
+
 class AutomationStore:
     """Automations, suggestions and their checks.
 
@@ -363,6 +377,117 @@ class AutomationStore:
             .group_by(AutomationSuggestionRow.automation_id)
         )
         return {automation_id: count for automation_id, count in rows}
+
+    @staticmethod
+    def pending_suggestion_overview(session: Session, owner_id: UUID) -> PendingSuggestions:
+        """Every suggestion that waits for a decision, and how many automations they come from."""
+
+        total, automations = session.execute(
+            select(
+                func.count(), func.count(AutomationSuggestionRow.automation_id.distinct())
+            ).where(
+                AutomationSuggestionRow.owner_id == owner_id,
+                AutomationSuggestionRow.state == SuggestionState.PENDING.value,
+            )
+        ).one()
+        return PendingSuggestions(total=total, automations=automations)
+
+    @staticmethod
+    def recent_run_facts(session: Session, owner_id: UUID, day_start: datetime) -> RunFacts:
+        """Failed runs since `day_start`, the newest failing automation and the latest summary."""
+
+        failed_today = (
+            session.scalar(
+                select(func.count())
+                .select_from(AutomationRunRow)
+                .join(AutomationRow, AutomationRow.id == AutomationRunRow.automation_id)
+                .where(
+                    AutomationRunRow.owner_id == owner_id,
+                    AutomationRow.owner_id == owner_id,
+                    AutomationRow.state != AutomationState.ARCHIVED.value,
+                    AutomationRunRow.state == RunState.FAILED.value,
+                    func.coalesce(AutomationRunRow.finished_at, AutomationRunRow.updated_at)
+                    >= day_start,
+                )
+            )
+            or 0
+        )
+        finished = (RunState.DONE.value, RunState.FAILED.value)
+        latest = (
+            select(
+                AutomationRunRow.automation_id,
+                AutomationRunRow.state,
+                AutomationRunRow.finished_at,
+            )
+            .where(AutomationRunRow.owner_id == owner_id, AutomationRunRow.state.in_(finished))
+            .distinct(AutomationRunRow.automation_id)
+            .order_by(
+                AutomationRunRow.automation_id,
+                AutomationRunRow.created_at.desc(),
+                AutomationRunRow.attempt.desc(),
+            )
+            .subquery()
+        )
+        failed_automation = session.scalar(
+            select(AutomationRow.title)
+            .join(latest, latest.c.automation_id == AutomationRow.id)
+            .where(
+                AutomationRow.owner_id == owner_id,
+                AutomationRow.state != AutomationState.ARCHIVED.value,
+                latest.c.state == RunState.FAILED.value,
+            )
+            .order_by(latest.c.finished_at.desc().nulls_last(), AutomationRow.id)
+            .limit(1)
+        )
+        latest_summary = session.scalar(
+            select(AutomationRunRow.summary)
+            .where(
+                AutomationRunRow.owner_id == owner_id,
+                AutomationRunRow.state == RunState.DONE.value,
+                AutomationRunRow.summary.is_not(None),
+            )
+            .order_by(AutomationRunRow.finished_at.desc().nulls_last(), AutomationRunRow.id.desc())
+            .limit(1)
+        )
+        return RunFacts(
+            failed_today=failed_today,
+            failed_automation=failed_automation,
+            latest_summary=latest_summary,
+        )
+
+    @staticmethod
+    def window_counts(
+        session: Session, owner_id: UUID, since: datetime, until: datetime
+    ) -> WindowCounts:
+        """Runs and suggestions that appeared, and suggestions decided, in `(since, until]`."""
+
+        in_window = (AutomationRunRow.created_at > since, AutomationRunRow.created_at <= until)
+        runs, failed = session.execute(
+            select(
+                func.count(),
+                func.count().filter(AutomationRunRow.state == RunState.FAILED.value),
+            ).where(AutomationRunRow.owner_id == owner_id, *in_window)
+        ).one()
+        created, decided = session.execute(
+            select(
+                func.count().filter(
+                    AutomationSuggestionRow.created_at > since,
+                    AutomationSuggestionRow.created_at <= until,
+                ),
+                func.count().filter(
+                    AutomationSuggestionRow.decided_at > since,
+                    AutomationSuggestionRow.decided_at <= until,
+                ),
+            ).where(AutomationSuggestionRow.owner_id == owner_id)
+        ).one()
+        return WindowCounts(
+            since=since,
+            until=until,
+            runs=runs,
+            failed_runs=failed,
+            suggestions_created=created,
+            suggestions_decided=decided,
+        )
 
     @staticmethod
     def save_automation(
@@ -541,6 +666,25 @@ class AutomationStore:
                 AutomationRunRow.occurrence_key == occurrence_key,
             )
             .order_by(AutomationRunRow.attempt)
+        )
+        return [run_from_row(row) for row in rows]
+
+    @staticmethod
+    def list_unattended_runs(
+        session: Session, owner_id: UUID, now: datetime, *, idle_since: datetime | None
+    ) -> list[AutomationRun]:
+        """The owner's runs that wait for a check no worker holds, the longest waiting first.
+
+        See `unattended_conditions`. At most `MAX_LIST_ROWS`; a later call takes the rest."""
+
+        rows = session.scalars(
+            select(AutomationRunRow)
+            .where(
+                AutomationRunRow.owner_id == owner_id,
+                *unattended_conditions(now, idle_since),
+            )
+            .order_by(AutomationRunRow.updated_at, AutomationRunRow.id)
+            .limit(MAX_LIST_ROWS)
         )
         return [run_from_row(row) for row in rows]
 

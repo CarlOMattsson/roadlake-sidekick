@@ -3,7 +3,7 @@
  * ⋯ menu, where Control stands in Claude. It exists only in the mobile app: Claude has no phone to set.
  *
  * First `languageHeading`: Svenska | English, the app's language (app-language.ts; the widget follows it). Under it
- * `stripHeading`: what the room strip draws, names, a glyph before each name or the glyphs alone (app-nav-icons.ts). Then two sections,
+ * `stripHeading`: what the room strip draws, names, a glyph with each name or the glyphs alone (app-nav-icons.ts). Then two sections,
  * each read on its own from the native side, each with its own reading line, failure and retry:
  * - Aviseringar: the push state in plain words (or that the server sends none, and then no fix and no test), `sendTest` with one calm line per outcome, and one sentence
  *   on the lock screen, shown only while notifications are on (see docs/decisions/log.md D-079: it follows the phone's own setting).
@@ -18,7 +18,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import type { AppLocale } from "@/features/mcp-apps/app-locale";
-import { NAV_ICON_MODES, type NavIcons } from "@/features/mcp-apps/nav-icons";
+import { APP_NAV_ICON_CHOICES, type AppNavIcons } from "./app-nav-icons";
 import type { RoomId } from "@/features/mcp-apps/router";
 import { sidekickShellLabelsFor } from "@/features/mcp-apps/sidekick-shell-labels";
 import { LicenseRow } from "@/features/mcp-apps/license-mark";
@@ -63,7 +63,7 @@ export type SettingsPanelProps = {
   /** Chooses the app's language: Svenska | English first in the settings. Absent: no such section. */
   onLocale?: (locale: AppLocale) => void;
   /** What the room strip draws, and the owner's new choice of it. Absent: no such section. */
-  navIcons?: { value: NavIcons; onChange: (next: NavIcons) => void };
+  navIcons?: { value: AppNavIcons; onChange: (next: AppNavIcons) => void };
   /** Opens the trash screen over the settings. Absent: no such row. */
   onOpenTrash?: () => void;
 };
@@ -125,7 +125,7 @@ export function SettingsPanel({
             <h3 className="mobile-settings__section">{labels.stripHeading}</h3>
             <Segmented
               label={labels.stripHeading}
-              options={NAV_ICON_MODES.map((value) => ({
+              options={APP_NAV_ICON_CHOICES.map((value) => ({
                 value,
                 label: labels.strip[value],
               }))}

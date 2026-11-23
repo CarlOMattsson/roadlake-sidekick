@@ -65,10 +65,10 @@ async def test_with_every_room_on_the_tools_are_the_contract() -> None:
 
 
 @pytest.mark.asyncio
-async def test_a_work_only_instance_registers_the_work_tools_and_nothing_else() -> None:
+async def test_a_work_only_instance_registers_the_work_and_start_tools_and_nothing_else() -> None:
     names = await _names("work")
 
-    assert names == frozenset(ROOM_TOOLS["work"])
+    assert names == frozenset(ROOM_TOOLS["work"]) | frozenset(ROOM_TOOLS["start"])
     for room in ("journal", "shopping", "contacts", "control"):
         assert not names & frozenset(ROOM_TOOLS[room]), room
 
@@ -78,7 +78,17 @@ async def test_a_work_only_instance_registers_the_work_tools_and_nothing_else() 
 async def test_each_room_brings_back_only_its_own_tools(room: str) -> None:
     names = await _names(f"work,{room}")
 
-    assert names == frozenset(ROOM_TOOLS["work"]) | frozenset(ROOM_TOOLS[room])
+    assert names == (
+        frozenset(ROOM_TOOLS["work"]) | frozenset(ROOM_TOOLS["start"]) | frozenset(ROOM_TOOLS[room])
+    )
+
+
+@pytest.mark.asyncio
+async def test_start_stays_when_the_list_leaves_it_out() -> None:
+    names = await _names("work,journal")
+
+    assert "get_start" in names
+    assert "get_start" in await _names("work")
 
 
 @pytest.mark.asyncio

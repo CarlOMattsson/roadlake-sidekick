@@ -108,7 +108,7 @@ def test_the_device_answers_include_every_room_by_default() -> None:
     app = companion_app()
     user_id = owner(app)
     ticket = devices(app).create_pairing(user_id, "Samsung")
-    every_room = ["work", "journal", "shopping", "contacts", "control"]
+    every_room = ["work", "start", "journal", "shopping", "contacts", "control"]
     with TestClient(app) as client:
         paired = client.post("/companion/v1/pair", json={"pairing_secret": ticket.secret}).json()
         assert paired["enabled_rooms"] == every_room
@@ -148,7 +148,7 @@ def test_the_device_answers_name_only_the_rooms_the_instance_shows() -> None:
         token = paired_token(client, app, user_id)
         status = client.get("/companion/v1/device", headers=bearer(token))
         assert status.status_code == 200
-        assert status.json()["enabled_rooms"] == ["work", "journal"]
+        assert status.json()["enabled_rooms"] == ["work", "start", "journal"]
         # The room that is off has no route, the one that is on has.
         assert client.get("/companion/v1/shopping/lists", headers=bearer(token)).status_code == 404
         assert client.get("/companion/v1/device", headers=bearer(token)).status_code == 200

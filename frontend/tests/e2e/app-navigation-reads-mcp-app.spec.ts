@@ -195,8 +195,8 @@ for (const width of widths) {
         result: { items: [], filters: {}, next_cursor: null },
       });
       await expect(strip(app)).toBeVisible();
-      // The strip is 40 px high and the cell 32 px; the tap target is the cell plus its ::after
-      // (inset -6 px top and bottom, designsystem §3), so the target is measured with that inset added and stays >= 44.
+      // In a phone's frame the strip is 48 px high and the cell 40 px (a glyph over each name, designsystem §3); the
+      // tap target is the cell plus its ::after, so the target is measured with that inset added and stays >= 44.
       const measure = await app.locator("body").evaluate((body) => ({
         scrollWidth: body.scrollWidth,
         viewport: window.innerWidth,
@@ -216,7 +216,7 @@ for (const width of widths) {
         ),
       }));
       expect(measure.scrollWidth).toBeLessThanOrEqual(measure.viewport);
-      expect(Math.abs(measure.stripHeight - 40)).toBeLessThanOrEqual(0.5);
+      expect(Math.abs(measure.stripHeight - 48)).toBeLessThanOrEqual(0.5);
       expect(measure.targets).toHaveLength(4);
       for (const target of measure.targets)
         expect(target).toBeGreaterThanOrEqual(43.5);

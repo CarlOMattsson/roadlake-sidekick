@@ -112,6 +112,8 @@ SAFE_LOG_FIELDS = frozenset(
         "backup_run_id",
         "backup_owner_count",
         "backup_pruned_count",
+        "backup_media_stored",
+        "backup_media_missing",
         # Push reminder scheduling: how many reminders one run queued.
         "push_reminders",
         # Search and external-reference operations: a fixed operation name, the searched kinds,

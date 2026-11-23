@@ -215,7 +215,14 @@ _OWN_SCOPES: Final[Mapping[str, ToolScopes]] = {
         "set_shopping_items_purchased",
     ),
     # Overview, search and memory: each answers with the parts the session can read.
-    "get_today_brief": ToolScopes(optional=("journal:read", "shopping:read", "tasks:read")),
+    "get_today_brief": ToolScopes(
+        optional=("journal:read", "projects:read", "shopping:read", "tasks:read")
+    ),
+    # Start: each part needs the read scope of the room it shows; no part needs a scope of its own
+    # yet, so the whole answer is optional parts.
+    "get_start": ToolScopes(
+        optional=("automation:read", "contacts:read", "projects:read", "tasks:read")
+    ),
     "list_recent_changes": ToolScopes(optional=_sorted(CHANGE_SCOPES)),
     "search": ToolScopes(any_of=_sorted(SEARCH_SCOPE.values())),
     "recall_memory": ToolScopes(any_of=_sorted(MEMORY_READ_SCOPE.values())),

@@ -1,3 +1,4 @@
+import fcntl
 import json
 import os
 from datetime import datetime, timedelta
@@ -446,3 +447,18 @@ def test_write_backup_file_propagates_a_directory_fsync_error_and_removes_the_fi
         )
 
     assert list(tmp_path.iterdir()) == []
+
+
+def test_two_backups_never_run_at_the_same_time_in_one_directory(tmp_path: Path) -> None:
+    key = Fernet.generate_key()
+    service = OwnerBackupService(EmptyBackupStore(), FixedClock())
+    descriptor = os.open(tmp_path, os.O_RDONLY | os.O_DIRECTORY)
+    try:
+        fcntl.flock(descriptor, fcntl.LOCK_EX)  # another backup holds the directory
+        with pytest.raises(ExportRefused, match="another backup is running"):
+            service.create(directory=tmp_path, key=key, retention_count=5, retention_days=30)
+        assert list(tmp_path.glob("*.skbackup")) == []
+    finally:
+        os.close(descriptor)
+
+    assert service.create(directory=tmp_path, key=key, retention_count=5, retention_days=30).path
