@@ -185,7 +185,7 @@ Att tänka på:
 
 - `--scope` eller `--preset app` är obligatoriskt; kommandot vägrar gissa. `--preset app` ger uppgifter (läsa
   och klarmarkera, skapa och ändra uppgifter, lägga dem i papperskorgen och återställa dem), att radera uppgifter i papperskorgen för gott och tömma den
-  (`companion:work:erase`, som en telefon som parades tidigare bara får med `grant --scope companion:work:erase`), att ändra projekt (inte skapa dem), aviseringar, Inköp (läsa och skriva), Dagbok (läsa och skriva) och licensraden. Du kan i
+  (`companion:work:erase`, som en telefon som parades tidigare bara får med `grant --scope companion:work:erase`), att ändra projekt (inte skapa dem), aviseringar, Inköp (läsa och skriva), Dagbok (läsa och skriva), startvyn och förslagsinkorgen att läsa (`companion:start:read`, `companion:suggestions:read`) och licensraden. Att godkänna, avvisa eller ångra förslag (`companion:suggestions:decide`) ingår inte i presetet: ge den med `grant --scope companion:suggestions:decide`. Du kan i
   stället ange `--scope companion:…`-värden (kan upprepas) för en telefon med snävare rättigheter.
 - Koden gäller **en gång** och i **10 minuter** (`PAIRING_TTL` i `backend/src/sidekick/companion/service.py`).
 - Utan `--user-id <uuid>` använder kommandot installationens enda aktiva ägare, och det vägrar om det inte

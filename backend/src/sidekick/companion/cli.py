@@ -64,6 +64,8 @@ PRESETS: dict[str, frozenset[str]] = {
             "companion:journal:read",
             "companion:journal:write",
             "companion:license",
+            "companion:start:read",
+            "companion:suggestions:read",
         }
     ),
 }
@@ -109,6 +111,30 @@ SCOPE_DESCRIPTIONS: dict[str, LocalizedText] = {
     "companion:journal:write": {
         "sv": ("skriva och ändra dagboksinlägg för hand (ingen AI) och lägga dem i papperskorgen"),
         "en": "write and edit journal entries by hand (no AI), and move them to the trash",
+    },
+    "companion:start:read": {
+        "sv": (
+            "läsa startvyn (dagens uppgifter, väntande, redo samtal och antal förslag); visar "
+            "även kontaktnamn och antal utan egen kontakträttighet"
+        ),
+        "en": (
+            "read the Start view (today\u2019s tasks, waiting, ready conversations, suggestions); "
+            "also shows contact names and counts without a contacts capability of its own"
+        ),
+    },
+    "companion:suggestions:read": {
+        "sv": "läsa förslagsinkorgen (förslag från automationer)",
+        "en": "read the suggestion inbox (suggestions from automations)",
+    },
+    "companion:suggestions:decide": {
+        "sv": (
+            "godkänna, avvisa och ångra förslag från automationer (ett godkänt förslag skapar en "
+            "uppgift eller kontakt; kräver även suggestions:read)"
+        ),
+        "en": (
+            "approve, dismiss and undo suggestions from automations (an approved one creates a "
+            "task or contact; also needs suggestions:read)"
+        ),
     },
     "companion:license": {
         "sv": "se licensstatus och ange instansens licensnyckel (bara instansens ägare)",
@@ -210,7 +236,8 @@ def build_parser() -> argparse.ArgumentParser:
         help="named set of capabilities, only when written explicitly: "
         "app = tasks, Inköp and Dagbok, notifications, license key (companion:tasks:read + "
         "companion:tasks:complete + companion:push + companion:shopping:read/write + "
-        "companion:journal:read/write + companion:license)",
+        "companion:journal:read/write + companion:license + companion:start:read + "
+        "companion:suggestions:read; companion:suggestions:decide is named on its own)",
     )
     pair.add_argument(
         "--server-url",

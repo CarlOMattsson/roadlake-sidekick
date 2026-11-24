@@ -249,7 +249,7 @@ afterEach(() => {
 });
 
 describe("MobileApp", () => {
-  it("opens Today (the Agenda) over the companion transport, with the view tabs and the strip of the three rooms the app serves", async () => {
+  it("opens Today (the Agenda) over the companion transport, with the view tabs and the strip of the four rooms the app serves", async () => {
     const native = fakeNative(answer);
     mount(native, platformFor());
 
@@ -264,7 +264,7 @@ describe("MobileApp", () => {
     const strip = screen.getByRole("navigation", { name: "Rum" });
     expect(
       Array.from(strip.querySelectorAll("button")).map((b) => b.textContent),
-    ).toEqual(["Arbete", "Dagbok", "Inköp"]);
+    ).toEqual(["Start", "Arbete", "Dagbok", "Inköp"]);
     expect(screen.getByRole("button", { name: "Arbete" })).toHaveAttribute(
       "aria-current",
       "page",

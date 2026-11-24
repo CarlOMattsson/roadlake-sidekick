@@ -330,6 +330,69 @@ SHOPPING_ITEM_UNTRASH = CompanionOperation(
     also="companion:shopping:read",
 )
 
+# --- Start and the suggestion inbox ---------------------------------------------------------------
+# The phone's Start view is `get_start` (the same use case, `structured.start`): what is due, who
+# is waited on, the ready conversations, the counts of the inbox and one model-written insight
+# sentence. It reads across rooms, so the device must also hold the Task read capability, and the
+# actor carries only the read scopes the parts need. `automation:read` is opt-in for a personal
+# token and is held here only by this operation and the inbox's own.
+START_READ = CompanionOperation(
+    "start.read",
+    "companion:start:read",
+    frozenset({"start:read", "tasks:read", "projects:read", "contacts:read", "automation:read"}),
+    also="companion:tasks:read",
+)
+# The owner's inbox of suggestions from automations (ADR-013): the list with its high-confidence
+# groups, and one card in full. A payload is shown only when the actor holds the read scope of the
+# domain its effect writes to, so the actor carries those two read scopes.
+SUGGESTIONS_READ = CompanionOperation(
+    "suggestions.read",
+    "companion:suggestions:read",
+    frozenset({"automation:read", "tasks:read", "contacts:read", "projects:read"}),
+)
+SUGGESTION_DETAIL = CompanionOperation(
+    "suggestions.get",
+    "companion:suggestions:read",
+    frozenset({"automation:read", "tasks:read", "contacts:read", "projects:read"}),
+)
+# Deciding is the owner's act. It is its own capability, granted on its own like
+# `companion:work:erase`, and never part of reading: approving applies the card's effect (creates a
+# Task or a Contact) through the same use case as the app in Claude, on the `companion` decision
+# channel, so the card records that the paired phone decided. The three routes (decide, approve a
+# group, undo) share the capability; the actor holds the write scopes of the two effects of the
+# catalogue and is built only inside them. Approving a group is the use case's own check of the
+# digest the owner was shown (the phone has no decision ticket; the capability and the phone's key
+# binding take its place).
+_SUGGESTION_DECIDE_SCOPES = frozenset(
+    {
+        "automation:read",
+        "automation:write",
+        "tasks:read",
+        "tasks:write",
+        "contacts:read",
+        "contacts:write",
+        "projects:read",
+    }
+)
+SUGGESTION_DECIDE = CompanionOperation(
+    "suggestions.decide",
+    "companion:suggestions:decide",
+    _SUGGESTION_DECIDE_SCOPES,
+    also="companion:suggestions:read",
+)
+SUGGESTION_APPROVE_GROUP = CompanionOperation(
+    "suggestions.approve_group",
+    "companion:suggestions:decide",
+    _SUGGESTION_DECIDE_SCOPES,
+    also="companion:suggestions:read",
+)
+SUGGESTION_UNDO = CompanionOperation(
+    "suggestions.undo",
+    "companion:suggestions:decide",
+    _SUGGESTION_DECIDE_SCOPES,
+    also="companion:suggestions:read",
+)
+
 # What the trash list shows: the kinds whose trash operation the device may call, so it never lists
 # what it could not trash or restore. The list route has no operation of its own.
 TRASH_KIND_OPERATIONS: dict[RecordKind, CompanionOperation] = {
@@ -384,6 +447,12 @@ OPERATIONS: tuple[CompanionOperation, ...] = (
     JOURNAL_ENTRY_UNTRASH,
     SHOPPING_ITEM_TRASH,
     SHOPPING_ITEM_UNTRASH,
+    START_READ,
+    SUGGESTIONS_READ,
+    SUGGESTION_DETAIL,
+    SUGGESTION_DECIDE,
+    SUGGESTION_APPROVE_GROUP,
+    SUGGESTION_UNDO,
 )
 
 

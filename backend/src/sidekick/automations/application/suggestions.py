@@ -325,9 +325,10 @@ class SuggestionService(SuggestionReads):
         group_digest: str,
         suggestion_ids: Sequence[UUID],
         idempotency_key: str,
+        channel: DecisionChannel = DecisionChannel.APP,
         correlation_id: str | None = None,
     ) -> tuple[ItemOutcome, ...]:
-        """Approve the group the owner saw, in the app.
+        """Approve the group the owner saw, in the app or on the paired phone (`channel`).
 
         The cards are read again under their locks: one that changed, left the group or is no
         longer eligible, or a group of another size, refuses the whole call and nothing is
@@ -335,18 +336,24 @@ class SuggestionService(SuggestionReads):
         """
 
         actor.require(WRITE_SCOPE)
+        if channel not in _OWNER_CHANNELS:
+            raise ValidationError("a group is approved by the owner, in the app or on the phone")
         if not 1 <= len(suggestion_ids) <= MAX_GROUP_SIZE:
             raise SuggestionRefusedError(DecisionRefusal.GROUP_TOO_LARGE)
         if len(set(suggestion_ids)) != len(suggestion_ids):
             raise SuggestionRefusedError(DecisionRefusal.GROUP_CHANGED)
-        payload = {"digest": group_digest, "ids": sorted(str(item) for item in suggestion_ids)}
+        payload = {
+            "digest": group_digest,
+            "ids": sorted(str(item) for item in suggestion_ids),
+            "channel": channel.value,
+        }
         return self._decisions(
             actor,
             "approve_suggestion_group",
             idempotency_key,
             payload,
             lambda session: self._approve_group(
-                session, actor, group_digest, suggestion_ids, correlation_id
+                session, actor, group_digest, suggestion_ids, channel, correlation_id
             ),
         )
 
@@ -528,6 +535,7 @@ class SuggestionService(SuggestionReads):
         actor: Actor,
         presented_digest: str,
         suggestion_ids: Sequence[UUID],
+        channel: DecisionChannel,
         correlation_id: str | None,
     ) -> dict[str, Any]:
         owner_id = actor.user_id
@@ -547,9 +555,7 @@ class SuggestionService(SuggestionReads):
             errors.append(
                 (
                     card.id,
-                    self._decide_one(
-                        session, actor, item, DecisionChannel.APP, None, now, correlation_id
-                    ),
+                    self._decide_one(session, actor, item, channel, None, now, correlation_id),
                 )
             )
         return _record(errors)

@@ -329,6 +329,8 @@ COMPANION_NO_REFERENCE: dict[str, str] = {
     "GET /work/today": "reads the caller's own Idag, a limit only",
     "GET /trash": "pages the caller's own trash",
     "POST /trash/empty": "removes the caller's own trashed Tasks; takes no id",
+    "GET /start": "reads the caller's own Start view; takes no id",
+    "GET /suggestions": "pages the caller's own suggestion inbox",
 }
 
 

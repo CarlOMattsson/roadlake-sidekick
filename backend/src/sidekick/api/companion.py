@@ -38,6 +38,8 @@ app's React rooms read exactly the structured content they read in Claude:
   and `POST /companion/v1/trash/empty` = `move_to_trash`, `restore_from_trash`, `list_trash`, and
   the permanent removal of a trashed Task (the Journal and Shopping items have the same `trash` and
   `untrash`; `sidekick.api.companion_trash`)
+- `GET  /companion/v1/start`, `GET /companion/v1/suggestions` and the suggestion decisions
+  (`sidekick.api.companion_start`): the Start view and the inbox of suggestions from automations
 - `POST /companion/v1/pair`                     exchange a pairing secret for a device credential
 - `GET  /companion/v1/device`                   this device's own status, and `enabled_rooms`: the
   rooms this instance shows (`SIDEKICK_ENABLED_ROOMS`, in the app's order, `work` always), which the
@@ -566,6 +568,7 @@ def create_companion_router(
     from sidekick.api.companion_license import add_license_routes
     from sidekick.api.companion_push import add_push_routes
     from sidekick.api.companion_rooms import add_room_routes
+    from sidekick.api.companion_start import add_start_routes
     from sidekick.api.companion_tasks import add_task_routes
     from sidekick.api.companion_trash import add_trash_routes
     from sidekick.api.companion_work import add_work_routes
@@ -577,6 +580,7 @@ def create_companion_router(
     add_task_routes(router)
     add_work_write_routes(router)
     add_room_routes(router, rooms)
+    add_start_routes(router, rooms)
     add_trash_routes(router, rooms)
     add_license_routes(router)
     return router

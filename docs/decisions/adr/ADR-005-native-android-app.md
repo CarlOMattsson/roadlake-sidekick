@@ -3,7 +3,8 @@
 - Status: Accepted (D-075, 2026-11-08); implemented. Revised 2026-11-10 to describe the delivered
   architecture, and corrected 2026-11-11 (the companion routes exist only when `SIDEKICK_COMPANION_ENABLED=true`); the
   decision is unchanged. Amended 2026-11-15 (D-095): the app may also create and edit Work records; see
-  "Amendment 2026-11-15" below.
+  "Amendment 2026-11-15" below. Amended 2026-11-24: Start and the suggestion inbox on the phone; see
+  "Amendment 2026-11-24" below.
 - Date: 2026-11-08
 - Owners: Sidekick application maintainers
 
@@ -245,6 +246,31 @@ server, and that this changes the earlier rule that journal text is never stored
   lost (a restored phone) the queue cannot be read and is moved aside; nothing is guessed. The queue is in the no-backup directory, so it never leaves
   the phone.
 - **Not queued.** Moving to the trash, restoring and removing for good need the network, as above.
+
+## Amendment 2026-11-24: Start and the suggestion inbox on the phone
+
+The phone also shows Start and the inbox of suggestions from automations (ADR-013), for the moments the owner
+cannot talk to Claude; Claude stays the main way in. The routes are `GET /companion/v1/start`,
+`GET /companion/v1/suggestions` and `.../suggestions/{id}` for reading, and `POST .../suggestions/decisions`,
+`.../suggestions/group-approvals` and `.../suggestions/{id}/undo` for deciding. Each calls the use case the MCP tool
+of the same name calls (`get_start`, `list_suggestions`, `get_suggestion`, `decide_suggestions`,
+`approve_suggestion_group`, `undo_suggestion`), so the phone reads what Claude reads and writes through the same
+transaction, idempotency record and audit event.
+
+- **Three capabilities.** `companion:start:read` (with `companion:tasks:read`, because Start reads across rooms) and
+  `companion:suggestions:read` are part of `--preset app`. `companion:suggestions:decide` is not: it applies a card's
+  effect (it creates a task or a contact), so it is its own capability, named explicitly at pairing or with
+  `grant --scope companion:suggestions:decide`, and always needs `companion:suggestions:read` besides. A device paired
+  earlier keeps what it had until the owner grants it.
+- **The owner decides.** Deciding is the owner's act. In Claude a group is approved only by the app, proved by a decision
+  ticket. The phone has no ticket; the device capability, its key binding and the use case's own check of the group
+  digest the owner was shown take its place. A group that changed since it was shown is refused as a whole.
+- **Channel, idempotency and audit.** The use case records the decision channel `companion` on the card (`decided_by`
+  stays `you`), never `model`. Every write carries an `Idempotency-Key`, and the channel is part of what the key
+  stands for, so a replay answers with each card as it is now and a key reused on another channel is refused.
+  One call decides one to three cards; the owner is always the credential's, never named in the body.
+- **No editing.** The phone approves or dismisses a card as written. The request bodies name no `edits`, so a card's
+  payload cannot be changed from here; that stays in the app in Claude.
 
 ## Alternatives considered
 

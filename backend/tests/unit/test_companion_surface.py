@@ -40,6 +40,8 @@ PATH_PARAMETERS = {
     "{entry_id}": TASK,
     "{source_id}": TASK,
     "{photo_id}": TASK,
+    # Start and the suggestion inbox (sidekick.api.companion_start)
+    "{suggestion_id}": TASK,
     "{journal_date}": "2026-11-09",
 }
 
@@ -88,6 +90,12 @@ PATH_PARAMETERS = {
         ("POST", f"/companion/v1/journal/entries/{TASK}/update"),
         ("GET", "/companion/v1/license"),
         ("PUT", "/companion/v1/license"),
+        ("GET", "/companion/v1/start"),
+        ("GET", "/companion/v1/suggestions"),
+        ("GET", f"/companion/v1/suggestions/{TASK}"),
+        ("POST", "/companion/v1/suggestions/decisions"),
+        ("POST", "/companion/v1/suggestions/group-approvals"),
+        ("POST", f"/companion/v1/suggestions/{TASK}/undo"),
     ],
 )
 def test_the_companion_routes_are_public_by_method_and_path(method: str, path: str) -> None:
@@ -233,6 +241,25 @@ def test_the_companion_routes_are_public_by_method_and_path(method: str, path: s
         ("GET", "/companion/v1/licenses"),
         ("GET", "/companion/v1/license/key"),
         ("PUT", f"/companion/v1/license/{TASK}"),
+        # Start and the inbox: reads are GET, decisions are POST, and an id is a UUID.
+        ("POST", "/companion/v1/start"),
+        ("GET", "/companion/v1/start/"),
+        ("PUT", "/companion/v1/suggestions"),
+        ("POST", "/companion/v1/suggestions"),
+        ("DELETE", f"/companion/v1/suggestions/{TASK}"),
+        ("PUT", f"/companion/v1/suggestions/{TASK}"),
+        ("POST", f"/companion/v1/suggestions/{TASK}"),
+        ("GET", f"/companion/v1/suggestions/{TASK.upper()}"),
+        ("GET", "/companion/v1/suggestions/decisions"),
+        ("GET", "/companion/v1/suggestions/group-approvals"),
+        ("PUT", "/companion/v1/suggestions/decisions"),
+        ("POST", "/companion/v1/suggestions/decisions/"),
+        ("POST", f"/companion/v1/suggestions/{TASK}/decide"),
+        ("POST", f"/companion/v1/suggestions/{TASK}/approve"),
+        ("GET", f"/companion/v1/suggestions/{TASK}/undo"),
+        ("POST", f"/companion/v1/suggestions/{TASK}/undo/"),
+        ("POST", f"/companion/v1/suggestions/{TASK}/edit"),
+        ("POST", f"/companion/v1/suggestions/{TASK.upper()}/undo"),
     ],
 )
 def test_everything_else_under_companion_is_not_public(method: str, path: str) -> None:
@@ -271,6 +298,9 @@ def test_companion_scopes_are_opt_in_device_capabilities_only() -> None:
         "companion:journal:read",
         "companion:journal:write",
         "companion:license",
+        "companion:start:read",
+        "companion:suggestions:read",
+        "companion:suggestions:decide",
     } == COMPANION_SCOPES
     for application_scopes in (ALL_SCOPES, TOKEN_SCOPES, OPT_IN_SCOPES, frozenset(MCP_SCOPES)):
         assert not COMPANION_SCOPES & application_scopes
@@ -288,6 +318,11 @@ def test_companion_scopes_are_opt_in_device_capabilities_only() -> None:
             "shopping:write",
             "journal:read",
             "journal:write",
+            # Start and the inbox of suggestions from automations.
+            "start:read",
+            "automation:read",
+            "automation:write",
+            "contacts:write",
         }
     # The push registration reaches no use case at all: it holds no application scope.
     by_name = {item.name: item for item in OPERATIONS}
@@ -307,6 +342,10 @@ def test_companion_scopes_are_opt_in_device_capabilities_only() -> None:
         "task.untrash",
         "task.erase",
         "trash.empty",
+        # Approving a suggestion creates a Task through the use case, on the owner's decision.
+        "suggestions.decide",
+        "suggestions.approve_group",
+        "suggestions.undo",
     }
     # Ticking things off needs only the completion capability; creating and editing a Task needs
     # the work-write capability, which a completion device does not hold.
@@ -314,6 +353,7 @@ def test_companion_scopes_are_opt_in_device_capabilities_only() -> None:
         "companion:tasks:complete",
         "companion:work:write",
         "companion:work:erase",
+        "companion:suggestions:decide",
     }
     for item in OPERATIONS:
         if item.capability == "companion:work:write":
@@ -335,7 +375,9 @@ def test_a_room_write_needs_its_write_and_its_read_capability_and_nothing_else_w
         assert operation.capability == f"companion:{room}:write"
         assert operation.also == f"companion:{room}:read"
     reads = [item for item in OPERATIONS if item.capability.endswith(":read")]
-    assert all(item.also is None for item in reads)
+    # Start reads across rooms, so it needs the Task read capability too.
+    assert all(item.also is None for item in reads if item.name != "start.read")
+    assert by_name["start.read"].also == "companion:tasks:read"
     # No operation reaches a Journal draft, summary or pending-list use case (D-076); the one source
     # operation only reads the text of a source back (the hand-written entry has no summary).
     assert not {name for name in by_name if "draft" in name or "summary" in name}
@@ -419,6 +461,66 @@ def test_the_work_writes_hold_the_write_scope_of_their_mcp_tool_and_need_the_rea
     assert "companion:work:write" not in {
         item.capability for item in OPERATIONS if item.name.endswith(("complete", "reopen"))
     }
+
+
+def test_the_suggestion_operations_read_with_one_capability_and_decide_with_another() -> None:
+    from sidekick.companion.cli import PRESETS
+
+    by_name = {item.name: item for item in OPERATIONS}
+    readers = ("suggestions.read", "suggestions.get")
+    deciders = ("suggestions.decide", "suggestions.approve_group", "suggestions.undo")
+    for name in readers:
+        operation = by_name[name]
+        assert operation.capability == "companion:suggestions:read" and operation.also is None
+        # Reading a card needs no write scope of any domain.
+        assert not {scope for scope in operation.application_scopes if scope.endswith(":write")}
+    for name in deciders:
+        operation = by_name[name]
+        assert operation.capability == "companion:suggestions:decide"
+        assert operation.also == "companion:suggestions:read"
+    # Each decision operation holds the write scope its MCP tool needs, and no scope the tools
+    # of the inbox never name, so the phone reaches no more than Claude does.
+    tool = {
+        "suggestions.decide": "decide_suggestions",
+        "suggestions.approve_group": "approve_suggestion_group",
+        "suggestions.undo": "undo_suggestion",
+    }
+    for name, tool_name in tool.items():
+        scopes = by_name[name].application_scopes
+        assert set(TOOL_SCOPES[tool_name].requires) <= scopes
+        assert {scope for scope in scopes if scope.endswith(":write")} <= (
+            TOOL_SCOPES[tool_name].everything()
+        )
+    assert by_name["start.read"].capability == "companion:start:read"
+    # Deciding applies a card's effect, so it is never part of the app preset or of reading.
+    assert {"companion:start:read", "companion:suggestions:read"} <= PRESETS["app"]
+    assert "companion:suggestions:decide" not in PRESETS["app"]
+    specs = {
+        item.operation: (item.method, item.path)
+        for item in create_companion_router().specs
+        if item.operation.startswith(("suggestions.", "start."))
+    }
+    assert specs == {
+        "start.read": ("GET", "/start"),
+        "suggestions.read": ("GET", "/suggestions"),
+        "suggestions.get": ("GET", "/suggestions/{suggestion_id}"),
+        "suggestions.decide": ("POST", "/suggestions/decisions"),
+        "suggestions.approve_group": ("POST", "/suggestions/group-approvals"),
+        "suggestions.undo": ("POST", "/suggestions/{suggestion_id}/undo"),
+    }
+    # The phone never edits a card: no body of the decision routes names `edits`.
+    bodies = {
+        item.operation: item.body
+        for item in create_companion_router().specs
+        if item.operation in deciders
+    }
+    assert all(body is not None for body in bodies.values())
+    decision = bodies["suggestions.decide"]
+    assert decision is not None
+    schema = decision.model.model_json_schema()
+    models = schema["$defs"].values()
+    fields = {name for model in models for name in model.get("properties", {})}
+    assert fields == {"suggestion_id", "expected_version", "decision", "confirmed"}
 
 
 def _plain(schema: Any, defs: dict[str, Any]) -> Any:

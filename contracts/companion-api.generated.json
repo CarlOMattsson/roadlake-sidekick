@@ -311,6 +311,64 @@
         "title": "CreateTaskBody",
         "type": "object"
       },
+      "Decision": {
+        "enum": [
+          "approve",
+          "dismiss"
+        ],
+        "title": "Decision",
+        "type": "string"
+      },
+      "DecisionBodyItem": {
+        "additionalProperties": false,
+        "description": "One decision of the owner. No `edits`: the phone approves or dismisses a card as written.",
+        "properties": {
+          "confirmed": {
+            "default": false,
+            "title": "Confirmed",
+            "type": "boolean"
+          },
+          "decision": {
+            "$ref": "#/components/schemas/Decision"
+          },
+          "expected_version": {
+            "minimum": 1,
+            "title": "Expected Version",
+            "type": "integer"
+          },
+          "suggestion_id": {
+            "format": "uuid",
+            "title": "Suggestion Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "suggestion_id",
+          "expected_version",
+          "decision"
+        ],
+        "title": "DecisionBodyItem",
+        "type": "object"
+      },
+      "DecisionsBody": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/DecisionBodyItem"
+            },
+            "maxItems": 3,
+            "minItems": 1,
+            "title": "Items",
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "DecisionsBody",
+        "type": "object"
+      },
       "EmptyBody": {
         "additionalProperties": false,
         "properties": {
@@ -347,6 +405,43 @@
         ],
         "title": "EraseBody",
         "type": "object"
+      },
+      "GroupApprovalBody": {
+        "additionalProperties": false,
+        "properties": {
+          "group_digest": {
+            "maxLength": 64,
+            "minLength": 64,
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Group Digest",
+            "type": "string"
+          },
+          "suggestion_ids": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "maxItems": 25,
+            "minItems": 1,
+            "title": "Suggestion Ids",
+            "type": "array"
+          }
+        },
+        "required": [
+          "group_digest",
+          "suggestion_ids"
+        ],
+        "title": "GroupApprovalBody",
+        "type": "object"
+      },
+      "GroupFilter": {
+        "enum": [
+          "high_confidence",
+          "single",
+          "all"
+        ],
+        "title": "GroupFilter",
+        "type": "string"
       },
       "ItemPatchInput": {
         "additionalProperties": false,
@@ -903,6 +998,19 @@
         "title": "RenewRequest",
         "type": "object"
       },
+      "SuggestionState": {
+        "enum": [
+          "received",
+          "checking",
+          "pending",
+          "applied",
+          "undone",
+          "dismissed",
+          "expired"
+        ],
+        "title": "SuggestionState",
+        "type": "string"
+      },
       "TaskStatus": {
         "enum": [
           "todo",
@@ -912,6 +1020,21 @@
         ],
         "title": "TaskStatus",
         "type": "string"
+      },
+      "UndoBody": {
+        "additionalProperties": false,
+        "properties": {
+          "expected_version": {
+            "minimum": 1,
+            "title": "Expected Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "expected_version"
+        ],
+        "title": "UndoBody",
+        "type": "object"
       },
       "UpdateEntryBody": {
         "additionalProperties": false,
@@ -3386,6 +3509,39 @@
         "x-sidekick-capability": "companion:shopping:write"
       }
     },
+    "/companion/v1/start": {
+      "get": {
+        "operationId": "start.read",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "A refusal: one of the closed codes of `x-sidekick-problems`."
+          }
+        },
+        "security": [
+          {
+            "companionBearer": []
+          }
+        ],
+        "summary": "start.read",
+        "x-sidekick-also-capability": "companion:tasks:read",
+        "x-sidekick-capability": "companion:start:read"
+      }
+    },
     "/companion/v1/steps/{step_id}/complete": {
       "post": {
         "operationId": "step.complete",
@@ -3516,6 +3672,329 @@
         ],
         "summary": "step.reopen",
         "x-sidekick-capability": "companion:tasks:complete"
+      }
+    },
+    "/companion/v1/suggestions": {
+      "get": {
+        "operationId": "suggestions.read",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "state",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/SuggestionState",
+              "default": "pending"
+            }
+          },
+          {
+            "in": "query",
+            "name": "automation_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Automation Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "group",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/GroupFilter",
+              "default": "all"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 25,
+              "maximum": 25,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 2048,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "A refusal: one of the closed codes of `x-sidekick-problems`."
+          }
+        },
+        "security": [
+          {
+            "companionBearer": []
+          }
+        ],
+        "summary": "suggestions.read",
+        "x-sidekick-capability": "companion:suggestions:read"
+      }
+    },
+    "/companion/v1/suggestions/decisions": {
+      "post": {
+        "operationId": "suggestions.decide",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "maxLength": 128,
+              "minLength": 8,
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DecisionsBody"
+              }
+            }
+          },
+          "required": true,
+          "x-sidekick-max-bytes": 4096
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "A refusal: one of the closed codes of `x-sidekick-problems`."
+          }
+        },
+        "security": [
+          {
+            "companionBearer": []
+          }
+        ],
+        "summary": "suggestions.decide",
+        "x-sidekick-also-capability": "companion:suggestions:read",
+        "x-sidekick-capability": "companion:suggestions:decide"
+      }
+    },
+    "/companion/v1/suggestions/group-approvals": {
+      "post": {
+        "operationId": "suggestions.approve_group",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "maxLength": 128,
+              "minLength": 8,
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GroupApprovalBody"
+              }
+            }
+          },
+          "required": true,
+          "x-sidekick-max-bytes": 4096
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "A refusal: one of the closed codes of `x-sidekick-problems`."
+          }
+        },
+        "security": [
+          {
+            "companionBearer": []
+          }
+        ],
+        "summary": "suggestions.approve_group",
+        "x-sidekick-also-capability": "companion:suggestions:read",
+        "x-sidekick-capability": "companion:suggestions:decide"
+      }
+    },
+    "/companion/v1/suggestions/{suggestion_id}": {
+      "get": {
+        "operationId": "suggestions.get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "suggestion_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Suggestion Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "A refusal: one of the closed codes of `x-sidekick-problems`."
+          }
+        },
+        "security": [
+          {
+            "companionBearer": []
+          }
+        ],
+        "summary": "suggestions.get",
+        "x-sidekick-capability": "companion:suggestions:read"
+      }
+    },
+    "/companion/v1/suggestions/{suggestion_id}/undo": {
+      "post": {
+        "operationId": "suggestions.undo",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "suggestion_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Suggestion Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "maxLength": 128,
+              "minLength": 8,
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UndoBody"
+              }
+            }
+          },
+          "required": true,
+          "x-sidekick-max-bytes": 4096
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "A refusal: one of the closed codes of `x-sidekick-problems`."
+          }
+        },
+        "security": [
+          {
+            "companionBearer": []
+          }
+        ],
+        "summary": "suggestions.undo",
+        "x-sidekick-also-capability": "companion:suggestions:read",
+        "x-sidekick-capability": "companion:suggestions:decide"
       }
     },
     "/companion/v1/tasks": {

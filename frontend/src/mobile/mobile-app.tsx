@@ -1,12 +1,13 @@
 /**
- * The mobile shell: the Work room (Idag, Agenda, a Task with its Steps, Projekt), the Journal and Shopping, in full
- * mode, over CompanionRoomTransport. It is the Sidekick shell and the rooms as they are; this file adds only what a
- * phone around them needs: the room host for a transport that is not a postMessage bridge, system Back, the launch
- * hint, and the safe-area insets. No room is copied and there is no model to message. The room strip stands at the
- * top with the three rooms the app serves (MOBILE_STRIP_ROOMS) that the server shows (SIDEKICK_ENABLED_ROOMS, read by
- * server-rooms.ts; with Work alone there is no strip), and the narrow room picker takes its place when they do not
- * fit; there is no bottom bar. What the app cannot answer (the AI drafts of the Journal, the
- * recipient search of Shopping) the rooms leave out themselves, by asking the transport which tools it has.
+ * The mobile shell: Start (the home view and the suggestion inbox), the Work room (Idag, Agenda, a Task with its Steps,
+ * Projekt), the Journal and Shopping, in full mode, over CompanionRoomTransport. It is the Sidekick shell and the rooms
+ * as they are; this file adds only what a phone around them needs: the room host for a transport that is not a
+ * postMessage bridge, system Back, the launch hint, and the safe-area insets. No room is copied and there is no model to
+ * message. The room strip stands at the top with the four rooms the app serves (MOBILE_STRIP_ROOMS) that the server
+ * shows (SIDEKICK_ENABLED_ROOMS, read by server-rooms.ts; with Work alone there is no strip), and the narrow room
+ * picker takes its place when they do not fit; there is no bottom bar. What the app cannot answer (the AI drafts of the
+ * Journal, the recipient search of Shopping, a ready conversation to start, the automations) the rooms leave out
+ * themselves, by asking the transport which tools it has.
  *
  * The phone's settings (settings-panel.tsx) open from the settings entry at the end of every room's ⋯ menu, where
  * Control stands in Claude. They cover the shell, which stays mounted, and Back (‹ Arbete or system Back) returns.
@@ -69,9 +70,9 @@ const MOBILE_VIEWS: NonNullable<RoomHost["availableViews"]> = {
 
 /**
  * The rooms the strip and the room picker offer. Contacts has no companion route yet, so it stands out of them and
- * the strip has no Mer: the three rooms as before.
+ * the strip has no Mer: Start, then the three rooms as before (the order of PRIMARY_ROOM_IDS).
  */
-const MOBILE_STRIP_ROOMS = ["work", "journal", "shopping"] as const;
+const MOBILE_STRIP_ROOMS = ["start", "work", "journal", "shopping"] as const;
 const MOBILE_MORE_ROOMS = [] as const;
 
 /** Coming back to the foreground reads again only when the last read is older than this. */

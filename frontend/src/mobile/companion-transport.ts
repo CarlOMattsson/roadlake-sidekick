@@ -15,8 +15,8 @@
  * (companion-queued-records.ts): the room shows what the user wrote, and `offline.queuedRecordIds` names the records that
  * still wait so the room can draw them as waiting.
  *
- * Shopping, Journal, license, the Work writes and the trash are planned by companion-shopping.ts, companion-journal.ts,
- * companion-license.ts, companion-work.ts and companion-trash.ts; the default branch of plan() asks them in turn.
+ * Shopping, Journal, license, Work writes, trash and Start are planned by companion-{shopping,journal,license,work,
+ * trash,start}.ts; the default branch of plan() asks them in turn.
  *
  * Offline: a call that got no answer because of the connection (the native codes `network` and `timeout`) fails with
  * CompanionNetworkError, so the room says `network`. A shopping purchase that got no answer is put in
@@ -55,6 +55,7 @@ import {
   planJournal,
 } from "./companion-journal";
 import { LICENSE_TOOLS, planLicense } from "./companion-license";
+import { START_TOOLS, planStart } from "./companion-start";
 import { TRASH_TOOLS, planTrash, trashCallSupported } from "./companion-trash";
 import {
   WORK_WRITE_TOOLS,
@@ -132,6 +133,7 @@ export const COMPANION_TOOLS = [
   ...JOURNAL_TOOLS,
   ...LICENSE_TOOLS,
   ...TRASH_TOOLS,
+  ...START_TOOLS,
 ] as const;
 
 /** The arguments get_work_agenda takes (contracts/mcp-tools.generated.json); anything else is refused. */
@@ -393,9 +395,8 @@ export class CompanionRoomTransport implements RoomTransport {
         !("tags" in args) &&
         JOURNAL_LINK_KEYS.every((key) => !(key in args))
       );
-    if (name === "move_to_trash" || name === "restore_from_trash")
-      return this.supportsTool(name) && trashCallSupported(args);
-    if (name === "list_trash")
+    // The trash tools that name a kind of record: `trashCallSupported` checks the kind.
+    if (["move_to_trash", "restore_from_trash", "list_trash"].includes(name))
       return this.supportsTool(name) && trashCallSupported(args);
     if (name === "update_project")
       return (
@@ -554,14 +555,15 @@ export class CompanionRoomTransport implements RoomTransport {
         return planned;
       }
       default: {
-        // The Work writes' and the Shopping, Journal and license rooms' closed lists; a name in none is not in the app.
+        // The Work writes' and the Shopping, Journal, license, trash and Start closed lists; a name in none is not in the app.
         const helpers = this.helpers();
         const planned =
           planWorkWrite(name, rawArgs, helpers) ??
           planShopping(name, rawArgs, helpers) ??
           planJournal(name, rawArgs, helpers) ??
           planLicense(name, rawArgs, helpers) ??
-          planTrash(name, rawArgs, helpers);
+          planTrash(name, rawArgs, helpers) ??
+          planStart(name, rawArgs, helpers);
         if (!planned) throw new NotInAppError();
         return planned;
       }

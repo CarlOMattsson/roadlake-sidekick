@@ -97,7 +97,7 @@ describe("the rooms of the server in the mobile app", () => {
     mount(phone(undefined, []), platformFor());
 
     await waitFor(() =>
-      expect(stripLabels()).toEqual(["Arbete", "Dagbok", "Inköp"]),
+      expect(stripLabels()).toEqual(["Start", "Arbete", "Dagbok", "Inköp"]),
     );
   });
 
@@ -113,6 +113,7 @@ describe("the rooms of the server in the mobile app", () => {
 
     await waitFor(() =>
       expect(enabledRooms()).toEqual([
+        "start",
         "work",
         "journal",
         "contacts",

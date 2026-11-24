@@ -10,9 +10,7 @@ The day is the owner's calendar day in `Settings.owner_zone`.
 
 from __future__ import annotations
 
-import logging
 from dataclasses import dataclass
-from datetime import date
 
 from fastmcp import FastMCP
 from fastmcp.apps import AppConfig
@@ -24,25 +22,8 @@ from sidekick.mcp.results import output_schema, result
 from sidekick.mcp.sidekick_app import SIDEKICK_APP_URI
 from sidekick.mcp.tool_context import ToolContext
 from sidekick.shared.locale import DEFAULT_LOCALE, AppLocale
-from sidekick.shared.observability import log_failure
-from sidekick.start.application.start import (
-    PartName,
-    PartUnavailable,
-    StartInsight,
-    StartMore,
-    StartParts,
-    StartReady,
-    StartSinceLast,
-    StartSources,
-    StartSuggestions,
-    StartToday,
-    StartWaiting,
-    compose_start,
-)
-from sidekick.start.sources import ReadyNowSource, WaitingTasksSource, WorkAgendaSource
-from sidekick.structured.base import Output
-
-LOGGER = logging.getLogger(__name__)
+from sidekick.start.application.start import StartParts
+from sidekick.structured.start import StartOutput, start_structured
 
 DESCRIPTION = (
     "Use this when the user opens Start or asks what needs attention now. Returns, in the "
@@ -53,20 +34,6 @@ DESCRIPTION = (
     "Read-only; a part needs the read scope of what it shows. A failed part is listed in "
     "unavailable; the rest stands."
 )
-
-
-class StartOutput(Output):
-    """A part is present only when its scope was held and it had something to say."""
-
-    day: date
-    insight: StartInsight | None = None
-    ready: StartReady | None = None
-    suggestions: StartSuggestions | None = None
-    today: StartToday | None = None
-    waiting: StartWaiting | None = None
-    since_last: StartSinceLast | None = None
-    more: StartMore | None = None
-    unavailable: list[PartUnavailable] | None = None
 
 
 @dataclass(frozen=True)
@@ -130,32 +97,8 @@ def register_start_tools(mcp: FastMCP, ctx: ToolContext) -> None:
     )
     @ctx.instrument("get_start")
     def get_start() -> ToolResult:
-        container = ctx.container
-        actor = ctx.actor_provider()
-        correlation_id = request_correlation_id_or_new()
-        now = container.work_lists.clock.now()
-        zone = container.settings.owner_zone
-        sources = StartSources(
-            agenda=WorkAgendaSource(container.work_lists),
-            waiting=WaitingTasksSource(container.work_lists, container.contacts),
-            automations=container.automation_activity,
-            contacts=container.contacts,
-            ready=ReadyNowSource(container.ready_conversations),
+        built = start_structured(
+            ctx.container, ctx.actor_provider(), correlation_id=request_correlation_id_or_new()
         )
-
-        def note_failure(part: PartName, error: Exception) -> None:
-            log_failure(
-                LOGGER,
-                "start_part_unavailable",
-                error,
-                correlation_id=correlation_id,
-                operation=f"get_start.{part}",
-            )
-
-        locale = container.settings.mcp_app_locale
-        view = compose_start(actor, now, zone, locale, sources, note_failure)
-        failures = {"unavailable": view.unavailable} if view.unavailable else {}
-        structured = StartOutput(
-            day=now.astimezone(zone).date(), **view.parts, **failures
-        ).model_dump(mode="json", exclude_unset=True)
-        return result(structured, _spoken_line(view.parts, locale))
+        structured = built.output.model_dump(mode="json", exclude_unset=True)
+        return result(structured, _spoken_line(built.parts, ctx.container.settings.mcp_app_locale))

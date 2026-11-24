@@ -101,6 +101,13 @@ COMPANION_ROUTES: tuple[tuple[str, re.Pattern[str]], ...] = (
     ("POST", re.compile(rf"/companion/v1/shopping/items/{_UUID}/untrash")),
     ("GET", re.compile(r"/companion/v1/trash")),
     ("POST", re.compile(r"/companion/v1/trash/empty")),
+    # Start and the suggestion inbox (sidekick.api.companion_start).
+    ("GET", re.compile(r"/companion/v1/start")),
+    ("GET", re.compile(r"/companion/v1/suggestions")),
+    ("GET", re.compile(rf"/companion/v1/suggestions/{_UUID}")),
+    ("POST", re.compile(r"/companion/v1/suggestions/decisions")),
+    ("POST", re.compile(r"/companion/v1/suggestions/group-approvals")),
+    ("POST", re.compile(rf"/companion/v1/suggestions/{_UUID}/undo")),
     # The instance's license key (sidekick.api.companion_license).
     ("GET", re.compile(r"/companion/v1/license")),
     ("PUT", re.compile(r"/companion/v1/license")),

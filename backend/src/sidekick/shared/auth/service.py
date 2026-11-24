@@ -74,6 +74,10 @@ COMPANION_ROOM_SCOPES = frozenset(
         "companion:journal:write",
     }
 )
+# `companion:start:read` reads the Start view and `companion:suggestions:read` the inbox of
+# suggestions from automations. `companion:suggestions:decide` lets the device approve, dismiss,
+# group-approve and undo them; it applies the card's effect, so it is granted on its own like erase
+# and a device paired before it existed keeps what it had until the operator names it with `grant`.
 # `companion:work:erase` is the one irreversible right: it removes a trashed Task for good, or
 # empties the trash of Tasks. It needs `companion:work:write` as well and is granted on its own, so
 # a device paired before it existed keeps what it had until the operator names it with `grant`.
@@ -90,6 +94,9 @@ COMPANION_SCOPES = (
             "companion:work:erase",
             "companion:push",
             "companion:license",
+            "companion:start:read",
+            "companion:suggestions:read",
+            "companion:suggestions:decide",
         }
     )
     | COMPANION_ROOM_SCOPES

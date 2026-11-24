@@ -12,6 +12,7 @@ The app is in daily use on a real phone against a real server. It is also built 
 
 ## What the app does
 
+- **Start:** today's tasks, what is waiting, ready conversations and how many suggestions there are, with the suggestion inbox for suggestions from automations. Approving, dismissing or undoing a suggestion needs the separate permission `companion:suggestions:decide`, which `--preset app` does not include (`grant --scope companion:suggestions:decide`). A phone paired before this needs `companion:start:read` and `companion:suggestions:read` by grant too.
 - **Work:** today's agenda, projects, tasks and steps. You can read them, check them off and reopen them, add a task with + and change a task's title, note, due date, place and priority, and change a project's title, status, description and dates. Claude is still the main way in; the forms are for when you cannot talk.
 - **Shopping:** lists and items. You can create lists, add, edit, tick off and undo.
 - **Journal:** read days and entries, and write or edit entries by hand.

@@ -182,7 +182,7 @@ Notes:
 - `--scope` or `--preset app` is mandatory; the command refuses to guess. `--preset app` grants tasks (read
   and complete, create and edit tasks, and move them to the trash and restore them), deleting trashed tasks for good and emptying the trash
   (`companion:work:erase`, which a phone paired earlier gets only with `grant --scope companion:work:erase`), editing
-  of projects (not creating them), notifications, Shopping (read and write), Journal (read and write) and the license row. You can instead list `--scope companion:…` values (repeatable) for a narrower phone.
+  of projects (not creating them), notifications, Shopping (read and write), Journal (read and write), the Start view and the suggestion inbox to read (`companion:start:read`, `companion:suggestions:read`) and the license row. Approving, dismissing or undoing suggestions (`companion:suggestions:decide`) is not in the preset: give it with `grant --scope companion:suggestions:decide`. You can instead list `--scope companion:…` values (repeatable) for a narrower phone.
 - The code works **once** and for **10 minutes** (`PAIRING_TTL` in `backend/src/sidekick/companion/service.py`).
 - Without `--user-id <uuid>` the command uses the installation's only active owner and refuses if there is not
   exactly one.

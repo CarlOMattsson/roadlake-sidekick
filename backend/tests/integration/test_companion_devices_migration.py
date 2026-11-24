@@ -39,12 +39,16 @@ def test_operator_command_pairs_lists_and_revokes_without_printing_a_device_toke
         "companion:push",
         "companion:shopping:read",
         "companion:shopping:write",
+        "companion:start:read",
+        "companion:suggestions:read",
         "companion:tasks:complete",
         "companion:tasks:read",
         "companion:work:erase",
         "companion:work:write",
     ]
     assert sorted(PRESETS["app"]) == ticket["scopes"]
+    # Deciding on suggestions is granted on its own, never by the preset.
+    assert "companion:suggestions:decide" not in ticket["scopes"]
 
     paired = CompanionDeviceService(store, auth).exchange(ticket["pairing_secret"])
     assert paired is not None

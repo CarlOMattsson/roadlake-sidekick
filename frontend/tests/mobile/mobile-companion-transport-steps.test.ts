@@ -10,6 +10,7 @@ import { LICENSE_ROUTES } from "@/mobile/companion-license";
 import { WORK_WRITE_ROUTES } from "@/mobile/companion-work";
 import { SHOPPING_ROUTES } from "@/mobile/companion-shopping";
 import { TRASH_ROUTES } from "@/mobile/companion-trash";
+import { START_ROUTES } from "@/mobile/companion-start";
 import { fakeNative, ok } from "@tests/helpers/fake-native";
 import {
   KEY,
@@ -357,6 +358,7 @@ describe("companion route tables against the published contract", () => {
     ...LICENSE_ROUTES,
     ...WORK_WRITE_ROUTES,
     ...TRASH_ROUTES,
+    ...START_ROUTES,
   };
   const ours = Object.values(tables).map(
     (route) => `${route.method} ${route.path}`,
@@ -371,9 +373,9 @@ describe("companion route tables against the published contract", () => {
     expect(contractRoutes()).toContain(route);
   });
 
-  it("has a route for every backend path the rooms read or write (work, shopping, journal, license)", () => {
+  it("has a route for every backend path the rooms read or write (work, shopping, journal, license, trash, start)", () => {
     const wanted =
-      /^[A-Z]+ \/companion\/v1\/(work\/(agenda|hierarchy)|tasks|projects|domains|processes|steps|shopping|journal|license|trash)(\/|$)/;
+      /^[A-Z]+ \/companion\/v1\/(work\/(agenda|hierarchy)|tasks|projects|domains|processes|steps|shopping|journal|license|trash|start|suggestions)(\/|$)/;
     const missing = [...contractRoutes()].filter(
       (route) => wanted.test(route) && !ours.includes(route),
     );

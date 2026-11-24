@@ -129,6 +129,8 @@ def test_the_app_preset_grants_read_and_complete_only_when_written() -> None:
         "companion:push",
         "companion:shopping:read",
         "companion:shopping:write",
+        "companion:start:read",
+        "companion:suggestions:read",
         "companion:tasks:complete",
         "companion:tasks:read",
         "companion:work:erase",
@@ -137,6 +139,10 @@ def test_the_app_preset_grants_read_and_complete_only_when_written() -> None:
     assert set(cli.PRESETS["app"]) == set(ticket["scopes"])
     assert "bocka av" in shown
     assert "inköpslistor" in shown and "dagboksinlägg" in shown
+    # The phone may read Start and the inbox, but approving a suggestion is granted on its own.
+    assert "startvyn" in shown and "förslagsinkorgen" in shown
+    assert "companion:suggestions:decide" not in ticket["scopes"]
+    assert "companion:suggestions:decide" not in shown
 
 
 @pytest.mark.integration
@@ -176,6 +182,8 @@ def test_grant_adds_rights_to_a_paired_device_and_never_removes_any() -> None:
                 "companion:license",
                 "companion:push",
                 "companion:shopping:write",
+                "companion:start:read",
+                "companion:suggestions:read",
                 "companion:tasks:complete",
                 "companion:work:erase",
                 "companion:work:write",
@@ -184,6 +192,36 @@ def test_grant_adds_rights_to_a_paired_device_and_never_removes_any() -> None:
         # Granting what the device already holds adds a row that names nothing.
         assert invoke(app, ["grant", "--device-id", str(device.id), "--preset", "app"])[0] == 0
         assert "no_change" in _grant_reasons(app, user_id)
+
+
+@pytest.mark.integration
+def test_deciding_on_suggestions_is_granted_by_name_and_described_to_the_owner() -> None:
+    app = companion_app()
+    user_id = app.state.container.auth.provision_user("owner", "Owner")
+    with TestClient(app) as client:
+        token = paired_token(client, app, user_id, scopes=["companion:suggestions:read"])
+        device = devices(app).list_devices(user_id)[0]
+        decide = "/companion/v1/suggestions/decisions"
+        body = {
+            "items": [{"suggestion_id": str(uuid4()), "expected_version": 1, "decision": "dismiss"}]
+        }
+        headers = {**bearer(token), "Idempotency-Key": "grant-key-0001"}
+        assert client.post(decide, headers=headers, json=body).status_code == 403
+        code, output = invoke(
+            app,
+            ["grant", "--device-id", str(device.id), "--scope", "companion:suggestions:decide"],
+        )
+        assert code == 0
+        shown, printed = output.split("\x00")
+        assert json.loads(printed)["scopes"] == [
+            "companion:suggestions:decide",
+            "companion:suggestions:read",
+        ]
+        assert "companion:suggestions:decide: godkänna, avvisa och ångra förslag" in shown
+        assert _grant_reasons(app, user_id) == ["companion:suggestions:decide"]
+        # The right works at once with the same credential: the card is not this owner's (404),
+        # which is past the capability check that refused it before.
+        assert client.post(decide, headers=headers, json=body).status_code == 404
 
 
 @pytest.mark.integration

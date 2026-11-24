@@ -12,6 +12,7 @@ Appen används dagligen på en riktig telefon mot en riktig server. Den byggs oc
 
 ## Det här gör appen
 
+- **Start:** dagens uppgifter, det som väntar, redo samtal och antal förslag, med förslagsinkorgen för förslag från automationer. Att godkänna, avvisa eller ångra ett förslag kräver den separata rättigheten `companion:suggestions:decide`, som inte ingår i `--preset app` (`grant --scope companion:suggestions:decide`). En telefon som parades före den här ändringen behöver även `companion:start:read` och `companion:suggestions:read` via grant.
 - **Arbete:** dagens agenda, projekt, uppgifter och steg. Du kan läsa dem, bocka av dem och öppna dem igen, lägga till en uppgift med + och ändra en uppgifts titel, anteckning, datum, plats och prioritet, samt ändra ett projekts titel, status, beskrivning och datum. Claude är fortfarande huvudvägen; formulären är till för när du inte kan prata.
 - **Inköp:** listor och varor. Du kan skapa listor, lägga till, ändra, bocka av och ångra.
 - **Dagbok:** läs dagar och inlägg, och skriv eller ändra inlägg för hand.
