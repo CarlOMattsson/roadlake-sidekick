@@ -2,6 +2,7 @@
 format 11 export leaves the target with none."""
 
 from dataclasses import dataclass
+from datetime import datetime, time, timedelta, tzinfo
 from typing import Any
 from uuid import UUID, uuid4
 
@@ -23,6 +24,28 @@ SCOPES = frozenset({"start:read", "start:write"})
 CADENCE = Cadence(frequency="weekly", weekdays=(0, 3), local_time="18:30")
 TITLE = "Weekly review of the work"
 INSTRUCTION = "Start with what is overdue."
+
+
+class _FixedClock:
+    def __init__(self, now: datetime) -> None:
+        self._now = now
+
+    def now(self) -> datetime:
+        return self._now
+
+
+def _cadence_noon(zone: tzinfo) -> datetime:
+    """Noon on the owner's first calendar day, today included, that CADENCE names.
+
+    The test skips "today" in the owner's zone, and the cadence only names some weekdays. Pinning
+    the clock to such a day keeps the test independent of the weekday, and of UTC versus the
+    owner's zone, on which it runs.
+    """
+
+    day = datetime.now(zone).date()
+    while day.weekday() not in CADENCE.weekdays:
+        day += timedelta(days=1)
+    return datetime.combine(day, time(12), tzinfo=zone)
 
 
 @dataclass
@@ -98,6 +121,7 @@ def test_a_restore_carries_the_conversation_with_its_cadence_and_ingredients(env
 
 @pytest.mark.integration
 def test_the_day_marks_are_not_exported_so_a_restored_conversation_starts_open(env: Env) -> None:
+    env.container.ready_conversations.clock = _FixedClock(_cadence_noon(make_settings().owner_zone))
     source = env.conversations(env.owner)[0].conversation
     env.container.ready_conversations.skip(
         Actor(env.owner, SCOPES),
