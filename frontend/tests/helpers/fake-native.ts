@@ -9,6 +9,7 @@ import type {
   NativeResponse,
   PairingStatus,
   PairOptions,
+  PhotoUploadOptions,
   PushStatus,
   QueuePurchaseOptions,
   QueueRecordWriteOptions,
@@ -20,6 +21,7 @@ import type {
 /** The plugin methods this fake replaces with mocks; taking them out keeps `expect(native.method)` from reading as an unbound method. */
 type MockedMethod =
   | "request"
+  | "uploadJournalPhoto"
   | "pair"
   | "status"
   | "unpair"
@@ -41,6 +43,10 @@ type MockedMethod =
 export type FakeNative = Omit<SidekickNativePlugin, MockedMethod> & {
   request: ReturnType<
     typeof vi.fn<(request: NativeRequest) => Promise<NativeResponse>>
+  >;
+  /** Every photo sent as a form, in order. */
+  uploadJournalPhoto: ReturnType<
+    typeof vi.fn<(options: PhotoUploadOptions) => Promise<NativeResponse>>
   >;
   pair: ReturnType<
     typeof vi.fn<(options: PairOptions) => Promise<PairingStatus>>
@@ -232,8 +238,13 @@ export function fakeNative(
     return Promise.resolve(share ? { share } : {});
   });
 
+  const uploadJournalPhoto = vi.fn<
+    (options: PhotoUploadOptions) => Promise<NativeResponse>
+  >(() => Promise.resolve({ status: 200, body: {} }));
+
   return {
     request,
+    uploadJournalPhoto,
     takeShare,
     receiveShare: (share) => {
       sharedText = share;

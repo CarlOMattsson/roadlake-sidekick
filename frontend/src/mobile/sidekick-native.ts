@@ -223,8 +223,27 @@ export type TestPushResult = {
  */
 export type SharedText = { title: string; text: string; link?: string };
 
+/**
+ * A photo added to a day from the phone. `photo` and `thumbnail` are base64 of the JPEG files the page already shrank
+ * (photo-shrink.ts: at most 4 MiB and 128 KiB); the native side builds the multipart form of
+ * `POST /companion/v1/journal/photos` from them, so the page needs no multipart of its own. `altText` is the caption.
+ * The key is the Idempotency-Key header: the same photo sent again with it is stored once.
+ */
+export type PhotoUploadOptions = {
+  journalDate: string;
+  photo: string;
+  thumbnail: string;
+  altText?: string;
+  idempotencyKey: string;
+};
+
 export interface SidekickNativePlugin {
   request(request: NativeRequest): Promise<NativeResponse>;
+  /**
+   * Sends a photo to the day it belongs to as the form the route takes. Like `request`, it resolves with the HTTP
+   * status and the JSON body of every answer, and rejects only when no answer came or the options are refused.
+   */
+  uploadJournalPhoto(options: PhotoUploadOptions): Promise<NativeResponse>;
   /** Exchanges the pairing secret for a device credential kept in the Keystore. Rejects with the server's closed code. */
   pair(options: PairOptions): Promise<PairingStatus>;
   status(): Promise<PairingStatus>;

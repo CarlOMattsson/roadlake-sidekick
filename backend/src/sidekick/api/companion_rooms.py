@@ -34,6 +34,7 @@ no draft or summary flow:
   (`{"version", ...}`: `version` is the tool's `expected_version`)
 - `POST /companion/v1/journal/photos`                       = `add_journal_photo` (multipart; see
   `sidekick.api.companion_photos`)
+- `GET  /companion/v1/journal/photos/{photo_id}`            = `get_journal_photo` (`size`)
 
 Every write carries `Idempotency-Key`; a stale `version` is 409 `stale_version`, another owner's id
 is 404, and the owner is always the credential's.

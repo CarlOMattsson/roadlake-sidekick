@@ -24,17 +24,19 @@ from sidekick.journal.domain.source import SourceType
 from tests.db import create_test_session_factory, require_test_database_url
 from tests.support import photo_files
 from tests.support.companion import bearer, companion_app, owner, owner_actor, paired_token
-
-PHOTOS = "/companion/v1/journal/photos"
-WRITE_CAPABILITIES = {"companion:journal:write", "companion:journal:read"}
-READ_ONLY = {"companion:journal:read"}
-WRITE_ONLY = {"companion:journal:write"}
-TASKS_ONLY = {"companion:tasks:read", "companion:tasks:complete"}
-ALT = "Alt-text-hemlig-marker-91"
-CAMERA = "Kamera-hemlig-marker-92"
-PLACE = "Plats-hemlig-marker-93"
-PHOTO = photo_files.jpeg()
-THUMB = photo_files.jpeg(320, 240)
+from tests.support.companion_photos import (
+    ALT,
+    CAMERA,
+    PHOTO,
+    PHOTOS,
+    PLACE,
+    READ_ONLY,
+    TASKS_ONLY,
+    THUMB,
+    WRITE_CAPABILITIES,
+    WRITE_ONLY,
+    upload,
+)
 
 
 def entry_of(app: FastAPI, user_id: UUID) -> str:
@@ -51,26 +53,6 @@ def entry_of(app: FastAPI, user_id: UUID) -> str:
         idempotency_key=f"entry-{uuid4().hex}",
     )
     return str(entry.id)
-
-
-def upload(
-    client: TestClient,
-    token: str,
-    fields: dict[str, Any],
-    *,
-    photo: bytes = PHOTO,
-    thumbnail: bytes = THUMB,
-    key: str | None = None,
-) -> Any:
-    return client.post(
-        PHOTOS,
-        headers={**bearer(token), "Idempotency-Key": key or f"photo-{uuid4().hex}"},
-        files={
-            "photo": ("photo.jpg", photo, "image/jpeg"),
-            "thumbnail": ("thumb.jpg", thumbnail, "image/jpeg"),
-        },
-        data=fields,
-    )
 
 
 def count_photos(app: FastAPI) -> int:

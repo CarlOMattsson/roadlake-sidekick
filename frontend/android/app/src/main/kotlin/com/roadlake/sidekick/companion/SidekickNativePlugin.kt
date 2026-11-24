@@ -1,6 +1,7 @@
 package com.roadlake.sidekick.companion
 
 import android.content.Intent
+import android.util.Base64
 import com.getcapacitor.JSObject
 import com.getcapacitor.Plugin
 import com.getcapacitor.PluginCall
@@ -121,6 +122,38 @@ class SidekickNativePlugin : Plugin() {
         val result = JSObject().put("status", response.status).put("body", parseJson(response.body))
         answer.cachedAtMillis?.let { result.put("cachedAt", it) }
         result
+    }
+
+    /**
+     * Adds a photo to a journal day: `{ journalDate, photo, thumbnail, altText?, idempotencyKey }` with the two JPEG files
+     * as base64 (the page has shrunk them). The multipart form is built in [CompanionClient.uploadJournalPhoto]; the
+     * answer is the server's, as for `request`. Not queued: a photo needs the network, and the page keeps the file and
+     * its key. Nothing in the call is logged.
+     */
+    @PluginMethod
+    fun uploadJournalPhoto(call: PluginCall) = runBound(call) { generation ->
+        val answer = try {
+            client.uploadJournalPhoto(
+                journalDate = call.getString("journalDate"),
+                photo = decodeBase64(call.getString("photo")),
+                thumbnail = decodeBase64(call.getString("thumbnail")),
+                caption = call.getString("altText"),
+                idempotencyKey = call.getString("idempotencyKey"),
+            )
+        } catch (e: CompanionException) {
+            throw if (e.code == "network" || e.code == "timeout") CompanionException(e.code, e.beforeSend, generation) else e
+        }
+        JSObject().put("status", answer.status).put("body", parseJson(answer.body))
+    }
+
+    /** The bytes of a base64 text the page sent, or `bad_request` when it is none. */
+    private fun decodeBase64(text: String?): ByteArray {
+        if (text == null) throw CompanionException("bad_request")
+        return try {
+            Base64.decode(text, Base64.NO_WRAP)
+        } catch (_: IllegalArgumentException) {
+            throw CompanionException("bad_request")
+        }
     }
 
     /**

@@ -35,7 +35,7 @@ Device capabilities of a paired companion app (ADR-005). They are not applicatio
 
 | Capability | What it gives | Operations | Default |
 | --- | --- | --- | --- |
-| `companion:journal:read` | read journal days and entries | `journal.day`, `journal.entries`, `journal.entry`, `journal.source`; also needed by `journal.entry_write`, `journal.entry_update`, `journal.photo_add`, `journal.entry_trash`, `journal.entry_untrash` | off until named; in preset `app` |
+| `companion:journal:read` | read journal days and entries | `journal.day`, `journal.entries`, `journal.entry`, `journal.source`, `journal.photo_read`; also needed by `journal.entry_write`, `journal.entry_update`, `journal.photo_add`, `journal.entry_trash`, `journal.entry_untrash` | off until named; in preset `app` |
 | `companion:journal:write` | write and edit journal entries by hand (no AI), and move them to the trash | `journal.entry_write`, `journal.entry_update`, `journal.photo_add`, `journal.entry_trash`, `journal.entry_untrash` | off until named; in preset `app` |
 | `companion:license` | see the license status and enter the instance’s license key (owner only) | `license.show`, `license.set` | off until named; in preset `app` |
 | `companion:push` | receive notifications (register the phone’s push address) | `push.subscription`, `push.reminders` | off until named; in preset `app` |

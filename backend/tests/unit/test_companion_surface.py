@@ -39,6 +39,7 @@ PATH_PARAMETERS = {
     "{item_id}": TASK,
     "{entry_id}": TASK,
     "{source_id}": TASK,
+    "{photo_id}": TASK,
     "{journal_date}": "2026-11-09",
 }
 
@@ -83,6 +84,7 @@ PATH_PARAMETERS = {
         ("GET", f"/companion/v1/journal/sources/{TASK}"),
         ("POST", "/companion/v1/journal/entries"),
         ("POST", "/companion/v1/journal/photos"),
+        ("GET", f"/companion/v1/journal/photos/{TASK}"),
         ("POST", f"/companion/v1/journal/entries/{TASK}/update"),
         ("GET", "/companion/v1/license"),
         ("PUT", "/companion/v1/license"),
@@ -211,7 +213,9 @@ def test_the_companion_routes_are_public_by_method_and_path(method: str, path: s
         ("PUT", "/companion/v1/journal/photos"),
         ("DELETE", "/companion/v1/journal/photos"),
         ("POST", f"/companion/v1/journal/photos/{TASK}"),
-        ("GET", f"/companion/v1/journal/photos/{TASK}"),
+        ("DELETE", f"/companion/v1/journal/photos/{TASK}"),
+        ("PUT", f"/companion/v1/journal/photos/{TASK}"),
+        ("GET", f"/companion/v1/journal/photos/{TASK}/file"),
         ("POST", f"/companion/v1/journal/sources/{TASK}"),
         ("GET", f"/companion/v1/journal/sources/{TASK}/raw"),
         ("GET", "/companion/v1/journal/sources"),
@@ -355,7 +359,7 @@ def test_the_journal_operations_hold_exactly_the_scopes_of_their_mcp_tools() -> 
         assert by_name[operation].application_scopes == frozenset(JOURNAL_TOOL_SCOPES[tool])
 
 
-def test_the_photo_upload_holds_the_scopes_of_its_tool_and_is_the_only_photo_operation() -> None:
+def test_the_photo_operations_hold_the_scopes_of_their_tools() -> None:
     from sidekick.mcp.journal_photo_tools import JOURNAL_PHOTO_TOOL_SCOPES
 
     by_name = {item.name: item for item in OPERATIONS}
@@ -363,12 +367,26 @@ def test_the_photo_upload_holds_the_scopes_of_its_tool_and_is_the_only_photo_ope
     assert upload.application_scopes == frozenset(JOURNAL_PHOTO_TOOL_SCOPES["add_journal_photo"])
     assert upload.capability == "companion:journal:write"
     assert upload.also == "companion:journal:read"
-    # The phone only adds a photo: it neither reads, changes nor trashes one through the companion.
-    assert [name for name in by_name if "photo" in name] == ["journal.photo_add"]
+    read = by_name["journal.photo_read"]
+    assert read.application_scopes == frozenset(JOURNAL_PHOTO_TOOL_SCOPES["get_journal_photo"])
+    assert read.capability == "companion:journal:read" and read.also is None
+    # The phone adds a photo and reads one back; it neither changes nor trashes one yet.
+    assert sorted(name for name in by_name if "photo" in name) == [
+        "journal.photo_add",
+        "journal.photo_read",
+    ]
+    specs = {
+        item.operation: (item.method, item.path)
+        for item in create_companion_router().specs
+        if "photo" in item.operation
+    }
+    assert specs == {
+        "journal.photo_add": ("POST", "/journal/photos"),
+        "journal.photo_read": ("GET", "/journal/photos/{photo_id}"),
+    }
     spec = next(
         item for item in create_companion_router().specs if item.operation == "journal.photo_add"
     )
-    assert (spec.method, spec.path) == ("POST", "/journal/photos")
     assert spec.body is not None and spec.body.content_type == "multipart/form-data"
 
 

@@ -39,6 +39,7 @@ import {
   nativeErrorCode,
   nativeErrorGeneration,
   type NativeQuery,
+  type PhotoUploadOptions,
 } from "./sidekick-native";
 import { UUID, type PlanHelpers, type Planned } from "./companion-plan";
 import {
@@ -312,7 +313,9 @@ export class CompanionRoomTransport implements RoomTransport {
     const plan = this.plan(name, args);
     let answer;
     try {
-      answer = await this.native.request(plan.request);
+      answer = plan.photo
+        ? await this.uploadPhoto(plan.photo)
+        : await this.native.request(plan.request);
     } catch (error) {
       // No answer came. The write may or may not have reached the server: its key stays for the retry.
       const code = nativeErrorCode(error);
@@ -348,6 +351,12 @@ export class CompanionRoomTransport implements RoomTransport {
       this.copies.set(page, answer.cachedAt);
     return page as T;
   };
+
+  /** A photo goes to the native upload, which builds the form; a phone build without it answers not in the app. */
+  private uploadPhoto(photo: PhotoUploadOptions) {
+    if (!this.native.uploadJournalPhoto) throw new NotInAppError();
+    return this.native.uploadJournalPhoto(photo);
+  }
 
   /**
    * The closed list is the answer: a room hides what it would call outside it (saved views, Control, archived).

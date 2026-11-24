@@ -2138,6 +2138,64 @@
         "x-sidekick-capability": "companion:journal:write"
       }
     },
+    "/companion/v1/journal/photos/{photo_id}": {
+      "get": {
+        "operationId": "journal.photo_read",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "photo_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Photo Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "size",
+            "required": false,
+            "schema": {
+              "default": "thumb",
+              "enum": [
+                "thumb",
+                "photo"
+              ],
+              "title": "Size",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "A refusal: one of the closed codes of `x-sidekick-problems`."
+          }
+        },
+        "security": [
+          {
+            "companionBearer": []
+          }
+        ],
+        "summary": "journal.photo_read",
+        "x-sidekick-capability": "companion:journal:read"
+      }
+    },
     "/companion/v1/journal/sources/{source_id}": {
       "get": {
         "operationId": "journal.source",

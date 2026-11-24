@@ -1,8 +1,9 @@
 import { useContext, useEffect, useRef, useState } from "react";
 import { formatDayHeading, formatLongDate, shiftDate } from "./dates";
 import { DayEmpty } from "./day-empty";
-import { useDayRefresh, useEntryDates } from "./day-frame-hooks";
+import { rereadDay, useDayRefresh, useEntryDates } from "./day-frame-hooks";
 import { DayHeading } from "./day-heading";
+import { useDayPhotos } from "./day-photos";
 import { DayMoreButton, DayMorePanel, useDayMore } from "./day-more";
 import { DayRead, JournalAside } from "./day-read";
 import { DayStrip, stripDays } from "./day-strip";
@@ -174,6 +175,18 @@ export function DayFrame({
     tellMore,
     dayMessage,
     startComposing,
+  });
+  // The day's photos: the block under the summary, and the viewer that takes the day's place while a photo is open.
+  const photos = useDayPhotos({
+    transport,
+    labels: t,
+    journalDate: page.journal_date,
+    ids: page.day_attachments?.ids ?? [],
+    fullscreen,
+    onAdded: () => {
+      showReceipt({ message: receiptText(t.photosAdded) });
+      rereadDay(frame, transport, mounted, onChange);
+    },
   });
   const { canWrite, composing, created, addOpen } = write;
   const { clearCreated } = write;
@@ -363,6 +376,10 @@ export function DayFrame({
     />
   );
   const openEntry = (id: string) => onOpen({ kind: "entry", id });
+  const photoBlock = !failedDate && !dayTags.filtered ? photos.block : null;
+
+  // A photo opened from the day is a layer: it takes the place of the day, and closing it returns to the day.
+  if (photos.viewer) return <article>{photos.viewer}</article>;
 
   if (rail) {
     const long = formatDayHeading(shownDate, t.dateLocale, today);
@@ -399,6 +416,7 @@ export function DayFrame({
         {/* In the rail the tags are a list that wraps (desktop spec 3.2), not the phone's sideways scroller. */}
         <div className="journal-rail-tags">{tags}</div>
         {!failedDate && !dayTags.filtered && done}
+        {photoBlock}
         {!failedDate &&
           !dayTags.filtered &&
           (composing && canWrite ? (
@@ -496,6 +514,7 @@ export function DayFrame({
           <DaySummary day={page} fullscreen={fullscreen} labels={t} />
           {/* «Gjort» under the day's summary, or first on a day with notes and no summary. */}
           {(summaryShown || page.entries.length > 0) && done}
+          {photoBlock}
           {page.entries.length > 0 ? <h3>{t.entries}</h3> : null}
           {page.entries.length === 0 && (
             <>

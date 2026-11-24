@@ -7,6 +7,8 @@
  *   list_journal_entries  -> GET  /companion/v1/journal/entries                   (from_date, to_date, include_content, limit, cursor)
  *   get_journal_entry     -> GET  /companion/v1/journal/entries/{entry_id}        (include_content)
  *   get_journal_source   -> GET  /companion/v1/journal/sources/{source_id}        (include_content): the text a hand-written entry keeps
+ *   get_journal_photo     -> GET  /companion/v1/journal/photos/{photo_id}         (size: thumb or photo)
+ *   add_journal_photo     -> POST /companion/v1/journal/photos                    (multipart, built by the native side)
  *   write_journal_entry   -> POST /companion/v1/journal/entries                   (the owner's own words; no key in the body)
  *   update_journal_entry  -> POST /companion/v1/journal/entries/{entry_id}/update ({ version, ...the changes })
  *
@@ -15,6 +17,7 @@
  * hides what needs them (`toolOffered`). The original text is read back (a hand-written entry has no summary, its
  * words live only in the source).
  */
+import { photoUploadOf } from "./companion-photo-upload";
 import {
   dateOf,
   isRecord,
@@ -44,6 +47,14 @@ export const JOURNAL_ROUTES = {
     method: "GET",
     path: "/companion/v1/journal/sources/{source_id}",
   },
+  get_journal_photo: {
+    method: "GET",
+    path: "/companion/v1/journal/photos/{photo_id}",
+  },
+  add_journal_photo: {
+    method: "POST",
+    path: "/companion/v1/journal/photos",
+  },
   write_journal_entry: {
     method: "POST",
     path: "/companion/v1/journal/entries",
@@ -60,6 +71,8 @@ export const JOURNAL_TOOLS = [
   "list_journal_entries",
   "get_journal_entry",
   "get_journal_source",
+  "get_journal_photo",
+  "add_journal_photo",
   "write_journal_entry",
   "update_journal_entry",
 ] as const;
@@ -217,6 +230,33 @@ export function planJournal(
         },
       };
     }
+    case "get_journal_photo": {
+      const id = h.uuidOf(args.photo_id);
+      const query = queryOf(args, ["size"], ["photo_id"], [], h);
+      // The route takes the two sizes only; anything else is refused here, before a request.
+      if (
+        query.size !== undefined &&
+        query.size !== "thumb" &&
+        query.size !== "photo"
+      )
+        return h.invalid();
+      return {
+        request: {
+          method: "GET",
+          path: `${BASE}/photos/${id}`,
+          ...withQuery(query),
+        },
+      };
+    }
+    case "add_journal_photo":
+      // Not a JSON request: the native side builds the multipart form, with no outbox (a photo needs the network).
+      return {
+        request: {
+          method: "POST",
+          path: JOURNAL_ROUTES.add_journal_photo.path,
+        },
+        photo: photoUploadOf(args, h),
+      };
     case "write_journal_entry": {
       h.onlyKeys(args, [...WRITE_KEYS, "idempotency_key"]);
       const day = dateOf(args.journal_date, h);

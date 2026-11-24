@@ -24,6 +24,7 @@ export type NativeForTransport = Pick<SidekickNativePlugin, "request"> &
   Partial<
     Pick<
       SidekickNativePlugin,
+      | "uploadJournalPhoto"
       | "queuePurchase"
       | "queueShoppingAdd"
       | "queueRecordWrite"

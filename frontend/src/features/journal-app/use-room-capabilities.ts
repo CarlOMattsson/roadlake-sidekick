@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { createJournalTransport, type JournalTransport } from "./transport";
+import { createPhotoTransport } from "./photo-transport";
 import { roomEnabled } from "../mcp-apps/enabled-rooms";
 import type { RoomTransport } from "../mcp-apps/room-types";
 import { toolOffered } from "../mcp-apps/tool-support";
@@ -36,6 +37,10 @@ export function useRoomCapabilities(host: RoomTransport) {
   const canWriteTags = toolOffered(host, "update_journal_entry", { tags: [] });
   // Keeping an entry out of Claude's memory needs the tool.
   const canExcludeFromMemory = toolOffered(host, "exclude_from_memory");
+  // A day carries photos where the host both adds and reads them (the app-only photo tools).
+  const canPhotos =
+    toolOffered(host, "add_journal_photo") &&
+    toolOffered(host, "get_journal_photo");
   // The phone's outbox rides along on the transport, where the host has one.
   const transport = useMemo<JournalTransport>(
     () => ({
@@ -53,6 +58,7 @@ export function useRoomCapabilities(host: RoomTransport) {
         },
         canExcludeFromMemory,
       ),
+      ...createPhotoTransport(call, canPhotos),
     }),
     [
       call,
@@ -64,6 +70,7 @@ export function useRoomCapabilities(host: RoomTransport) {
       canFilterTags,
       canWriteTags,
       canExcludeFromMemory,
+      canPhotos,
       offline,
     ],
   );

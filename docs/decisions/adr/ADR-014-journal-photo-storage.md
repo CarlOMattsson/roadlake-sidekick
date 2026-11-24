@@ -111,5 +111,16 @@ Implemented (the photo service, the app-only tools and the companion upload; bac
   `tests/mcp/test_journal_photo_tools.py`, `tests/api/test_companion_photos.py`; the memory pin is
   `test_a_photo_and_its_fields_never_reach_the_memory_documents_of_its_entry`.
 
-Still open: the size a host allows in one tool call; Claude's own chat attachments; the media sweep, backup, restore and export
-of the files; reading or trashing a photo from the Android app.
+Journal room (2026-11-24): the day shows its photos as tiles with the shared viewer and an "Add photo" row
+(`journal-app/day-photos.tsx`). The client shrinks the picture on a canvas (`photo-shrink.ts`: long edge 2048 px, JPEG, a
+320 px thumbnail; the re-encoding leaves the metadata behind) to at most 600 KiB, so the photo and its thumbnail fit one
+tool call (the server reads at most 1 MiB of one) and one companion answer. On the phone the same room calls
+`add_journal_photo`, which the transport hands to `SidekickNative.uploadJournalPhoto`; the Kotlin side builds the
+multipart form (`PhotoUpload.kt`) for `POST /companion/v1/journal/photos`, and `GET /companion/v1/journal/photos/{id}`
+(`journal.photo_read`, capability `companion:journal:read`) returns a thumbnail or, when its base64 fits one answer, the
+photo.
+
+Still open: the size a host allows in one tool call (600 KiB is chosen to stay under the server's 1 MiB); whether Claude's
+host lets the app open a file chooser; Claude's own chat attachments; photos on an entry and in the week view; changing or
+trashing a photo and its caption from the room; the Android share sheet and camera capture tried on a real phone; reading
+the time, place and camera from the file before it is shrunk.

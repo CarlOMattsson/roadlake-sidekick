@@ -1,3 +1,4 @@
+import { dayPhotoEn, dayPhotoSv } from "./day-photo-labels";
 import { draftConfirmEn, draftConfirmSv } from "./draft-confirm-labels";
 import { entryReadEn, entryReadSv } from "./entry-read-labels";
 import { glanceEn, glanceSv } from "./glance-labels";
@@ -19,6 +20,7 @@ export const partsEn = {
   ...weekEn,
   ...glanceEn,
   ...receiptEn,
+  ...dayPhotoEn,
 };
 export const partsSv = {
   ...draftConfirmSv,
@@ -30,4 +32,5 @@ export const partsSv = {
   ...weekSv,
   ...glanceSv,
   ...receiptSv,
+  ...dayPhotoSv,
 };

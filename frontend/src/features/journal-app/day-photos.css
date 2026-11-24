@@ -1,0 +1,54 @@
+/* The day's photos: the tiles (shared, ui/photos.css) and the add row under them. Loaded by day-photos.tsx. */
+.sidekick-journal .journal-photos {
+  margin: var(--sk-s3) 0;
+}
+.sidekick-journal .journal-photos-add {
+  margin-top: var(--sk-s2);
+}
+/* The add row is a quiet button with a plus; its hint stands under the label and the whole row is one 44 px target. */
+.sidekick-journal .journal-photos-add-button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sk-s2);
+  min-height: 2.75rem;
+  text-align: start;
+}
+.sidekick-journal .journal-photos-add-button > svg {
+  flex: none;
+}
+.sidekick-journal .journal-photos-add-button > span {
+  display: flex;
+  flex-direction: column;
+}
+.sidekick-journal .journal-photos-hint {
+  margin: 0;
+  color: var(--sk-fg-2);
+  font: var(--sk-type-caption);
+}
+.sidekick-journal .journal-photos-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sk-s2);
+  max-width: 28rem;
+}
+.sidekick-journal .journal-photos-form input[type="text"] {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 2.75rem;
+  padding: 0 var(--sk-s3);
+  border: var(--sk-hairline) solid var(--sk-line);
+  border-radius: var(--sk-radius);
+  background: var(--sk-surface);
+  color: var(--sk-fg);
+  font: var(--sk-type-row);
+}
+.sidekick-journal .journal-photos-preview {
+  width: 5rem;
+  height: 5rem;
+  object-fit: cover;
+  border-radius: var(--sk-radius);
+}
+.sidekick-journal .journal-photos-problem {
+  margin: 0;
+  color: var(--sk-danger-fg);
+}

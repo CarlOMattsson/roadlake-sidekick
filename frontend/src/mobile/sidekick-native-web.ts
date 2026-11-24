@@ -24,6 +24,9 @@ export class SidekickNativeWeb implements SidekickNativePlugin {
   request(): Promise<NativeResponse> {
     return unavailable();
   }
+  uploadJournalPhoto(): Promise<NativeResponse> {
+    return unavailable();
+  }
   pair(): Promise<PairingStatus> {
     return unavailable();
   }

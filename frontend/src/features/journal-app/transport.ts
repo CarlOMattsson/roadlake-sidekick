@@ -16,6 +16,7 @@ import type {
 import type { RoomTransport } from "../mcp-apps/room-types";
 import { emptyDay } from "./empty-day";
 import { withEntry } from "./entry-result";
+import type { DayPhotoIds, PhotoTransport } from "./photo-transport";
 import {
   createMemoryTransport,
   type MemoryTransport,
@@ -73,7 +74,7 @@ export type JournalDay = Pick<
   done?: JournalDone;
   /** The owner's IANA zone, named by the server; absent from an older server. */
   owner_timezone?: string;
-};
+} & DayPhotoIds;
 /** Source provenance; `raw_text` is present only when the read asked for it (JournalSourceReadRecord). */
 export type JournalSource = WithOptional<
   Pick<
@@ -263,7 +264,10 @@ type JournalCalls = {
   ) => Promise<unknown>;
 };
 
-export type JournalTransport = TagTransport & MemoryTransport & JournalCalls;
+export type JournalTransport = TagTransport &
+  MemoryTransport &
+  PhotoTransport &
+  JournalCalls;
 
 /**
  * The journal transport over the host's tools/call. Reads, plus the draft review writes the owner

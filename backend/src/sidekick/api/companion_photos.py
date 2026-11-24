@@ -1,4 +1,4 @@
-"""`/companion/v1/journal/photos`: a photo the owner adds from the phone, as a multipart form.
+"""`/companion/v1/journal/photos`: a photo the owner adds from the phone, and reads back.
 
 Added to the companion router with the Journal routes (`sidekick.api.companion_rooms`). It is the
 phone's way into the same use case as the app-only `add_journal_photo` tool: the phone has the file,
@@ -6,6 +6,9 @@ not a base64 text, so the two files and the fields beside them arrive as the par
 `multipart/form-data` body:
 
 - `POST /companion/v1/journal/photos` = `add_journal_photo`
+- `GET  /companion/v1/journal/photos/{photo_id}?size=thumb|photo` = `get_journal_photo`: the file as
+  base64 beside its record. A thumbnail always fits one answer; a photo only when its base64 fits
+  the response budget, and is otherwise refused with a 422 (the phone then keeps the thumbnail).
 
 Parts: `photo` and `thumbnail` (the files; the phone has already shrunk the photo to a long edge of
 2048 px and at most 4 MiB and drawn the thumbnail, which also leaves the metadata out of both),
@@ -36,13 +39,16 @@ from sidekick.api.companion import (
     RequestBody,
     no_store_headers,
 )
-from sidekick.companion.operations import JOURNAL_PHOTO_ADD, operation_actor
+from sidekick.companion.operations import JOURNAL_PHOTO_ADD, JOURNAL_PHOTO_READ, operation_actor
+from sidekick.companion.response_budget import MAX_RESPONSE_BYTES, rendered_size
 from sidekick.composition import container_of
-from sidekick.journal.domain.photo import MAX_ALT_TEXT, MAX_CAMERA, MAX_PLACE_NAME
+from sidekick.journal.domain.photo import MAX_ALT_TEXT, MAX_CAMERA, MAX_PLACE_NAME, PhotoSize
+from sidekick.shared.errors.core import RefusedError
 from sidekick.shared.text_guard import NoImageData
 from sidekick.structured.journal_photos import (
     PhotoLocationInput,
     add_journal_photo_structured,
+    get_journal_photo_structured,
 )
 
 
@@ -116,3 +122,24 @@ def add_journal_photo_routes(router: CompanionRouter) -> None:
         return JSONResponse(
             headers=dict(no_store_headers), content=structured.model_dump(mode="json")
         )
+
+    @router.register(
+        CompanionRouteSpec("GET", "/journal/photos/{photo_id}", JOURNAL_PHOTO_READ.name)
+    )
+    async def journal_photo_read(
+        request: Request,
+        photo_id: UUID,
+        credential: Credential,
+        size: PhotoSize = "thumb",
+    ) -> JSONResponse:
+        actor = operation_actor(credential, JOURNAL_PHOTO_READ)
+        container = container_of(request)
+        structured = await run_in_threadpool(
+            lambda: get_journal_photo_structured(container, actor, photo_id, size)
+        )
+        content = structured.model_dump(mode="json")
+        # A photo that does not fit one answer is refused here, not turned into a server error by
+        # the budget check: the phone shows the thumbnail it already has.
+        if rendered_size(content) > MAX_RESPONSE_BYTES:
+            raise RefusedError("the photo is larger than one answer holds")
+        return JSONResponse(headers=dict(no_store_headers), content=content)

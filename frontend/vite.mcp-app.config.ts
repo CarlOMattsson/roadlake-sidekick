@@ -33,7 +33,8 @@ const apps = {
 // 2026-11-23: 296 KiB kept for the Start home's ring on today's tasks (it reuses Row, StatusGlyph and the receipt bar;
 // measured 302 927 bytes, 295.8 KiB, 177 bytes under the budget).
 // 2026-11-23: 296 KiB to 300 KiB for the owner-decision tickets in the bridge (issue #53).
-const GZIP_BUDGET_BYTES = 300 * 1024;
+// 2026-11-24: 300 KiB to 304 KiB for journal photos in the day view (issue #42; measured 310 277 bytes).
+const GZIP_BUDGET_BYTES = 304 * 1024;
 type AppName = keyof typeof apps;
 
 const LOCALES = ["sv", "en"] as const;

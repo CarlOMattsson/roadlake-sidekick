@@ -7,6 +7,7 @@
 import type {
   NativeQuery,
   NativeRequest,
+  PhotoUploadOptions,
   RecordWriteKind,
 } from "./sidekick-native";
 
@@ -40,6 +41,8 @@ export type Planned = {
   request: NativeRequest;
   signature?: string;
   queue?: Queueable;
+  /** A photo for a day: sent with `SidekickNative.uploadJournalPhoto` (the native side builds the form), not as `request`. */
+  photo?: PhotoUploadOptions;
 };
 
 /** The transport's own checks. Each refuses with the closed `validation_error` before anything is sent. */

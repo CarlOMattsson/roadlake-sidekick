@@ -28,10 +28,12 @@
   color: var(--sk-fg);
   margin: var(--sk-section-above) 0 var(--sk-section-below);
 }
-/* Under the day's summary too: the summary is the head's ingress, so "Anteckningar" follows it as it
+/* Under the day's summary and its photos too: the summary is the head's ingress, so "Anteckningar" follows it as it
    follows the strip, 16 to the box (≈ 22 to the caps with the summary's half-leading). The action that stood between
    them is the + in the title row, and three notes end above the reply field. */
-.sidekick-journal :is(.sk-day-strip, .journal-day-summary) + h3 {
+.sidekick-journal
+  :is(.sk-day-strip, .journal-day-summary, .journal-photos)
+  + h3 {
   margin-top: var(--sk-s4);
 }
 /* The day's summary has no heading (designsystem §3, Dagens sammanfattning): an ingress in body text, 8 under
@@ -65,7 +67,7 @@
    its meta. Under the summary or the strip it has the 16 «Anteckningar» has there; elsewhere a section's 24. The
    count line is the content, so it wraps (before «·», done-section.tsx) instead of ending in an ellipsis. */
 .sidekick-journal
-  :is(.sk-day-strip, .journal-day-summary)
+  :is(.sk-day-strip, .journal-day-summary, .journal-photos)
   + .journal-done
   > h3 {
   margin-top: var(--sk-s4);

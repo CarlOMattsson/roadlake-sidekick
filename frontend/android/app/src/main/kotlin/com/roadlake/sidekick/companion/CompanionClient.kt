@@ -64,6 +64,23 @@ class CompanionClient(
     }
 
     /**
+     * Adds a photo to a journal day (`POST /companion/v1/journal/photos`): the form is built here from the files the page
+     * shrank ([PhotoUpload]) and sent with the credential and the key, so the same photo sent again with the key is stored
+     * once. The key is required. The bytes and the caption are never logged.
+     */
+    fun uploadJournalPhoto(
+        journalDate: String?,
+        photo: ByteArray?,
+        thumbnail: ByteArray?,
+        caption: String?,
+        idempotencyKey: String?,
+    ): CompanionResponse {
+        val key = RequestPolicy.checkIdempotencyKey(idempotencyKey) ?: throw CompanionException("bad_request")
+        val form = PhotoUpload.form(journalDate, photo, thumbnail, caption)
+        return send("POST", PhotoUpload.PATH, form.body, key, form.contentType)
+    }
+
+    /**
      * Registers the push endpoint of this phone (`PUT /companion/v1/push/subscription`); a new one replaces the old. A
      * route of its own, not reachable from the page: `request` allows GET and POST, and PUT only for the license. The endpoint is never logged.
      */
@@ -138,13 +155,19 @@ class CompanionClient(
         }
     }
 
-    private fun send(method: String, pathAndQuery: String, body: ByteArray?, key: String?): CompanionResponse {
+    private fun send(
+        method: String,
+        pathAndQuery: String,
+        body: ByteArray?,
+        key: String?,
+        contentType: String = "application/json",
+    ): CompanionResponse {
         val pairing = store.load() ?: throw CompanionException("not_paired")
         generation.checkPinned() // after the load: a pairing loaded here that is newer than the work's is caught
         val server = ServerUrl.parse(pairing.serverOrigin, allowLocalCleartext)
         val headers = LinkedHashMap<String, String>()
         headers["Authorization"] = "Bearer ${pairing.token}"
-        if (body != null) headers["Content-Type"] = "application/json"
+        if (body != null) headers["Content-Type"] = contentType
         if (key != null) headers["Idempotency-Key"] = key
 
         val result = http.execute(HttpCall(method, server.origin + pathAndQuery, headers, body))

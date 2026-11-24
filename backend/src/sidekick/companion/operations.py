@@ -230,12 +230,17 @@ JOURNAL_ENTRY_UPDATE = CompanionOperation(
 
 # A photo the owner adds from the phone: the same use case as the app-only `add_journal_photo`, over
 # a multipart route (the phone has the file, not a base64 text). It answers with the stored record,
-# so it needs the room's read capability too. The device never reads a photo back through it.
+# so it needs the room's read capability too. The phone reads one back through `journal.photo_read`.
 JOURNAL_PHOTO_ADD = CompanionOperation(
     "journal.photo_add",
     "companion:journal:write",
     frozenset({"journal:read", "journal:write"}),
     also="companion:journal:read",
+)
+# One photo of the owner's journal as base64, the use case and scope of `get_journal_photo`: the
+# thumbnail for the day's tiles and, when it fits one answer, the photo itself for the viewer.
+JOURNAL_PHOTO_READ = CompanionOperation(
+    "journal.photo_read", "companion:journal:read", frozenset({"journal:read"})
 )
 
 # --- Work writes ---------------------------------------------------------------------------------
@@ -374,6 +379,7 @@ OPERATIONS: tuple[CompanionOperation, ...] = (
     JOURNAL_ENTRY_WRITE,
     JOURNAL_ENTRY_UPDATE,
     JOURNAL_PHOTO_ADD,
+    JOURNAL_PHOTO_READ,
     JOURNAL_ENTRY_TRASH,
     JOURNAL_ENTRY_UNTRASH,
     SHOPPING_ITEM_TRASH,

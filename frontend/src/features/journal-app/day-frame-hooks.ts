@@ -3,6 +3,21 @@ import type { JournalDay, JournalFrame, JournalTransport } from "./transport";
 
 type DayFrameValue = Extract<JournalFrame, { kind: "day" }>;
 
+/** Reads the shown day again after a change of its own (a photo added) and puts the answer in the frame; a failed read leaves it. */
+export function rereadDay(
+  frame: DayFrameValue,
+  transport: JournalTransport,
+  mounted: { current: boolean },
+  onChange: (next: JournalFrame) => void,
+) {
+  transport.getDay(frame.page.journal_date).then(
+    (page: JournalDay) => {
+      if (mounted.current) onChange({ ...frame, page });
+    },
+    () => undefined,
+  );
+}
+
 /**
  * A changed refreshKey reads the shown day again, in place: no day change, no loading state, and the
  * expanded day and the scroll position stay. A read that lands after the owner moved on is dropped.
