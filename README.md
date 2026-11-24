@@ -9,7 +9,7 @@
 <a href="backend/pyproject.toml"><img src="https://img.shields.io/badge/lint-ruff-informational" alt="Lint and format: ruff"></a>
 <a href="frontend/tsconfig.app.json"><img src="https://img.shields.io/badge/types-TypeScript%20strict-informational" alt="Type checking: TypeScript strict"></a>
 <a href="frontend/android/app/build.gradle"><img src="https://img.shields.io/badge/Kotlin%20style-ktlint-informational" alt="Kotlin style: ktlint"></a>
-<a href="https://github.com/CarlOMattsson/roadlake-sidekick/actions/workflows/ci.yml"><img src="https://github.com/CarlOMattsson/roadlake-sidekick/actions/workflows/ci.yml/badge.svg?branch=main" alt="CI: status of the last run started by hand"></a>
+<a href="https://github.com/CarlOMattsson/roadlake-sidekick/actions/workflows/ci.yml"><img src="https://github.com/CarlOMattsson/roadlake-sidekick/actions/workflows/ci.yml/badge.svg?branch=main" alt="CI: status of the latest run on main"></a>
 <a href="https://scorecard.dev/viewer/?uri=github.com/CarlOMattsson/roadlake-sidekick"><img src="https://api.scorecard.dev/projects/github.com/CarlOMattsson/roadlake-sidekick/badge" alt="OpenSSF Scorecard"></a>
 <a href="https://github.com/CarlOMattsson/roadlake-sidekick/releases/latest"><img src="https://img.shields.io/github/v/release/CarlOMattsson/roadlake-sidekick?sort=semver" alt="Latest release"></a>
 <a href="https://github.com/CarlOMattsson/roadlake-sidekick/actions/workflows/release-image.yml"><img src="https://github.com/CarlOMattsson/roadlake-sidekick/actions/workflows/release-image.yml/badge.svg?branch=main" alt="release-image workflow: the last run that built, scanned and signed the image"></a>
@@ -108,6 +108,20 @@ The rooms in Swedish, the default language, with fictitious sample data in a sim
 ## How it fits together
 
 Claude and the Android app talk to one Sidekick server. The server applies one set of rules to every request and keeps your records in PostgreSQL, with optional memory and push reminders around it. [How the parts fit together](docs/explanation/overview.md) explains each part, with a diagram.
+
+## How Sidekick is built
+
+Sidekick is developed and maintained by one person, Carl O Mattsson, who directs AI coding agents instead of writing the application code by hand. The application code in this repository was written by agents in Claude Code.
+
+- **What the person decides:** what Sidekick should do and for whom, which features and workflows exist, the architecture and its boundaries, how the rooms should behave, the security and operations requirements, and whether a result is good enough to keep.
+- **What the agents do:** read the existing code, implement the change, write the tests and the documentation, and revise the work when a check or the maintainer says it falls short.
+- **What keeps it coherent:** written rules in [AGENTS.md](AGENTS.md), the [decision log](docs/decisions/log.md), strict type checking, linting, tests that enforce the architecture's boundaries, and release gates that end in signed artifacts.
+
+The checks catch certain kinds of mistake. They do not prove the code correct, and not every line is read by a person. The maintainer answers for the product's direction and for whether the result meets the requirements.
+
+These agents build Sidekick. They are not the AI you use in Sidekick, which is Claude on your own subscription or key.
+
+[Building Sidekick with AI agents](docs/explanation/ai-native-development.md) describes the method, the checks and where it is still hard.
 
 ## Run it
 

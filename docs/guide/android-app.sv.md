@@ -66,7 +66,7 @@ Appens språk är en egen inställning och följer inte telefonens språk. Svens
 
 ## Rumsraden
 
-Raden överst visar rummens namn. Under Rumsraden i Inställningar kan du välja Båda, en ikon före namnet på rummet du är i och ikoner för de andra, eller Ikoner, bara ikonerna. Text är förval. Valet sparas på telefonen. I Claude är samma val serverinställningen `SIDEKICK_MCP_APP_NAV_ICONS`: `off`, `label` eller `only`, eller `auto`, som är förval där och visar namnen där de får plats och på en telefon det som Båda visar.
+Raden överst visar varje rums ikon, och namnet på rummet du är i efter dess ikon, som i Claude på en telefon. Med stor text, eller på en surfplatta, visar den namnen i stället. Det är Auto, förvalet under Rumsraden i Inställningar. Du kan också välja Text, bara namnen; Båda, en ikon före namnet på rummet du är i och ikoner för de andra; eller Ikoner, bara ikonerna. Valet sparas på telefonen. I Claude är samma val serverinställningen `SIDEKICK_MCP_APP_NAV_ICONS`: `auto` (förval), `off`, `label` eller `only`.
 
 ## Licens i appen
 

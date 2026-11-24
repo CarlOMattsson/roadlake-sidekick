@@ -72,6 +72,7 @@ Ny här? Börja med en av de här:
 | --- | --- |
 | [Så hänger delarna ihop](explanation/overview.sv.md) | Claude och Android-appen, en server med en uppsättning regler, och PostgreSQL som källan till sanningen. |
 | [Säkerhet och integritet](explanation/security-and-privacy.sv.md) | Vem som ser vad, på vanlig svenska. |
+| [Att utveckla Sidekick med AI-agenter](explanation/ai-native-development.sv.md) | Hur en person styr AI-kodagenter, vilka kontroller som står bakom en ändring och var arbetssättet fortfarande är svårt. |
 | [Hotmodell](explanation/threat-model.md) (engelska) | Vad Sidekick skyddar, mot vem, och vilka kontroller som finns. |
 | [Licens, licensnyckel och pris](explanation/licensing.sv.md) | Licensen på vanlig svenska, vad den frivilliga nyckeln gör och de planerade priserna. |
 | [Schemabaslinjen 0.1.0](explanation/schema-baseline.sv.md) | Vad den enda baslinjemigreringen är och varför äldre installationer inte uppgraderas på plats. |

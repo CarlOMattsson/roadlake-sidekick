@@ -66,7 +66,7 @@ The app's language is its own setting and does not follow the phone's language. 
 
 ## Room bar
 
-The bar at the top shows the rooms' names. Under Room bar in Settings you can choose Both, an icon before the name of the room you are in and icons for the others, or Icons, the icons alone. Text is the default. The choice is kept on the phone. In Claude the same choice is the server setting `SIDEKICK_MCP_APP_NAV_ICONS`: `off`, `label` or `only`, or `auto`, the default there, which shows the names where there is room for them and on a phone what Both shows.
+The bar at the top shows each room's icon, and the name of the room you are in after its icon, as in Claude on a phone. With large text, or on a tablet, it shows the names instead. That is Auto, the default under Room bar in Settings. You can also choose Text, the names alone; Both, an icon before the name of the room you are in and icons for the others; or Icons, the icons alone. The choice is kept on the phone. In Claude the same choice is the server setting `SIDEKICK_MCP_APP_NAV_ICONS`: `auto` (the default), `off`, `label` or `only`.
 
 ## License in the app
 

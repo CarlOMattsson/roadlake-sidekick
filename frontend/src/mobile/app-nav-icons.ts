@@ -1,12 +1,13 @@
 /**
- * The phone's choice of what the room strip draws: the rooms' names, a glyph with each name, or the glyphs alone. In
- * Claude it is the server's setting, written into the app document (nav-icons.ts). The phone has no document from the
- * server, so the owner chooses in Inställningar, under the language. The choice is kept in the page's own storage, as
- * the language is (app-language.ts), so it outlives a restart and goes with the app's data; the shell is handed it.
- * Names alone until the owner chooses, unless the bundle declares otherwise.
+ * The phone's choice of what the room strip draws. In Claude it is the server's setting, written into the app document
+ * (nav-icons.ts). The phone has no document from the server, so the owner chooses in Inställningar, under the language.
+ * The choice is kept in the page's own storage, as the language is (app-language.ts), so it outlives a restart and goes
+ * with the app's data; the shell is handed it.
  *
- * The three choices are the modes that are the same at every width. `auto`, which follows the frame, is no choice
- * here: a phone's frame is always narrow, where it draws what `label` draws.
+ * The default is `auto`, as in Claude, so the phone app follows the same model (issue #46, the owner's decision of
+ * 2026-11-23): in a phone's frame at an ordinary text size each room's glyph, with the name in the open room only; at
+ * large text, or on a tablet's wider frame, the names alone. The other three are the modes that are the same at every
+ * width: the names alone, a glyph with each name, or the glyphs alone. A bundle that declares a mode starts in it.
  */
 import { useState } from "react";
 
@@ -17,6 +18,7 @@ import {
 } from "@/features/mcp-apps/nav-icons";
 
 export const APP_NAV_ICON_CHOICES = [
+  "auto",
   "off",
   "label",
   "only",
@@ -40,7 +42,7 @@ function stored(): AppNavIcons | undefined {
 /** The choice the app starts with, and how to change it: kept first, then drawn. */
 export function useAppNavIcons(): [AppNavIcons, (next: AppNavIcons) => void] {
   const [icons, setIcons] = useState(
-    () => stored() ?? choiceFrom(declaredNavIcons()) ?? "off",
+    () => stored() ?? choiceFrom(declaredNavIcons()) ?? "auto",
   );
   const choose = (next: AppNavIcons) => {
     try {

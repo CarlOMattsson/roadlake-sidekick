@@ -45,6 +45,7 @@ function platformFor(): MobilePlatform {
 
 afterEach(() => {
   cleanup();
+  vi.restoreAllMocks();
   localStorage.clear();
   document.head.innerHTML = "";
 });
@@ -79,11 +80,13 @@ describe("the room bar choice in Inställningar", () => {
     expect(settingsLabelsSv.stripHeading).toBe("Rumsraden");
     expect(settingsLabelsEn.stripHeading).toBe("Room bar");
     expect(settingsLabelsSv.strip).toEqual({
+      auto: "Auto",
       off: "Text",
       label: "Båda",
       only: "Ikoner",
     });
     expect(settingsLabelsEn.strip).toEqual({
+      auto: "Auto",
       off: "Text",
       label: "Both",
       only: "Icons",
@@ -91,7 +94,7 @@ describe("the room bar choice in Inställningar", () => {
   });
 
   it.each(LOCALES)(
-    "draws three options in %s with the current one pressed",
+    "draws four options in %s with the current one pressed",
     (locale, labels) => {
       panel(locale, { value: "label", onChange: vi.fn() });
       expect(
@@ -100,6 +103,7 @@ describe("the room bar choice in Inställningar", () => {
       const group = screen.getByRole("group", { name: labels.stripHeading });
       const buttons = within(group).getAllByRole("button");
       expect(buttons.map((button) => button.textContent)).toEqual([
+        labels.strip.auto,
         labels.strip.off,
         labels.strip.label,
         labels.strip.only,
@@ -108,7 +112,7 @@ describe("the room bar choice in Inställningar", () => {
         buttons.filter(
           (button) => button.getAttribute("aria-pressed") === "true",
         ),
-      ).toEqual([buttons[1]]);
+      ).toEqual([buttons[2]]);
     },
   );
 
@@ -131,7 +135,11 @@ describe("the room bar choice in Inställningar", () => {
         within(group).getByRole("button", { name: labels.strip.label }),
       );
       expect(onChange).toHaveBeenLastCalledWith("label");
-      expect(onChange).toHaveBeenCalledTimes(2);
+      await user.click(
+        within(group).getByRole("button", { name: labels.strip.auto }),
+      );
+      expect(onChange).toHaveBeenLastCalledWith("auto");
+      expect(onChange).toHaveBeenCalledTimes(3);
     },
   );
 
@@ -183,7 +191,13 @@ describe("the room bar choice in the mobile app", () => {
     await screen.findByRole("heading", { name: "Inställningar" });
   }
 
-  it("starts with the names alone", async () => {
+  // jsdom has no frame width, so `auto` is a phone's frame only where a test gives the frame one.
+  function phoneWidth() {
+    vi.spyOn(HTMLElement.prototype, "clientWidth", "get").mockReturnValue(390);
+  }
+
+  it("starts in auto: the names alone where the frame is not a phone's", async () => {
+    const user = userEvent.setup();
     app();
     await ready();
     expect(strip()).not.toHaveAttribute("data-icons");
@@ -193,6 +207,32 @@ describe("the room bar choice in the mobile app", () => {
       expect(cell.querySelector("svg")).toBeNull();
     }
     expect(localStorage.getItem(APP_NAV_ICONS_KEY)).toBeNull();
+    await openSettings(user);
+    expect(screen.getByRole("button", { name: "Auto" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+  });
+
+  it("starts in auto: in a phone's frame each room's glyph, with the name in the open room only", async () => {
+    phoneWidth();
+    app();
+    await ready();
+    expect(strip()).toHaveAttribute("data-icons", "label");
+    const cells = roomCells();
+    expect(cells.length).toBeGreaterThan(1);
+    const open = cells.filter(
+      (cell) => cell.getAttribute("aria-current") === "page",
+    );
+    expect(open).toHaveLength(1);
+    for (const cell of cells) {
+      expect(cell.querySelector("svg")).not.toBeNull();
+      expect(cell).toHaveAttribute("aria-label");
+      // The open room draws its name; every other cell is its glyph, named in a tooltip as well.
+      if (cell === open[0]) expect(cell).not.toHaveAttribute("title");
+      else
+        expect(cell).toHaveAttribute("title", cell.getAttribute("aria-label"));
+    }
   });
 
   it("switches the strip to glyphs alone and keeps the choice", async () => {
@@ -225,7 +265,7 @@ describe("the room bar choice in the mobile app", () => {
     }
   });
 
-  it("starts with names alone when the kept value is none of the three", async () => {
+  it("starts in auto when the kept value is none of the four", async () => {
     localStorage.setItem(APP_NAV_ICONS_KEY, "sparkles");
     app();
     await ready();
@@ -235,8 +275,9 @@ describe("the room bar choice in the mobile app", () => {
     }
   });
 
-  it("ignores a kept auto, which a phone's choice does not offer, and starts with names alone", async () => {
-    localStorage.setItem(APP_NAV_ICONS_KEY, "auto");
+  it("keeps the names alone once Text is chosen, in a phone's frame too", async () => {
+    phoneWidth();
+    localStorage.setItem(APP_NAV_ICONS_KEY, "off");
     app();
     await ready();
     expect(strip()).not.toHaveAttribute("data-icons");

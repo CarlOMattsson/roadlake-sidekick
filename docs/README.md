@@ -72,6 +72,7 @@ New here? Start with one of these:
 | --- | --- |
 | [How the parts fit together](explanation/overview.md) | Claude and the Android app, one server with one set of rules, and PostgreSQL as the source of truth. |
 | [Security and privacy](explanation/security-and-privacy.md) | Who sees what, in plain words. |
+| [Building Sidekick with AI agents](explanation/ai-native-development.md) | How one person directs AI coding agents, which checks stand behind a change, and where the method is still hard. |
 | [Threat model](explanation/threat-model.md) | What Sidekick protects, from whom, and which controls are in place. |
 | [License, license key and price](explanation/licensing.md) | The license in plain words, what the optional key does, and the planned prices. |
 | [The 0.1.0 schema baseline](explanation/schema-baseline.md) | What the single baseline migration is and why older installations are not upgraded in place. |

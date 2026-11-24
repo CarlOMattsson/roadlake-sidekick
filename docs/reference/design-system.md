@@ -157,10 +157,10 @@ layer 8 past the row on each side with radius 8, so the text stands still, and t
 ## 3. Components
 
 **Room strip (Rumsremsan).** A room stands where its use puts it, not where its subject would: the rooms used several
-times a week are equal tabs (`flex: 1 1 0`, never narrower than their name), Arbete · Dagbok · Inköp, most used
-first, then the last cell **Mer ⌄** with the rooms used about once a week or less (Kontakter). The row holds at most
-four rooms and Mer, the five cells a 360 frame has room for in both languages; the fourth place is the start view's,
-and a room that would be a fifth is a row of Mer. A daily habit that needs no room of its own (the day's review) is a
+times a week are equal tabs (`flex: 1 1 0`, never narrower than their name), Start · Arbete · Dagbok · Inköp, the
+start view first and then the most used, then the last cell **Mer ⌄** with the rooms used about once a week or less
+(Kontakter). The row holds at most four rooms and Mer, the five cells a 360 frame has room for in both languages, and
+a room that would be a fifth is a row of Mer. A daily habit that needs no room of its own (the day's review) is a
 block of the start view, never a cell. The room of an opt-in feature is drawn only while the instance has it on
 (`SIDEKICK_ENABLED_ROOMS`), in the row or in Mer by the same rule. The order is fixed at design time and never
 follows use, so no cell moves under the thumb. Mer opens the one `Menu`: a popover under the
@@ -187,7 +187,8 @@ place and its width whichever room is open. At large text (a frame of 17.25 rem 
 stand alone again: they are large enough there, and the chrome keeps its bound. The placeholder before the first
 result draws the same strip (`awaiting.css`), so nothing moves when the room arrives. The instance may choose one
 face for every width instead (`SIDEKICK_MCP_APP_NAV_ICONS`, written into the app document as `sidekick-nav-icons`),
-and on the phone app the owner chooses (Inställningar → Rumsraden: Text · Båda · Ikoner): `off` is the names alone at
+and on the phone app the owner chooses (Inställningar → Rumsraden: Auto · Text · Båda · Ikoner, Auto the default, so
+the phone app draws what Claude draws on a phone): `off` is the names alone at
 every width; `label` is a glyph 6 before each name, and in a frame of 32 rem or less what `auto` draws there; `only`
 draws the glyph alone, each cell named in `aria-label` and `title`. The strip is 40 and every target 48 in all of
 them. In the wide head `only` makes every cell 48 wide. The glyphs are one family in

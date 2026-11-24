@@ -9,7 +9,7 @@
 <a href="backend/pyproject.toml"><img src="https://img.shields.io/badge/lint-ruff-informational" alt="Lint och formatering: ruff"></a>
 <a href="frontend/tsconfig.app.json"><img src="https://img.shields.io/badge/types-TypeScript%20strict-informational" alt="Typkontroll: TypeScript strict"></a>
 <a href="frontend/android/app/build.gradle"><img src="https://img.shields.io/badge/Kotlin%20style-ktlint-informational" alt="Kotlin-stil: ktlint"></a>
-<a href="https://github.com/CarlOMattsson/roadlake-sidekick/actions/workflows/ci.yml"><img src="https://github.com/CarlOMattsson/roadlake-sidekick/actions/workflows/ci.yml/badge.svg?branch=main" alt="CI: status för senaste körningen som startats för hand"></a>
+<a href="https://github.com/CarlOMattsson/roadlake-sidekick/actions/workflows/ci.yml"><img src="https://github.com/CarlOMattsson/roadlake-sidekick/actions/workflows/ci.yml/badge.svg?branch=main" alt="CI: status för senaste körningen på main"></a>
 <a href="https://scorecard.dev/viewer/?uri=github.com/CarlOMattsson/roadlake-sidekick"><img src="https://api.scorecard.dev/projects/github.com/CarlOMattsson/roadlake-sidekick/badge" alt="OpenSSF Scorecard"></a>
 <a href="https://github.com/CarlOMattsson/roadlake-sidekick/releases/latest"><img src="https://img.shields.io/github/v/release/CarlOMattsson/roadlake-sidekick?sort=semver" alt="Senaste release"></a>
 <a href="https://github.com/CarlOMattsson/roadlake-sidekick/actions/workflows/release-image.yml"><img src="https://github.com/CarlOMattsson/roadlake-sidekick/actions/workflows/release-image.yml/badge.svg?branch=main" alt="Arbetsflödet release-image: senaste körningen som byggde, skannade och signerade imagen"></a>
@@ -107,6 +107,20 @@ Rummen på svenska, som är standardspråket, med påhittade exempeldata i en si
 ## Så hänger det ihop
 
 Claude och Android-appen pratar med en och samma Sidekick-server. Servern tillämpar samma regler för varje anrop och lagrar dina poster i PostgreSQL, med valfritt minne och påminnelser runt omkring. [Så hänger delarna ihop](docs/explanation/overview.sv.md) förklarar varje del, med ett diagram.
+
+## Så byggs Sidekick
+
+Sidekick utvecklas och underhålls av en person, Carl O Mattsson, som styr AI-kodagenter i stället för att skriva applikationskoden för hand. Applikationskoden i det här repot är skriven av agenter i Claude Code.
+
+- **Det människan bestämmer:** vad Sidekick ska göra och för vem, vilka funktioner och arbetsflöden som finns, arkitekturen och dess gränser, hur rummen ska bete sig, kraven på säkerhet och drift, och om ett resultat duger.
+- **Det agenterna gör:** läser in sig på den befintliga koden, genomför ändringen, skriver tester och dokumentation och gör om arbetet när en kontroll eller underhållaren säger att det inte håller.
+- **Det som håller ihop helheten:** skrivna regler i [AGENTS.md](AGENTS.md), [beslutsloggen](docs/decisions/log.md), strikt typkontroll, lint, tester som vaktar arkitekturens gränser och releasekontroller som slutar i signerade filer.
+
+Kontrollerna fångar vissa sorters fel. De bevisar inte att koden är rätt, och varje rad läses inte av en människa. Underhållaren ansvarar för produktens riktning och för om resultatet uppfyller kraven.
+
+Agenterna bygger Sidekick. De är inte den AI du använder i Sidekick, som är Claude med ditt eget abonnemang eller din egen nyckel.
+
+[Att utveckla Sidekick med AI-agenter](docs/explanation/ai-native-development.sv.md) beskriver arbetssättet, kontrollerna och det som fortfarande är svårt.
 
 ## Kör Sidekick
 

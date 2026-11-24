@@ -14,7 +14,7 @@ export type SettingsLabels = {
   notificationsHeading: string;
   /** The heading over Svenska | English. */
   languageHeading: string;
-  /** The heading over the choice of what the room strip draws, and its three options (app-nav-icons.ts). */
+  /** The heading over the choice of what the room strip draws, and its four options (app-nav-icons.ts). */
   stripHeading: string;
   strip: Record<AppNavIcons, string>;
   /** By the state `pushStatus` reads. */
@@ -70,7 +70,7 @@ export const settingsLabelsSv: SettingsLabels = {
   notificationsHeading: "Aviseringar",
   languageHeading: "Språk",
   stripHeading: "Rumsraden",
-  strip: { off: "Text", label: "Båda", only: "Ikoner" },
+  strip: { auto: "Auto", off: "Text", label: "Båda", only: "Ikoner" },
   push: {
     on: "Aviseringar är på.",
     install:
@@ -126,7 +126,7 @@ export const settingsLabelsEn: SettingsLabels = {
   notificationsHeading: "Notifications",
   languageHeading: "Language",
   stripHeading: "Room bar",
-  strip: { off: "Text", label: "Both", only: "Icons" },
+  strip: { auto: "Auto", off: "Text", label: "Both", only: "Icons" },
   push: {
     on: "Notifications are on.",
     install:
