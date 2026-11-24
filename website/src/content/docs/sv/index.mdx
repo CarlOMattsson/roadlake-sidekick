@@ -13,7 +13,7 @@ import PageLink from '../../../components/PageLink.astro';
 import { productVersion } from '../../../lib/site';
 
 <Hero
-  status={`Första versionen ${productVersion()} · inte släppt än`}
+  status={`Version ${productVersion()} · signerade releaser på GitHub`}
   title="Din vardag i Claude, sparad på din egen server"
   lead="Sidekick håller ordning på uppgifter, dagbok, kontakter och inköp. Du pratar med Claude, och allt sparas i din egen databas."
   primary={{ label: 'Kom igång', page: ['docs/start', 'docs'] }}
@@ -43,18 +43,33 @@ import { productVersion } from '../../../lib/site';
   </ul>
 </Section>
 
-<Section title="Fyra rum, en databas">
+<Section
+  title="Fem rum, en databas"
+  lead="Start samlar det som väntar på dig: dagens uppgifter att bocka av, vem du väntar på, en kort insikt om dagen, samtal som är redo att starta med Claude och förslag att godkänna. Start är nytt och kommer med nästa release. Här är de fyra andra rummen."
+>
   <RoomStrip
     rooms={[
-      { name: 'work-status-board-dark', title: 'Arbete', text: 'Agenda, statustavla, projekt, uppgifter och steg, med datum, prioritet och taggar.', alt: 'Rummet Arbete med statustavlan i mörkt läge och en grupp med påhittade uppgifter att göra.' },
-      { name: 'journal-day', title: 'Dagbok', text: 'Flera inlägg per dag, skrivna av dig eller av Claude, med taggar och en sammanfattning av dagen.', alt: 'Rummet Dagbok med en dag, veckonavigering, en sammanfattning av dagen och ett inlägg.' },
+      { name: 'work-status-board-dark', title: 'Arbete', text: 'Agenda, statustavla, projekt, uppgifter och steg, med datum och klockslag, prioritet, taggar, återkommande regler och vem du väntar på.', alt: 'Rummet Arbete med statustavlan i mörkt läge och en grupp med påhittade uppgifter att göra.' },
+      { name: 'journal-day', title: 'Dagbok', text: 'Flera inlägg per dag, skrivna av dig eller av Claude, med taggar, en sammanfattning av dagen och en veckovy.', alt: 'Rummet Dagbok med en dag, veckonavigering, en sammanfattning av dagen och ett inlägg.' },
       { name: 'contact', title: 'Kontakter', text: 'Personer och organisationer med taggar, kopplade till uppgifter, projekt och dagboksinlägg.', alt: 'Rummet Kontakter med en påhittad leverantör, med roll, organisation och anteckningar.' },
-      { name: 'shopping-list', title: 'Inköp', text: 'Listor med antal och butiksgrupper, där du bockar av det du köpt och kan ångra.', alt: 'Rummet Inköp med en lista grupperad per butik, med antal och hur mycket som är köpt.' },
+      { name: 'shopping-list', title: 'Inköp', text: 'Listor med antal och butiksgrupper. Du bockar av, ändrar antal med + och −, flyttar varor mellan listor och kan ångra.', alt: 'Rummet Inköp med en lista grupperad per butik, med antal och hur mycket som är köpt.' },
     ]}
     note="Simulerad värd, påhittade data. Bilderna är inte tagna i Claude."
   />
-  <p class="sec__more">Android-appen visar Arbete, Dagbok och Inköp ur samma databas, och Idag-widgeten visar dagens uppgifter på hemskärmen. Från och med första releasen har varje release en signerad APK att installera. Du kan också bygga appen själv ur källkoden.</p>
+  <p class="sec__more">Android-appen visar Arbete, Dagbok och Inköp ur samma databas, och där kan du skapa och ändra uppgifter, inlägg och varor. Det du skriver utan nät sparas och skickas när telefonen är uppkopplad igen. Idag-widgeten visar dagens uppgifter på hemskärmen, och påminnelser kommer via ntfy. Varje release har en signerad APK att installera, och du kan också bygga appen själv ur källkoden.</p>
   <p><PageLink page={['docs/guide/android-app', 'docs/android', 'docs']}>Läs om Android-appen <span aria-hidden="true">›</span></PageLink></p>
+</Section>
+
+<Section title="Claude föreslår, du godkänner">
+  <p>Det som ska ändras utan att du själv gör det blir ett förslag, och du bestämmer med ett tryck i appen.</p>
+  <ul>
+    <li><strong>AI-steg:</strong> Claude kan planera stegen i en uppgift. Du godkänner planen, stegen körs och du granskar resultatet.</li>
+    <li><strong>Automationer:</strong> stående instruktioner som körs i den takt du väljer. En automation körs först när du har godkänt exakt den version som visas, och en ändring kräver ett nytt godkännande.</li>
+    <li><strong>Förslagsinkorgen i Start:</strong> förslagen delas upp i säkra grupper, som du godkänner högst tre åt gången, och i förslag att granska. Det du har godkänt eller avfärdat kan du ångra.</li>
+    <li><strong>Redo att prata:</strong> ett färdigt samtal, till exempel en genomgång av dagen, väntar i Start när det är dags. Du startar det med Claude eller hoppar över det i dag.</li>
+  </ul>
+  <p class="sec__more">Inget tillämpas av sig självt om du inte slår på det för en automation, med ett eget bekräftelsesteg och fasta tak. Automationerna, förslagsinkorgen och Redo att prata kommer med nästa release.</p>
+  <p><PageLink page="ai-costs">Läs vad AI kostar <span aria-hidden="true">›</span></PageLink></p>
 </Section>
 
 <Section band title="Du bestämmer vad som delas">
@@ -76,9 +91,9 @@ import { productVersion } from '../../../lib/site';
       <PageLink page="pricing" class="btn btn--secondary">Se priser</PageLink>
     </div>
     <div class="card">
-      <h2>Första versionen</h2>
-      <p>Sidekick {productVersion()} är den första versionen. Den används dagligen med Claude, med Android-appen på en riktig telefon och på Linux; macOS är ännu inte provat. Fram till första releasen bygger du containeravbilden och APK:n ur källkoden; därefter har varje release en signerad avbild och en signerad APK. Räkna med ojämnheter och ändringar som bryter bakåt tills en version är släppt.</p>
-      <p class="card__follow"><PageLink page={['docs/maintainers/release', 'docs/release', 'docs']}>Läs hela statusen för första versionen <span aria-hidden="true">›</span></PageLink></p>
+      <h2>Status</h2>
+      <p>Sidekick används dagligen med Claude, med Android-appen på en riktig telefon och på Linux; macOS är ännu inte provat. Varje release på GitHub har en signerad containeravbild och en signerad APK. Före version 1.0 kan en release ändra saker på sätt som bryter bakåt, så läs ändringsloggen innan du uppdaterar.</p>
+      <p class="card__follow"><PageLink page={['docs/maintainers/release', 'docs/release', 'docs']}>Läs om releaserna och vad som är verifierat <span aria-hidden="true">›</span></PageLink></p>
     </div>
   </div>
 </Section>

@@ -26,7 +26,7 @@
   "site.footer.security": "Security",
   "site.footer.contribute": "Contribute",
   "site.footer.licenseNote": "Source available, not open source. The license text governs.",
-  "site.footer.version": "Version {{version}} · not released yet",
+  "site.footer.version": "Version {{version}}",
   "site.footer.noTracking": "No cookies, no tracking, no third-party scripts",
   "site.list.yes": "Yes:",
   "site.list.no": "No:",

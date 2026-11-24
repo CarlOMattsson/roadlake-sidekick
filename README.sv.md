@@ -32,7 +32,8 @@ Roadlake Sidekick är en personlig assistent som du kör på din egen server: du
 > **Status: version 0.2.1.** Den signerade containerimagen och den signerade APK:n ligger som bilagor
 > i [senaste releasen](https://github.com/CarlOMattsson/roadlake-sidekick/releases/latest); hur du verifierar dem står i
 > [Verifiera en release](docs/maintainers/release.sv.md#verifiera-en-release). Den används dagligen med Claude, med
-> Android-appen på en riktig telefon och på Linux; macOS är ännu inte provat.
+> Android-appen på en riktig telefon och på Linux; macOS är ännu inte provat. Grenen `main` har gått vidare sedan 0.2.1:
+> rummet Start, förslag från automationer och dagboksfoton finns i koden och kommer med nästa release.
 
 Sidekick samlar arbete och uppgifter, dagbok, inköp och kontakter i ett självhostat, MCP-först system för en person.
 Du pratar med det via Claude, och interaktiva MCP-appar (rum) öppnas i samtalet när du vill arbeta med resultatet.
@@ -46,13 +47,20 @@ PostgreSQL-databas.
 
 | Område | Funktioner |
 | --- | --- |
-| **Arbete** | Agenda, statustavla, domäner, processer, projekt, uppgifter, steg och deras åtgärder; datum, prioritet, taggar, uppskattning, väntar-på och återkommande arbete. |
-| **Dagbok** | Flera anteckningar per dag, egen skrivning och redigering, anteckningar och sammanfattningar skrivna av Claude, taggar, länkad kontext. |
-| **Kontakter** | Personer, organisationer, roller, kontaktvägar, relationsanteckningar och taggar, länkade till uppgifter, projekt och dagboksanteckningar. |
-| **Inköp** | Listor, mängder, butiksgrupper, avprickning och ångra, presentmottagare bland dina kontakter. |
+| **Start** | Det första rummet: det som behöver uppmärksamhet nu (`get_start`), dagens uppgifter att bocka av med Ångra, en inkorg med förslag och dina automationer. Säkra förslag godkänns i grupper om högst tre, resten väntar under en rubrik för granskning med den oberoende kontrollens utslag, och varje godkännande lämnar ett kvitto med Ångra. |
+| **Arbete** | Agenda, statustavla, domäner, processer, projekt, uppgifter, steg och deras åtgärder; datum och klockslag, prioritet, taggar, uppskattning, väntar-på och uppföljning, och återkommande arbete (valda veckodagar, varannan vecka, sista vardagen i månaden). Granskningskort i Claude går igenom många uppgifter en i taget. |
+| **Dagbok** | Flera anteckningar per dag, egen skrivning och redigering, anteckningar och sammanfattningar skrivna av Claude, taggar, länkad kontext, en dagvy och en veckovy måndag till söndag, och foton på en anteckning eller en dag med tid, plats och kamera. |
+| **Kontakter** | Personer, organisationer, roller, kontaktvägar, relationsanteckningar och taggar, länkade till uppgifter, projekt och dagboksanteckningar; vem du väntar på och när personen senast fanns i dagboken. |
+| **Inköp** | Listor, mängder med + och −, butiksgrupper, flytt av en vara till en annan lista, avprickning och ångra, presentmottagare bland dina kontakter. |
+| **AI-steg** | Lämna en uppgift till AI: Claude gör en plan med steg för dig och för AI, du godkänner den i appen, och AI-stegen körs inom kostnadstak och ett begränsat antal försök, med varje resultat för dig att godta eller göra om. |
+| **Automationer** | Återkommande AI-arbete som bara föreslår: du godkänner varje automations specifikation, dess körningar sparar förslag, och inget ändras förrän du har bestämt dig. Att tillämpa förslag som kontrollen har släppt igenom utan klick är avslaget som förval och kräver en separat bekräftelse. |
+| **Färdiga samtal** | Stående uppmaningar, till exempel en morgongenomgång, som Claude kan erbjuda enligt ett schema; en instruktion du inte själv har skrivit visas som overifierad text. |
 | **Kontroll** | Papperskorg och återställning, senaste ändringar och kontroller för Sidekicks minne. Permanent radering är inget publikt verktyg. |
 | **Minne** | Valfritt Hindsight-minne härlett från dina poster, med omkopplare per källa, paus och undantag per post. |
-| **Android** | Parkoppling, en Idag-widget, rummen Arbete, Dagbok och Inköp, påminnelser via UnifiedPush (ntfy). |
+| **Android** | Parkoppling, rummen Arbete, Dagbok och Inköp (bocka av, lägga till och ändra uppgifter, skriva dagbok, sköta listor), en papperskorg med ångra, en Idag-widget och påminnelser via UnifiedPush genom din egen härdade ntfy-server, med ntfy.sh som reserv. |
+
+På en bred skärm visar rumsremsan varje rums namn; på en telefon visar det öppna rummet ikon och namn, och de andra
+bara en ikon.
 
 MCP-appernas texter är på svenska som standard (`SIDEKICK_MCP_APP_LOCALE=sv`); sätt `SIDEKICK_MCP_APP_LOCALE=en` på
 servern för engelska. Android-appen har en egen språkinställning; se [Språk](docs/reference/languages.sv.md#android-appen).
@@ -70,12 +78,18 @@ Det effektivaste sättet att använda Sidekick är att prata med Claude i röstl
 
 Claude arbetar genom en kurerad uppsättning MCP-verktyg, så du frågar på vanlig svenska och Claude väljer verktyget. Kärnverktygen per rum (alla finns i [MCP-verktygsreferensen](docs/reference/mcp/index.md), på engelska):
 
-- **Överblick:** `get_today_brief` för det som är viktigt idag, `search` över dina poster, `list_recent_changes` för vad som ändrats.
+- **Start och överblick:** `get_start` öppnar rummet Start, `get_today_brief` för det som är viktigt idag, `search` över dina poster, `list_recent_changes` för vad som ändrats.
 - **Arbete:** `get_work_agenda` och `get_work_board`, `list_tasks`, `create_task` och `update_task`, samt steg, projekt och processer.
 - **Dagbok:** `write_journal_entry`, `get_journal_day` och `list_journal_entries`, och `set_daily_journal_summary` för dagens sammanfattning.
 - **Kontakter:** `list_contacts`, `create_contact` och `get_contact_context`, med länkar till uppgifter och projekt.
 - **Inköp:** `get_shopping_list`, `add_shopping_items` och `set_shopping_items_purchased`.
+- **AI-steg:** `set_ai_plan` och `get_ai_plan`, `start_ai_step` och `review_ai_step_result`.
+- **Automationer och förslag:** `save_automation` gör ett utkast, `start_automation_run` och `record_automation_results` kör det, `list_suggestions` och `decide_suggestions` (högst tre åt gången, när du ber om det) tar hand om det som hittades, och `undo_suggestion` tar tillbaka ett godkännande.
 - **Kontroll och minne:** `move_to_trash` och `restore_from_trash`, och `recall_memory` när det valfria minnet är på.
+
+Vissa beslut är bara dina: att godkänna en AI-plan, en automation eller en grupp säkra förslag görs i rummet, inte
+genom ett verktyg som Claude kan anropa. Appen visar servern att beslutet är ditt med en signerad engångsbiljett som
+gäller i 15 minuter.
 
 ## Så ser det ut
 
@@ -108,7 +122,7 @@ Det finns två sätt. Välj efter var Claude ska köra.
 
 **2. Egen server som Claude når på webben och i mobilen.** Du kör Sidekick på en Linux x86_64-dator med Docker Compose, en VPS eller en hemdator som alltid är på. Den här vägen kräver en Claude-plan som stöder egna connectors, en publik HTTPS-adress till servern (en domän eller en tunnel dit; enbart åtkomst i lokalnätet räcker inte) och ett GitHub-konto (används för inloggning). Det är också vägen för Android-appen. Guide: [Första start på en server](docs/start/self-hosted-server.sv.md#första-start).
 
-Sidekick skickar ingen telemetri eller analys; det kontaktar bara de tjänster du själv konfigurerar (GitHub-inloggning, push och modelltjänsten för det valfria Hindsight-minnet).
+Sidekick skickar ingen telemetri eller analys; det kontaktar bara de tjänster du själv konfigurerar (GitHub-inloggning, push och modelltjänsterna för det valfria Hindsight-minnet, AI-steg och automationer).
 
 ### Mer om den självhostade servern
 
@@ -117,8 +131,10 @@ Sidekick skickar ingen telemetri eller analys; det kontaktar bara de tjänster d
   genererar dina hemligheter, skapar ägaren och registrerar GitHub-inloggningen före första `up`. Profiler: `vps` (Caddy
   terminerar TLS på din domän) eller ingen (hemma: ordna en egen publik HTTPS-tunnel till `127.0.0.1:8000`).
 
-  Valfria profiler: `memory` (privat Hindsight), `backup` (krypterade ägarexporter) och `push` (påminnelser via
-  en härdad egen ntfy). `update.sh` kör som standard en torrkörning och verifierar en signerad, digest-låst
+  Valfria profiler: `tailscale` (publik HTTPS för en hemdator via Tailscale Funnel), `memory` (privat Hindsight),
+  `backup` (krypterade ägarexporter, med dagboksfotona), `push` (påminnelser via en härdad egen ntfy) och `ai` (kör
+  godkända AI-steg på servern med din egen Anthropic-nyckel); se
+  [Compose-profiler och filer](docs/reference/selfhost-profiles.sv.md). `update.sh` kör som standard en torrkörning och verifierar en signerad, digest-låst
   image innan något tillämpas. Backuper omfattar ägarens produktdata, inte en hel serverimage; ta en kopia
   utanför servern. Hur du kopplar Claude till den körande servern står i
   [Anslut Claude](docs/operate/connect-claude.sv.md). Hur du parar Android-appen står i

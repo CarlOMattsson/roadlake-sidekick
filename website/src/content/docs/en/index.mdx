@@ -13,7 +13,7 @@ import PageLink from '../../../components/PageLink.astro';
 import { productVersion } from '../../../lib/site';
 
 <Hero
-  status={`Version ${productVersion()} · not released yet`}
+  status={`Version ${productVersion()} · signed releases on GitHub`}
   title="Your day in Claude, stored on your server"
   lead="Sidekick keeps track of your tasks, journal, contacts and shopping. You talk to Claude, and everything is saved in your own database."
   primary={{ label: 'Get started', page: ['docs/start', 'docs'] }}
@@ -43,18 +43,33 @@ import { productVersion } from '../../../lib/site';
   </ul>
 </Section>
 
-<Section title="Four rooms, one database">
+<Section
+  title="Five rooms, one database"
+  lead="Home gathers what is waiting for you: today's tasks to tick off, who you are waiting on, a short insight into your day, conversations ready to start with Claude, and suggestions to approve. Home is new and comes with the next release. Here are the other four rooms."
+>
   <RoomStrip
     rooms={[
-      { name: 'work-status-board-dark', title: 'Work', text: 'An agenda, a status board, projects, tasks and steps, with dates, priorities and tags.', alt: 'The Work room with the status board in dark mode and a To do group of fictitious tasks.' },
-      { name: 'journal-day', title: 'Journal', text: 'Several entries a day, written by you or by Claude, with tags and a summary of the day.', alt: 'The Journal room showing one day with week navigation, a daily summary and an entry.' },
+      { name: 'work-status-board-dark', title: 'Work', text: 'An agenda, a status board, projects, tasks and steps, with dates and times, priorities, tags, repeat rules and who you are waiting on.', alt: 'The Work room with the status board in dark mode and a To do group of fictitious tasks.' },
+      { name: 'journal-day', title: 'Journal', text: 'Several entries a day, written by you or by Claude, with tags, a summary of the day and a week view.', alt: 'The Journal room showing one day with week navigation, a daily summary and an entry.' },
       { name: 'contact', title: 'Contacts', text: 'People and organisations with tags, linked to tasks, projects and journal entries.', alt: 'The Contacts room showing a fictitious supplier with role, organisation and notes.' },
-      { name: 'shopping-list', title: 'Shopping', text: 'Lists with quantities and store groups, where you tick off what you bought and can undo it.', alt: 'The Shopping room showing a list grouped by store, with quantities and purchase progress.' },
+      { name: 'shopping-list', title: 'Shopping', text: 'Lists with quantities and store groups. Tick items off, change amounts with + and −, move items between lists, and undo.', alt: 'The Shopping room showing a list grouped by store, with quantities and purchase progress.' },
     ]}
     note="Simulated host, fictitious data, Swedish interface. The screenshots were not taken in Claude."
   />
-  <p class="sec__more">The Android app shows Work, Journal and Shopping from the same database, and the Today widget puts today's tasks on your home screen. From the first release on, every release has a signed APK to install. You can also build the app from the source code.</p>
+  <p class="sec__more">The Android app shows Work, Journal and Shopping from the same database, and you can create and edit tasks, entries and items there. What you write without a network is kept and sent when the phone is back online. The Today widget puts today's tasks on your home screen, and reminders arrive through ntfy. Every release has a signed APK to install, and you can also build the app from the source code.</p>
   <p><PageLink page={['docs/guide/android-app', 'docs/android', 'docs']}>Read about the Android app <span aria-hidden="true">›</span></PageLink></p>
+</Section>
+
+<Section title="Claude suggests, you approve">
+  <p>Anything that would change without you doing it yourself becomes a suggestion, and you decide with one tap in the app.</p>
+  <ul>
+    <li><strong>AI steps:</strong> Claude can plan the steps of a task. You approve the plan, the steps run, and you review the result.</li>
+    <li><strong>Automations:</strong> standing instructions that run at the pace you choose. An automation runs only once you have approved the exact version shown, and any change needs your approval again.</li>
+    <li><strong>The suggestion inbox in Home:</strong> suggestions are split into safe groups, which you approve at most three at a time, and suggestions to review. Whatever you approved or dismissed, you can undo.</li>
+    <li><strong>Ready to talk:</strong> a prepared conversation, such as a review of your day, waits in Home when it is due. You start it with Claude or skip it for today.</li>
+  </ul>
+  <p class="sec__more">Nothing is applied on its own unless you turn that on for an automation, with a separate confirmation step and fixed caps. Automations, the suggestion inbox and Ready to talk come with the next release.</p>
+  <p><PageLink page="ai-costs">Read what AI costs <span aria-hidden="true">›</span></PageLink></p>
 </Section>
 
 <Section band title="You decide what is shared">
@@ -76,9 +91,9 @@ import { productVersion } from '../../../lib/site';
       <PageLink page="pricing" class="btn btn--secondary">See prices</PageLink>
     </div>
     <div class="card">
-      <h2>First release</h2>
-      <p>Sidekick {productVersion()} is the first version. It is in daily use with Claude, with the Android app on a real phone and on Linux; macOS has not been tried yet. Until the first release you build the container image and the APK from the source code; from then on, every release has a signed image and a signed APK. Expect rough edges and breaking changes until a version is released.</p>
-      <p class="card__follow"><PageLink page={['docs/maintainers/release', 'docs/release', 'docs']}>Read the full release status <span aria-hidden="true">›</span></PageLink></p>
+      <h2>Status</h2>
+      <p>Sidekick is in daily use with Claude, with the Android app on a real phone and on Linux; macOS has not been tried yet. Every release on GitHub has a signed container image and a signed APK. Before version 1.0 a release may make breaking changes, so read the changelog before you update.</p>
+      <p class="card__follow"><PageLink page={['docs/maintainers/release', 'docs/release', 'docs']}>Read about releases and what has been verified <span aria-hidden="true">›</span></PageLink></p>
     </div>
   </div>
 </Section>

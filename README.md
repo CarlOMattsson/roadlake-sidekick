@@ -32,7 +32,8 @@ Roadlake Sidekick is a personal assistant you run on your own server: you ask Cl
 > **Status: version 0.2.1.** The signed container image and the signed APK are attached to the
 > [latest release](https://github.com/CarlOMattsson/roadlake-sidekick/releases/latest); how to verify them is in
 > [Verifying a release](docs/maintainers/release.md#verifying-a-release). It is in daily use with Claude, with the
-> Android app on a real phone and on Linux; macOS has not been tried yet.
+> Android app on a real phone and on Linux; macOS has not been tried yet. The `main` branch has moved on since 0.2.1:
+> the Start room, suggestions from automations and journal photos are in the code and ship with the next release.
 
 Sidekick brings work and tasks, journal, shopping and contacts together in one self-hosted, MCP-first system for one
 person. You talk to it through Claude, and interactive MCP Apps rooms open inside the conversation when you want to
@@ -46,15 +47,22 @@ your own PostgreSQL database.
 
 | Area | Capabilities |
 | --- | --- |
-| **Work** | Agenda, status board, domains, processes, projects, tasks, steps and their actions; dates, priorities, tags, estimates, waiting context and recurring work. |
-| **Journal** | Several entries per day, manual writing and editing, entries and summaries written by Claude, tags, linked context. |
-| **Contacts** | People, organisations, roles, contact channels, relationship notes and tags, linked to tasks, projects and journal entries. |
-| **Shopping** | Lists, quantities, store groups, purchase ticks and undo, gift recipients from your contacts. |
+| **Start** | The first room: what needs attention now (`get_start`), today's tasks to tick off with undo, an inbox of suggestions and your automations. Safe suggestions are approved in groups of at most three, the rest wait under a review heading with the independent check's verdict, and every approval leaves a receipt with undo. |
+| **Work** | Agenda, status board, domains, processes, projects, tasks, steps and their actions; dates and times, priorities, tags, estimates, waiting-on and follow-ups, and repeating work (chosen weekdays, every other week, the last weekday of the month). Review cards in Claude go through many tasks one at a time. |
+| **Journal** | Several entries per day, manual writing and editing, entries and summaries written by Claude, tags, linked context, a day view and a Monday-to-Sunday week view, and photos on an entry or a day with their time, place and camera. |
+| **Contacts** | People, organisations, roles, contact channels, relationship notes and tags, linked to tasks, projects and journal entries; who you are waiting on and when they were last in the journal. |
+| **Shopping** | Lists, quantities with + and −, store groups, moving an item to another list, purchase ticks and undo, gift recipients from your contacts. |
+| **AI steps** | Hand a task to AI: Claude drafts a plan of steps for you and for AI, you approve it in the app, and the AI steps run within money caps and a limit of attempts, with each result for you to accept or redo. |
+| **Automations** | Recurring AI work that only proposes: you approve each automation's spec, its runs record suggestions, and nothing changes until you decide. Applying cleared suggestions without a click is off by default and needs a separate confirmation. |
+| **Ready conversations** | Standing prompts, such as a morning review, that Claude can offer on a schedule; an instruction you did not write yourself is shown as unverified text. |
 | **Control** | Trash and restore, recent changes, and controls for Sidekick's memory. Permanent deletion is not a public tool. |
 | **Memory** | Optional Hindsight memory derived from your records, with per-source switches, pause and per-record exclusion. |
-| **Android** | Pairing, a Today widget, Work, Journal and Shopping rooms, reminders over UnifiedPush (ntfy). |
+| **Android** | Pairing, Work, Journal and Shopping rooms (check off, add and edit tasks, write the journal, keep lists), a trash with undo, a Today widget, and reminders over UnifiedPush through your own hardened ntfy server, with ntfy.sh as a fallback. |
 
-The MCP apps' labels are Swedish by default (Arbete = Work, Dagbok = Journal, Inköp = Shopping, Minne och kontroll = Memory and control).
+On a wide screen the room strip names each room; on a phone the open room shows its icon and name, and the others an
+icon only.
+
+The MCP apps' labels are Swedish by default (Start = Start, Arbete = Work, Dagbok = Journal, Inköp = Shopping, Minne och kontroll = Memory and control).
 Set `SIDEKICK_MCP_APP_LOCALE=en` on the server for English. The Android app has its own language setting; see
 [Languages](docs/reference/languages.md#the-android-app).
 
@@ -71,12 +79,18 @@ The most effective way to use Sidekick is a conversation with Claude in voice mo
 
 Claude works through a curated set of MCP tools, so you ask in plain language and it picks the tool. The core tools per room (all of them are in the [MCP tool reference](docs/reference/mcp/index.md)):
 
-- **Overview:** `get_today_brief` for what matters today, `search` across your records, `list_recent_changes` for what changed.
+- **Start and overview:** `get_start` opens the Start room, `get_today_brief` for what matters today, `search` across your records, `list_recent_changes` for what changed.
 - **Work:** `get_work_agenda` and `get_work_board`, `list_tasks`, `create_task` and `update_task`, plus steps, projects and processes.
 - **Journal:** `write_journal_entry`, `get_journal_day` and `list_journal_entries`, and `set_daily_journal_summary` for a day's summary.
 - **Contacts:** `list_contacts`, `create_contact` and `get_contact_context`, with links to tasks and projects.
 - **Shopping:** `get_shopping_list`, `add_shopping_items` and `set_shopping_items_purchased`.
+- **AI steps:** `set_ai_plan` and `get_ai_plan`, `start_ai_step` and `review_ai_step_result`.
+- **Automations and suggestions:** `save_automation` drafts one, `start_automation_run` and `record_automation_results` run it, `list_suggestions` and `decide_suggestions` (at most three at a time, when you ask) handle what it found, and `undo_suggestion` takes an approval back.
 - **Control and memory:** `move_to_trash` and `restore_from_trash`, and `recall_memory` when the optional memory is on.
+
+Some decisions are yours alone: approving an AI plan, an automation or a group of safe suggestions happens in the room,
+not through a tool Claude can call. The app proves the decision to the server with a signed, single-use ticket that is valid
+for 15 minutes.
 
 ## What it looks like
 
@@ -109,7 +123,7 @@ There are two ways. Pick by where Claude will run.
 
 **2. Your own server, reachable from Claude on the web and phone.** You run Sidekick on a Linux x86_64 machine with Docker Compose, a VPS or an always-on home computer. This route needs a Claude plan that supports custom connectors, a public HTTPS address for the server (a domain, or a tunnel to it; LAN-only access is not enough) and a GitHub account (used to sign in). It is also the route for the Android app. Guide: [First start on a server](docs/start/self-hosted-server.md#first-start).
 
-Sidekick sends no telemetry or analytics; it only contacts the services you configure (GitHub sign-in, push, and the model provider for optional Hindsight memory).
+Sidekick sends no telemetry or analytics; it only contacts the services you configure (GitHub sign-in, push, and the model providers for optional Hindsight memory, AI steps and automations).
 
 ### More on the self-hosted server
 
@@ -118,8 +132,10 @@ Sidekick sends no telemetry or analytics; it only contacts the services you conf
   secrets, creates the owner and registers the GitHub sign-in before the first `up`. Profiles: `vps` (Caddy terminates TLS
   on your domain) or none (home: bring your own public HTTPS tunnel to `127.0.0.1:8000`).
 
-  Optional profiles: `memory` (private Hindsight), `backup` (encrypted owner exports) and `push` (reminders
-  through a hardened own ntfy). `update.sh` defaults to a dry run and verifies a digest-pinned, signed image before applying.
+  Optional profiles: `tailscale` (public HTTPS for a home machine through Tailscale Funnel), `memory` (private
+  Hindsight), `backup` (encrypted owner exports, with the journal photos), `push` (reminders through a hardened own
+  ntfy) and `ai` (runs approved AI steps on the server with your own Anthropic API key); see
+  [Compose profiles and files](docs/reference/selfhost-profiles.md). `update.sh` defaults to a dry run and verifies a digest-pinned, signed image before applying.
   Backups cover owner product data, not a full server image; keep an off-server copy. To connect Claude to
   the running server, see [Connect Claude](docs/operate/connect-claude.md); to pair the Android app, see
   [Android app](docs/operate/pair-android.md).

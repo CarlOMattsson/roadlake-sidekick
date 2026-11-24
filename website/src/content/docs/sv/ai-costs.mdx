@@ -26,6 +26,7 @@ import PageLink from '../../../components/PageLink.astro';
       items={[
         { state: 'yes', text: 'Sidekick i Claude via connectorn.' },
         { state: 'yes', text: 'AI-steg som din egen Claude Code kör, med din Claude-plan.' },
+        { state: 'yes', text: 'Automationer som din Claude eller Claude Code kör.' },
       ]}
     />
     <StatusList
@@ -34,6 +35,7 @@ import PageLink from '../../../components/PageLink.astro';
       items={[
         { state: 'no', text: 'AI-steg som din server kör (Kör).' },
         { state: 'no', text: 'Minnet (Hindsight), när det använder en modell via nyckel.' },
+        { state: 'no', text: 'Kontrollmodellen som granskar automationernas förslag, om du slår på den.' },
       ]}
     />
   </div>
@@ -57,7 +59,7 @@ import PageLink from '../../../components/PageLink.astro';
       <li>Körningar på en lokal modell kostar inget och kan hållas utanför pengagränserna.</li>
     </ul>
     <p>Servern räknar ut det mesta ett anrop kan kosta innan anropet görs, och vägrar det om det skulle passera en gräns. Sidekicks siffra är en uppskattning. Leverantörens faktura är det som gäller, så sätt också en gräns hos leverantören. Minnet har dessutom egna dagsgränser för hur mycket text som skickas.</p>
-    <p><b>Kommande, inte byggt än:</b> automationer och en kontrollmodell som granskar vad de föreslår. Automationer blir avstängda som förval och körs med en API-nyckel. Planerade gränser är ett eget tak på 15 USD per månad som förval (inom taket på 50 USD, justerbart), högst 1 USD per körning och högst 20 körningar per dag. Kontrollmodellens anrop räknas mot samma tak. Med en Anthropic-nyckel är Sonnet planerad förvald modell. Med OpenRouter rekommenderar vi en billig modell hos en betrodd värd.</p>
+    <p><b>Automationer</b> är avstängda tills du godkänner en. Din Claude eller Claude Code kör dem, så själva körningen ingår i abonnemanget. Kontrollmodellen som kan granska förslagen körs däremot på din server, med en API-nyckel eller en lokal modell, och är avstängd som förval. Dess anrop räknas mot gränserna för automationer: högst 1 USD per körning, ett eget tak på 15 USD per månad inom taket på 50 USD och högst 20 körningar per dag. Med OpenRouter rekommenderar vi en billig modell hos en betrodd värd.</p>
   </section>
   <section class="buyhow" aria-labelledby="h-or">
     <h2 id="h-or">Välj klokt med OpenRouter</h2>

@@ -26,6 +26,13 @@ Ny här? Börja med en av de här:
 | Dokument | Innehåll |
 | --- | --- |
 | [Samtalet och rummen](guide/README.sv.md) | Hur du arbetar med Sidekick genom Claude, och vad varje rum är till för. |
+| [Arbete](guide/work.sv.md) | Agenda, statustavla och projekt: skapa uppgifter, bocka av, byta datum och dela upp i steg. |
+| [Dagbok](guide/journal.sv.md) | En dag i taget med sammanfattning och inlägg: byta dag, skriva för hand och låta Claude skriva åt dig. |
+| [Kontakter](guide/contacts.sv.md) | Personer och organisationer i sitt sammanhang: söka, lägga till, ändra och koppla kontakter. |
+| [Inköp](guide/shopping.sv.md) | En lista grupperad per butik: lägga till varor, bocka av det du köpt, ångra och ändra antal. |
+| [Kontroll och minnet](guide/control-and-memory.sv.md) | Papperskorgen, historiken och Sidekicks minne. |
+| [Android-appen](guide/android-app.sv.md) | Vad appen gör och inte gör, och hur du kommer igång. |
+| [Idag-widgeten och påminnelserna](guide/today-widget.sv.md) | Dagens uppgifter på hemskärmen, och påminnelser via ntfy och UnifiedPush. |
 | [Vanliga frågor](faq.sv.md) | Korta svar om kostnad, integritet, nycklar och anslutningar. |
 
 ## Driva en server
@@ -37,6 +44,14 @@ Ny här? Börja med en av de här:
 | [Bygg, installera och para ihop Android](operate/pair-android.sv.md) | Installera den signerade APK:n från en release eller bygg appen ur källkoden, och koppla telefonen med en engångskod. |
 | [Uppdatera](operate/update.sv.md) | Uppdatera från källkoden eller till en signerad image. |
 | [Backup och återställning](operate/backup-and-restore.sv.md) | Krypterade backuper och att läsa tillbaka dem. |
+| [Slå på minnet](operate/memory.sv.md) | Profilen `memory`: ingenting härleds eller skickas förrän du slår på den. |
+| [Kör AI-steg](operate/ai-steps.sv.md) | Låt din egen Claude Code, eller din server med din egen Anthropic-nyckel, köra AI-stegen i en godkänd uppgift. |
+| [Påminnelser via ntfy](operate/push-reminders.sv.md) | Väckningar utan innehåll till telefonen, som själv hämtar det som ska visas. |
+| [Ange en licensnyckel](operate/license-key.sv.md) | I ett rum, i Android-appen eller från kommandoraden. |
+| [Töm papperskorgen](operate/empty-trash.sv.md) | Töm papperskorgen för gott med ett kommando, och vad som blir kvar ändå. |
+| [Flytta data mellan installationer](operate/move-data.sv.md) | Flytta dina poster från en installation av 0.1.0 till en annan. |
+| [Webhooks](operate/webhooks.sv.md) | Låt hem- eller telefonautomation lägga till en vara eller en uppgift genom en tokenskyddad adress. |
+| [Resursgränser och hemligheter](operate/limits-and-secrets.sv.md) | Varje containers minnes- och processgränser, och vilka inställningar varje container får. |
 | [Drift av jobbpaketet](operate/work-laptop/README.sv.md) | Nätverket, start vid inloggning, backup och uppdatering, modellservern och avinstallation. |
 
 ## Referens

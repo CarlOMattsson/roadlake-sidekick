@@ -26,6 +26,13 @@ New here? Start with one of these:
 | Document | What it covers |
 | --- | --- |
 | [The conversation and the rooms](guide/README.md) | How you work with Sidekick through Claude, and what each room is for. |
+| [Work](guide/work.md) | The agenda, the status board and projects: create tasks, check them off, change dates and split them into steps. |
+| [Journal](guide/journal.md) | One day at a time with a summary and entries: change day, write by hand and let Claude write for you. |
+| [Contacts](guide/contacts.md) | People and organisations in context: search, add, edit and link contacts. |
+| [Shopping](guide/shopping.md) | A list grouped by store: add items, tick off what you bought, undo and change quantities. |
+| [Control and memory](guide/control-and-memory.md) | The trash, the history and Sidekick's memory. |
+| [The Android app](guide/android-app.md) | What the app does and does not do, and how to get started. |
+| [The Today widget and reminders](guide/today-widget.md) | Today's tasks on the home screen, and reminders through ntfy and UnifiedPush. |
 | [Frequently asked questions](faq.md) | Short answers about cost, privacy, keys and connections. |
 
 ## Operate a server
@@ -37,6 +44,14 @@ New here? Start with one of these:
 | [Build, install and pair Android](operate/pair-android.md) | Install the signed APK from a release or build the app from source, and connect the phone with a one-time code. |
 | [Update](operate/update.md) | Update from source or to a signed image. |
 | [Backup and restore](operate/backup-and-restore.md) | Encrypted backups and reading them back. |
+| [Turn on memory](operate/memory.md) | The `memory` profile: nothing is derived or sent until you turn it on. |
+| [Run AI steps](operate/ai-steps.md) | Let your own Claude Code, or your server with your own Anthropic key, run the AI steps of an approved task. |
+| [Push reminders through ntfy](operate/push-reminders.md) | Wake-ups with no content to the phone, which fetches what to show by itself. |
+| [Enter a license key](operate/license-key.md) | In a room, in the Android app or from the command line. |
+| [Empty the trash](operate/empty-trash.md) | Empty the trash for good with one command, and what is kept anyway. |
+| [Move data between installations](operate/move-data.md) | Move your records from one 0.1.0 installation to another. |
+| [Webhooks](operate/webhooks.md) | Let home or phone automation add a shopping item or a task through a token-protected endpoint. |
+| [Resource limits and secrets](operate/limits-and-secrets.md) | The memory and process limits of each container, and the settings each one receives. |
 | [Operating the work package](operate/work-laptop/README.md) | The network, start at login, backup and update, the model server and uninstalling. |
 
 ## Reference
